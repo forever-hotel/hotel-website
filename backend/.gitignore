@@ -35,12 +35,9 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
+# Local environment files may contain credentials. Keep only the template in Git.
+.env*
+!.env.example
 
 # temp directory
 .temp

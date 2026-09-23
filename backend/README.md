@@ -1,98 +1,57 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Forever Hotel website backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS backend for the guest-facing hotel website. It currently connects to PostgreSQL and contains starter application code; booking and guest APIs are planned in the project issue backlog.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Requirements
 
-## Description
+- Node.js 20 or newer and npm
+- A PostgreSQL server and a database/user you can use for local development
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Local setup
 
-## Project setup
+Run these commands from the `backend` directory:
 
-```bash
-$ npm install
+```powershell
+npm ci
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-## Compile and run the project
+Edit **only** your local `.env` file. Set `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, and `DB_NAME` to your local PostgreSQL connection details. `DB_PORT` must be a numeric port, usually `5432`. `PORT` is optional and defaults to `3000`. Start PostgreSQL and ensure the named database exists before starting the app.
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+```powershell
+npm run start:dev
 ```
 
-## Run tests
+For Bash, use `test -f .env || cp .env.example .env` instead of the PowerShell copy command. This preserves existing local configuration. The `.env.example` values are placeholders, not usable credentials. Ask your team for local development access if you do not have a database user; never copy production credentials into this file.
 
-```bash
-# unit tests
-$ npm run test
+Successful startup logs `Nest application successfully started`. No controller is currently registered in `AppModule`, so a request to `/` returns 404; it is not a health endpoint.
 
-# e2e tests
-$ npm run test:e2e
+If startup reports `DB_* is not defined`, check that all five required variables are set and that you ran the command from `backend/`. Connection errors usually mean PostgreSQL is stopped, the host/port is incorrect, or the database/user has not been created. Authentication errors require checking your local database credentials. Do not share your `.env` or logs containing connection details when requesting help.
 
-# test coverage
-$ npm run test:cov
+## Checks
+
+```powershell
+npm run build
+npx eslint "{src,apps,libs,test}/**/*.ts"
+npx jest --runInBand
 ```
 
-## Deployment
+The direct ESLint command checks without editing files. On the backend setup branch, `npm run lint` still applies `--fix`; use the direct command until the CI lint change is merged. These checks do not need a database connection or real secrets.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+The starter `test:e2e` suite needs PostgreSQL and still expects a registered `/` endpoint. It does not currently provide a passing setup smoke test.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Configuration and secrets
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+- `backend/.env` and other `.env*` files are ignored by Git; `backend/.env.example` is the only tracked environment template. Check with `git check-ignore -v backend/.env` from the repository root.
+- Do not commit passwords, API keys, personal data, or payment details. Use environment variables or your team's approved secret store for non-local environments.
+- The current TypeORM setup has `synchronize: true` and `logging: true`. Use only a disposable local database until versioned migrations and production-safe logging are implemented. Do not point this starter backend at production data.
+
+From the repository root, verify the ignore rules before committing:
+
+```powershell
+git check-ignore -v backend/.env backend/.env.local backend/.env.production
+git ls-files -- backend/.env backend/.env.local backend/.env.production
+git status --short --untracked-files=all
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+The first command should list ignore rules for all three paths; the second should print nothing. The real environment files must not appear in status. `backend/.env.example` should remain available to commit. Never use `git add -f` on environment files, and review the staged diff locally before committing.
