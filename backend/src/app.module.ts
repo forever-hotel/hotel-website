@@ -23,7 +23,7 @@ import databaseConfig from './config/database.config';
         logging: true,
       }),
       inject: [ConfigService],
-    })
+    }),
   ],
 })
 export class AppModule {}
