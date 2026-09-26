@@ -1,25 +1,29 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER, APP_PIPE } from '@nestjs/core';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
-import { createValidationPipe } from './common/pipes/validation.pipe';
-import configuration from './config/configuration';
-import { DatabaseModule } from './database/database.module';
-import { HealthModule } from './health/health.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import databaseConfig from './config/database.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [configuration],
+      load: [databaseConfig],
     }),
-    DatabaseModule,
-    HealthModule,
-    // Feature modules (bookings, room-types, ...) are added here.
-  ],
-  providers: [
-    { provide: APP_FILTER, useClass: AllExceptionsFilter },
-    { provide: APP_PIPE, useFactory: createValidationPipe },
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get<string>('database.host'),
+        port: configService.get<number>('database.port'),
+        username: configService.get<string>('database.username'),
+        password: configService.get<string>('database.password'),
+        database: configService.get<string>('database.name'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: true,
+        logging: true,
+      }),
+      inject: [ConfigService],
+    })
   ],
 })
 export class AppModule {}
