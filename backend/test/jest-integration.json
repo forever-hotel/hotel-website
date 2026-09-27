@@ -1,10 +1,10 @@
 {
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
-  "roots": ["<rootDir>"],
+  "roots": ["<rootDir>/integration"],
   "testEnvironment": "node",
-  "testRegex": "e2e/.*\.e2e-spec\.ts$",
+  "testRegex": ".integration-spec.ts$",
   "transform": {
-    "^.+\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)s$": "ts-jest"
   }
 }
