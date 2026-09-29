@@ -7,6 +7,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Hotel website API contract draft covering rooms, availability, guest authentication, bookings, promotions and payments, with examples and a pending cross-team approval log. No business endpoints are implemented by this documentation change.
+
 - Global request validation (`class-validator`) with `400 VALIDATION_FAILED` errors that reject unknown properties.
 - TypeORM migrations (`migration:generate|create|run|revert|show`, `migration:run:prod`), with a per-service migrations table for the shared database.
 - `SERVICE_NAME` environment variable used in logs, `/health`, and the migrations table name.

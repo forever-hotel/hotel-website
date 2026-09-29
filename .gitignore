@@ -6,3 +6,9 @@ coverage/
 # Local environment files may contain secrets; keep placeholder templates.
 .env*
 !.env.example
+
+# Next.js generated files
+/frontend/.next/
+/frontend/out/
+/frontend/next-env.d.ts
+/frontend/*.tsbuildinfo

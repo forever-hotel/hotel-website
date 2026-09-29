@@ -6,6 +6,10 @@ The service currently provides the foundation: configuration, PostgreSQL connect
 
 ## Structure
 
+For planned guest and booking integrations, see the
+[API contract draft](../documents/api/hotel-website-contracts.md). Proposed routes
+and ownership require team approval; they are not implemented endpoints.
+
 The code follows the team-agreed backend structure: modules are grouped by business feature, not by client type.
 
 ```
