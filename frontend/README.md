@@ -17,6 +17,9 @@ decisions the source document still marks for team confirmation.
 
 ## Local setup
 
+For Docker builds and local container health checks, see the
+[container setup guide](../README.md#local-container-setup).
+
 Before adding API integrations, review the
 [hotel website API contract draft](../documents/api/hotel-website-contracts.md).
 Its route paths and session contract remain subject to cross-team approval.
