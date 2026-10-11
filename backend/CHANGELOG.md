@@ -7,6 +7,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Local Compose stack with private backend/database networking, frontend standalone image, container health verification workflow and deployment instructions (DDP-#07).
+
 - Hotel website API contract draft covering rooms, availability, guest authentication, bookings, promotions and payments, with examples and a pending cross-team approval log. No business endpoints are implemented by this documentation change.
 
 - Global request validation (`class-validator`) with `400 VALIDATION_FAILED` errors that reject unknown properties.
