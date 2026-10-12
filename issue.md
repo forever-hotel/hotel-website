@@ -343,6 +343,9 @@ Blocked by: DDP-#01
 
 ## [DDP-#07] build(deployment): containerize hotel frontend and backend
 
+Implementation: [container setup](README.md#local-container-setup).
+Status: configuration implemented; image builds and container smoke verification pending because the local Docker Linux engine was unavailable at implementation time. Keep this issue open until verification passes.
+
 **Assignee:** TBD  
 **Labels:** `epic:ci-cd`, `High`, `build`  
 **Sprint milestone:** Sprint 5  
@@ -361,19 +364,27 @@ As a developer, I want repeatable containers so that the website can run in team
 
 ### Acceptance Criteria
 
-**AC1 — Expected behaviour:** Given the Dockerfiles, when images are built, then frontend and backend images build successfully.
-
-**AC2 — Error or edge behaviour:** Given local configuration, when the containers start, then health checks pass without exposing backend or database publicly.
+- [ ] Given a clean checkout, both frontend and backend Docker images build.
+- [ ] Given local configuration, the frontend, backend and database become healthy.
+- [ ] Only frontend port 3001 is published, on loopback; backend/database remain private.
+- [ ] Both application containers run as non-root users.
+- [ ] Missing database credentials fail configuration validation.
+- [ ] A database outage returns backend 503 DATABASE_UNAVAILABLE.
+- [ ] Configuration and generated files are excluded from image build contexts.
 
 ### Technical Notes
 
-Coordinate Compose networking and gateway routes with infra. Use environment variables for secrets.
+Use the existing backend image and a Next.js standalone frontend image. Local
+Compose is a smoke environment with a separate PostgreSQL volume; shared gateway
+routes and production deployment remain with Infra. No production deployment or
+real external integration is included.
 
 ### Test Requirements
 
-- [ ] Build check: both images build; smoke check: services answer health requests.
-- [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
-- [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+- [ ] Attach successful image build and container CI results.
+- [ ] Attach healthy startup and database-outage results.
+- [ ] Verify private port bindings and non-root users.
+- [ ] Verify local setup documentation from a clean checkout.
 
 ### Definition of Done
 
@@ -383,6 +394,8 @@ Coordinate Compose networking and gateway routes with infra. Use environment var
 - [ ] PR targets `develop`, receives at least one peer approval, and resolves review comments
 - [ ] CI passes (build, lint, test); API docs updated if an endpoint changed
 - [ ] Commit messages link this GitHub issue
+
+Unit coverage is not applicable to container configuration; runtime behavior is verified through container smoke checks.
 
 ### Estimate
 
