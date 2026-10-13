@@ -13,9 +13,6 @@ const config: Config = {
     '!main.ts',
     '!**/*.spec.ts',
     '!**/interfaces/**',
-    // Exercised through the TypeORM CLI, not unit tests.
-    '!database/data-source.ts',
-    '!database/migrations/**',
   ],
   coverageDirectory: '../coverage',
   // Course quality gate: at least 80% coverage on code (SENG 34213 §6.4).

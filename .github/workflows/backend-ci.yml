@@ -35,3 +35,59 @@ jobs:
 
       - name: Run unit tests
         run: npm test -- --runInBand
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    # Disposable database, created from the team schema copy on every run.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: hotel_website
+          POSTGRES_PASSWORD: ci-throwaway-only
+          POSTGRES_DB: hotel_website
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hotel_website -d hotel_website"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      SERVICE_NAME: hotel-website
+      NODE_ENV: test
+      DB_HOST: localhost
+      DB_PORT: '5432'
+      DB_USERNAME: hotel_website
+      DB_PASSWORD: ci-throwaway-only
+      DB_NAME: hotel_website
+      DB_SSL: 'false'
+      DB_SYNCHRONIZE: 'false'
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Load the team schema
+        env:
+          PGPASSWORD: ci-throwaway-only
+        run: psql -v ON_ERROR_STOP=1 -h localhost -U hotel_website -d hotel_website -f ../database/infra-schema/01_forever_hotel_schema.sql
+
+      - name: Run integration tests
+        run: npm run test:integration

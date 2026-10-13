@@ -5,7 +5,9 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { createValidationPipe } from './common/pipes/validation.pipe';
 import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
+import { GuestsModule } from './guests/guests.module';
 import { HealthModule } from './health/health.module';
+import { RoomTypesModule } from './room-types/room-types.module';
 
 @Module({
   imports: [
@@ -15,7 +17,9 @@ import { HealthModule } from './health/health.module';
     }),
     DatabaseModule,
     HealthModule,
-    // Feature modules (bookings, room-types, ...) are added here.
+    GuestsModule,
+    RoomTypesModule,
+    // Further feature modules (bookings, payments, ...) are added here.
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

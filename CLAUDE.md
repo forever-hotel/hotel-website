@@ -37,7 +37,7 @@ Rashmika Nethsarani (SE/2021/017), Rasadhi Sanchala (SE/2021/021), Hiruni Ramana
 
 ## 2. Current state of the code
 
-The backend foundation follows the team-agreed structure (§9). No business feature modules exist yet.
+The backend foundation follows the team-agreed structure (§9). The guest and room data layer exists (DDP-#08): entities in `guests/entities/` and `room-types/entities/` mapped onto the infra schema, and `GuestRepository`, `RoomTypeRepository`, `RoomRepository` in `database/repositories/`. `src/database/entity-schema.spec.ts` fails if an entity column differs from `database/infra-schema/`. No API endpoints exist yet.
 
 ```
 hotel-website/
@@ -45,7 +45,7 @@ hotel-website/
 ├── .github/                # pull_request_template.md, ISSUE_TEMPLATE/ (course [DDP-#NN] format); CI workflow lives on feature/42-backend-ci
 ├── .gitignore              # ignores node_modules, dist, coverage, .env* (keeps .env.example)
 └── backend/                # NestJS 11 + TypeORM 0.3 + pg
-    ├── .env.example        # every variable documented (SERVICE_NAME, NODE_ENV, PORT, LOG_FORMAT, DB_*, DB_SSL, DB_SYNCHRONIZE, DB_LOGGING)
+    ├── .env.example        # every variable documented (SERVICE_NAME, NODE_ENV, PORT, LOG_FORMAT, LOG_LEVEL, DB_*, DB_SSL, DB_SYNCHRONIZE, DB_LOGGING)
     ├── Dockerfile, .dockerignore   # multi-stage Node 22 Alpine, prod deps only, non-root, HEALTHCHECK on /health
     ├── CHANGELOG.md        # keep [Unreleased] up to date (DoD)
     ├── jest.config.ts      # unit tests, 80% coverage threshold
@@ -53,7 +53,7 @@ hotel-website/
     │   ├── main.ts                      # early AppLogger from process env, then switches to validated config; listens on app.port
     │   ├── app.module.ts                # ConfigModule(load: configuration) + DatabaseModule + HealthModule; APP_FILTER AllExceptionsFilter, APP_PIPE validation
     │   ├── config/                      # constants.ts, env.validation.ts (fail-fast, never prints values), configuration.ts (typed app/database sections)
-    │   ├── database/                    # typeorm-options.ts (shared app/CLI options), database.module.ts, data-source.ts (migrations CLI), migrations/, repositories/, database.service.ts
+    │   ├── database/                    # database.module.ts (connection options), database.service.ts, repositories/; no migrations (tables owned by forever-hotel/infra)
     │   ├── common/                      # filters/all-exceptions.filter.ts ({error,message}, HTTP only), pipes/validation.pipe.ts (VALIDATION_FAILED), interfaces/, utils/app-logger.ts
     │   └── health/                      # GET /health -> 200 {status,service,database} | 503 DATABASE_UNAVAILABLE
     └── test/
@@ -66,7 +66,7 @@ Development database: **Neon** (free plan, Singapore). Use a `dev` branch, not `
 
 There is **no frontend yet**. The SDS specifies a Next.js frontend for HW. The team-agreed repository pattern puts it in `frontend/` next to `backend/` (§9); justify the combined repo in an ADR as the course requires.
 
-This foundation doubles as the team's backend template; the README explains how to reuse it for another subsystem. `SERVICE_NAME` (env) identifies the service in logs, `/health`, and its migrations table (`<service_name>_migrations`, because all subsystems share one database).
+This foundation doubles as the team's backend template; the README explains how to reuse it for another subsystem. `SERVICE_NAME` (env) identifies the service in logs and `/health`. The shared schema is owned by `forever-hotel/infra`; a read-only copy in `database/infra-schema/` is loaded into the local Compose and CI database on first start.
 
 Remaining foundation backlog:
 - Merge `feature/42-backend-ci` (build, lint, test) and extend it with `format:check`, `test:cov` plus a coverage artifact, integration tests against a `postgres:16` service, and `npm audit --audit-level=high`. Expected merge conflicts: `package.json`, `app.module.ts`, `main.ts` (keep the foundation versions) and `config/database.config.ts` (delete it).
@@ -85,7 +85,6 @@ npm run build
 npm test                        # unit tests (src/**/*.spec.ts)
 npm run test:cov                # coverage -> backend/coverage, fails below 80%
 npm run test:integration        # test/integration/*.integration-spec.ts, needs a real DB from .env
-npm run migration:generate -- src/database/migrations/<Name>   # also: migration:create | run | revert | show
 docker build -t hotel-website-backend .
 ```
 Code style: Prettier (`singleQuote`, `trailingComma: all`), ESLint flat config with `typescript-eslint` recommendedTypeChecked. The TypeScript target is ES2023 with `module: nodenext`, and `strictNullChecks` is on.
@@ -264,7 +263,8 @@ All PKs are UUIDs, except `Room.roomNumber`. Money is stored as an **INTEGER in 
   - **Money:** positive integer cents; reject decimals.
   - **Dates:** valid ISO 8601 UTC, check-in before check-out.
   - **Promo code:** see the PromotionCode rules above.
-- **SQL injection:** use only TypeORM parameterised queries or the query builder with parameters. No string-concatenated SQL.
+- **SQL injection:** use only the TypeORM QueryBuilder with bound parameters (`:name`). No string-concatenated SQL.
+- **One query style (team rule):** every repository query uses the TypeORM **QueryBuilder** (`repository.createQueryBuilder(...)`), including inserts, counts and simple lookups. Do not mix in `find`/`findOneBy`/`save`/`countBy` or raw `query()` in service code. Unit tests use the shared fake in `backend/test/unit/query-builder.mock.ts`.
 - **XSS:** rely on Next.js/JSX escaping, add a CSP header, and never use `dangerouslySetInnerHTML` with user input.
 - **PII:**
   - Guest name, email, and phone are encrypted at rest (pgcrypto AES-256-GCM, key in env).
@@ -408,7 +408,7 @@ backend/src/
 └── health/          # GET /health
 ```
 
-Put migrations under `database/migrations/`. Keep controllers thin and logic in services that depend on repository interfaces (SOLID and DIP), so unit tests can mock the repositories and the Stripe and SendGrid clients.
+This repo has no migrations: tables come from `forever-hotel/infra`, and entities must match them. Keep controllers thin and logic in services that depend on repository interfaces (SOLID and DIP), so unit tests can mock the repositories and the Stripe and SendGrid clients.
 
 **Auth split:** the gateway's `auth/` module validates JWTs and enforces roles. HW trusts the user context the gateway forwards (for example the `sub` and `role` headers or claims) and still checks **ownership**, so a guest can only reach their own bookings. HW still owns guest-specific business data (the Guest record and registration). Who *issues* the guest token at login is an open decision (§11).
 
@@ -550,13 +550,14 @@ Retrospectives go in `documents/retrospectives/`.
 
 Flag these to the team and supervisor. Do not resolve them unilaterally in code.
 
-1. **Database isolation.** The SDS (§1.1, §1.5.2) specifies **one shared PostgreSQL** with **subsystem table prefixes** (for example `hw_`), where each service writes only its own tables and cross-service reads are read-only. SRS SI-07 says **database-per-service schemas with no cross-service joins**. The SDS is newer; follow it unless an ADR says otherwise. Decide the prefix and schema convention and document it.
+1. ~~**Database isolation.**~~ **Decided (2026-10-11):** one shared PostgreSQL defined by the team schema `forever_hotel_corrected_full_schema.sql`, created and changed **only by migrations in `forever-hotel/infra`**. Subsystem-owned tables use a prefix (`mad_`, `fds_`, `foss_`, `kms_`, `wkms_`); shared core tables (`guests`, `room_types`, `room_type_images`, `room_type_amenities`, `rooms`, `staff_users`, `bookings`, `payments`, `audit_logs`) have none. See §13.8 and `documents/database/hotel-website-database-decisions.md`.
 2. **Who issues guest tokens.** The team agreed that JWT validation and RBAC live in the shared `api-gateway` repo, so HW must not add its own JWT guard. Still to agree: does guest **login** (credential check against the Guest table, lockout, token issuance) run in the gateway's `auth/` module or in an HW endpoint called by the gateway? Also agree how the gateway forwards user context (headers) to HW. Record the answer in an ADR.
 3. **Promotion data flow.** Should HW read MAD's promotion table directly (shared DB) or consume a RabbitMQ "promotion published/deactivated" event (SDS MAD-08 says "publish to Hotel Website via event bus")? It is also undecided which service increments redemption counts against `maxRedemptions`.
 4. **Nullable `Booking.guestId`.** The SRS says NOT NULL but notes it "may be null for walk-in". HW bookings always have a guest; confirm the rule with the FDS owner.
 5. **Encrypting email at rest vs a UNIQUE login lookup.** Column encryption breaks equality lookups. Use a deterministic hash or blind-index column for lookup and uniqueness, alongside the encrypted value.
 6. **Advance deposit amount** and the **cancellation and refund policy** (full or partial refund) are not defined. Get them from the client before implementing HW-11 and HW-14.
-7. **Missing Booking attributes:** `numberOfGuests`, `specialRequests`, `promoId`. **Missing RoomType attributes:** amenities, images. Promotion ↔ applicable room types needs a join table.
+7. **Schema gaps for the website** (requested from infra, not yet added): `bookings.hold_expires_at`, `version`, cancellation and refund fields, `subtotal`/`discount_amount`; `payments.payment_type`; tables for booking quotes, idempotency keys and processed Stripe events; lowercase email rule; `room_type_images.sort_order`/`alt_text`; an availability index. Full list in `documents/database/hotel-website-database-decisions.md` §5.
+12. **Who owns `bookings` and `payments`,** and Front Desk using the same booking lock as the website (§13.8).
 8. **Integration branch:** `develop` (per the course) vs `pre-develop` (present in the repo). The team currently merges into `pre-develop`.
 9. **Neon instead of Dockerised PostgreSQL for development** (§13.3). Write an ADR in the `documents` repo, and agree whether the other subsystems use the same Neon project and a table-prefix convention.
 10. **Default ports.** The Next.js frontend defaults to 3000, the same as this backend. Agree a port per service (for example backend 4000) before adding `frontend/`, and tell whoever owns the API Gateway and Docker Compose configuration.
@@ -570,7 +571,8 @@ Flag these to the team and supervisor. Do not resolve them unilaterally in code.
 - Don't commit or push unless asked. When committing, use Conventional Commits and branch per the naming rules; never commit to `main` or `develop` directly.
 - Never write real secrets. Update `.env.example` with placeholders whenever a new environment variable is needed.
 - Every new feature ships with unit tests, and every new endpoint with integration tests, meeting the coverage targets.
-- Don't enable `synchronize` on anything except a disposable local DB. New schema work goes through migrations.
+- Keep `DB_SYNCHRONIZE=false` everywhere, including local `.env` against the shared Neon database. This repo **does not create or change tables**: TypeORM entities must match the infra schema exactly, and new columns or tables are requested from `forever-hotel/infra` (§13.8).
+- Never create a booking or change booking dates without the room-type lock described in §13.8.
 - Keep PII and card data out of logs, events, fixtures, and test snapshots.
 - Follow the team-agreed backend structure (§9): feature modules, data access only in `database/repositories/`, no client-type folders, and no duplicated gateway auth.
 - Stay within HW scope. Changes that touch other subsystems' tables, events, or contracts must be raised as API-contract or ADR discussions.
@@ -597,7 +599,7 @@ Implemented in `backend/`, following §9:
 | Migrations | `database/data-source.ts`, `database/migrations/`, `npm run migration:*` | `data-source.ts` is used only by the TypeORM CLI. It loads `backend/.env` with `process.loadEnvFile` if present, which never overrides real environment variables (CI and Docker). Each service records migrations in its own table, `<service_name>_migrations` (for example `hotel_website_migrations`), because all subsystems share one database (SDS 1.5.2). |
 | Errors | `common/filters/all-exceptions.filter.ts`, `common/interfaces/error-response.interface.ts` | Every error becomes `{ "error": "CODE", "message": "..." }`. Custom codes come from `new XException({ error: 'CODE', message })`, otherwise from the HTTP status (`NOT_FOUND`). Unexpected errors return a generic 500 and are logged with their stack (OWASP A05). Only HTTP contexts get a response; other contexts (WebSocket, RabbitMQ) are logged and must use their own transport filter. |
 | Validation | `common/pipes/validation.pipe.ts` (registered as `APP_PIPE`) | `whitelist`, `forbidNonWhitelisted`, `transform`. Nested errors are prefixed with their path. Failures return `400 VALIDATION_FAILED`. Added `class-validator` and `class-transformer`. |
-| Logging | `common/utils/app-logger.ts`, `main.ts` | Extends Nest's `ConsoleLogger`. `LOG_FORMAT=json` prints one JSON object per line with `service`, `level`, `timestamp` and `context` (NFR-17, NFR-18). `main.ts` starts with a logger built from the process environment, so database retry messages print immediately, then switches to the validated configuration. |
+| Logging | `common/utils/app-logger.ts`, `main.ts` | Extends Nest's `ConsoleLogger`. `LOG_FORMAT=json` prints one JSON object per line with `service`, `level`, `timestamp` and `context` (NFR-17, NFR-18). `main.ts` starts with a logger built from the process environment, so database retry messages print immediately, then switches to the validated configuration. `LOG_LEVEL` (default `debug` in development, `warn` in test and production) sets the minimum level. Repositories log `verbose` (trace), `debug` (results), `log` (events), `warn` (expected failures) and `error` (unexpected failures, error class name only) and rethrow. |
 | Health | `health/health.controller.ts`, `health.module.ts` | `GET /health` returns `200 { status, service, database }` or `503 DATABASE_UNAVAILABLE`. Used by the Docker `HEALTHCHECK` and future CI/staging smoke tests. |
 | Service identity | `SERVICE_NAME` env var | Default `hotel-website`, lowercase kebab-case. Used in logs, `/health`, and the migrations table, so other subsystems reuse the template by editing `.env` only. |
 | Docker | `backend/Dockerfile`, `backend/.dockerignore` | Multi-stage Node 22 Alpine. Production dependencies only, runs as the `node` user, `HEALTHCHECK` on `/health`, never contains `.env`. Migrations in a container: `npm run migration:run:prod`. |
@@ -638,3 +640,13 @@ Implemented in `backend/`, following §9:
 - Shared by every subsystem: `config/`, `database/`, `common/`, `health/`, `main.ts`, `app.module.ts`, the test setup, `Dockerfile`, `.dockerignore`, lint and format config, `tsconfig*`, `.env.example`, and `.github/` templates. Not shared: feature folders, `.env`, `CHANGELOG.md` entries.
 - Per subsystem, change only `SERVICE_NAME` in `.env.example`, the default `PORT`, `name`/`description` in `package.json`, and the README introduction.
 - Suggested distribution: after review and merge, publish a `forever-hotel/backend-template` GitHub template repository ("Use this template"). A shared npm package is unnecessary for this project.
+
+### 13.8 Database decisions (2026-10-11)
+Recorded in full in `documents/database/hotel-website-database-decisions.md`.
+- **Shared schema:** the team's `forever_hotel_corrected_full_schema.sql` defines all tables. **Migrations belong to `forever-hotel/infra`.** This repo maps TypeORM entities onto existing tables and has no migrations: the foundation's `migration:*` scripts, `data-source.ts` and `<service>_migrations` table were removed. A read-only copy of the schema in `database/infra-schema/` creates the tables in the local Compose and CI database. `DB_SYNCHRONIZE` must be `false` (it was `true` in a local `.env` during setup).
+- **Guest accounts:** the website creates them, so this backend writes `guests` (registration, HW-06). Emails are stored lowercase.
+- **Room types:** a fixed list with no admin screen. It lives in `room_types`, `room_type_images` and `room_type_amenities`, inserted once as **seed data by an infra migration**. The website only reads it and must not copy the list into code. The hotel still needs to supply the real list (names, prices in LKR cents, max guests, amenities, images, room numbers per type).
+- **No double booking:** bookings are per room type, so each booking (and each date or type change) runs in one transaction that takes `pg_advisory_xact_lock(hashtextextended('booking:' || room_type_id, 0))`, counts rooms not `UNDER_MAINTENANCE`, subtracts overlapping `PENDING` (unexpired hold), `CONFIRMED` and `CHECKED_IN` bookings (check-in inclusive, check-out exclusive), and inserts only if a room is free; otherwise `409 ROOM_UNAVAILABLE`. No slow work (email, Stripe) inside the lock. Front Desk walk-ins and Booking.lk imports must use the same lock key (*needs Front Desk agreement*). Rejected for now: a per-night counter table, and booking an exact room with an exclusion constraint (the SRS assigns rooms at check-in).
+- **Known limit:** `rooms.status` is the room's current state, so maintenance cannot be planned by date yet.
+- **Next ticket (DDP-#08), revised:** add TypeORM entities for `guests`, `room_types`, `room_type_images`, `room_type_amenities` and `rooms` that match the infra schema exactly, plus tests. No table creation from this repo.
+

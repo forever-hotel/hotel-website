@@ -21,6 +21,7 @@ describe('validateEnv', () => {
       NODE_ENV: 'development',
       PORT: 3000,
       LOG_FORMAT: 'text',
+      LOG_LEVEL: 'debug',
       DB_HOST: 'localhost',
       DB_PORT: 5432,
       DB_USERNAME: 'hotel_user',
@@ -92,6 +93,40 @@ describe('validateEnv', () => {
 
     // Act & Assert
     expect(() => validateEnv(raw)).toThrow('DB_SSL must be "true" or "false"');
+  });
+
+  it.each([
+    ['development', 'debug'],
+    ['test', 'warn'],
+    ['production', 'warn'],
+  ])('should default LOG_LEVEL given NODE_ENV=%s', (nodeEnv, expectedLevel) => {
+    // Act
+    const env = validateEnv({ ...validEnv(), NODE_ENV: nodeEnv });
+
+    // Assert
+    expect(env.LOG_LEVEL).toBe(expectedLevel);
+  });
+
+  it('should use an explicit LOG_LEVEL given a valid value', () => {
+    // Act
+    const env = validateEnv({
+      ...validEnv(),
+      NODE_ENV: 'production',
+      LOG_LEVEL: 'verbose',
+    });
+
+    // Assert
+    expect(env.LOG_LEVEL).toBe('verbose');
+  });
+
+  it('should reject an unknown LOG_LEVEL value', () => {
+    // Arrange
+    const raw = { ...validEnv(), LOG_LEVEL: 'trace' };
+
+    // Act & Assert
+    expect(() => validateEnv(raw)).toThrow(
+      'LOG_LEVEL must be one of: verbose, debug, log, warn, error',
+    );
   });
 
   it('should reject unknown NODE_ENV and LOG_FORMAT values', () => {

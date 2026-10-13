@@ -2,25 +2,36 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { AppLogger } from './common/utils/app-logger';
+import { reportStartupFailure } from './common/utils/startup-failure';
 import { AppConfig } from './config/configuration';
-import { DEFAULT_SERVICE_NAME } from './config/constants';
+import { DEFAULT_SERVICE_NAME, LOG_LEVELS } from './config/constants';
 
 async function bootstrap(): Promise<void> {
   // Log immediately (e.g. database retry messages) using the process environment;
   // .env is not loaded yet, so local runs start with defaults in text format.
+  const earlyLevel = LOG_LEVELS.find(
+    (level) => level === process.env.LOG_LEVEL,
+  );
   const app = await NestFactory.create(AppModule, {
     logger: new AppLogger(
       process.env.LOG_FORMAT === 'json' ? 'json' : 'text',
       process.env.SERVICE_NAME ?? DEFAULT_SERVICE_NAME,
+      earlyLevel ?? 'log',
     ),
   });
   const appConfig = app.get(ConfigService).getOrThrow<AppConfig>('app');
 
   // Switch to the validated configuration once it is available.
-  app.useLogger(new AppLogger(appConfig.logFormat, appConfig.serviceName));
+  app.useLogger(
+    new AppLogger(
+      appConfig.logFormat,
+      appConfig.serviceName,
+      appConfig.logLevel,
+    ),
+  );
   app.enableShutdownHooks();
 
   await app.listen(appConfig.port);
 }
 
-void bootstrap();
+bootstrap().catch((error: unknown) => reportStartupFailure(error));

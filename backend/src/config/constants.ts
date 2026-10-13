@@ -1,6 +1,6 @@
 // Each subsystem sets SERVICE_NAME in its .env (e.g. front-desk, kitchen); this is the fallback.
 export const DEFAULT_SERVICE_NAME = 'hotel-website';
-// Lowercase kebab-case, used in logs and in the service's migrations table name.
+// Lowercase kebab-case, used in logs and the /health response.
 export const SERVICE_NAME_PATTERN = /^[a-z][a-z0-9-]{1,48}[a-z0-9]$/;
 
 export const DEFAULT_APP_PORT = 3000;
@@ -13,3 +13,14 @@ export type NodeEnvironment = (typeof NODE_ENVIRONMENTS)[number];
 
 export const LOG_FORMATS = ['text', 'json'] as const;
 export type LogFormat = (typeof LOG_FORMATS)[number];
+
+// Most detailed first; a level shows itself and every level after it.
+// verbose = trace detail, debug = developer detail, log = normal events (info).
+export const LOG_LEVELS = ['verbose', 'debug', 'log', 'warn', 'error'] as const;
+export type AppLogLevel = (typeof LOG_LEVELS)[number];
+// SDS Table 20: debug logs in development, warnings and errors in production.
+export const DEFAULT_LOG_LEVELS: Record<NodeEnvironment, AppLogLevel> = {
+  development: 'debug',
+  test: 'warn',
+  production: 'warn',
+};
