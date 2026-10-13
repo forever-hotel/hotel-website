@@ -1,8 +1,11 @@
 import {
+  AppLogLevel,
   DEFAULT_APP_PORT,
   DEFAULT_DB_PORT,
+  DEFAULT_LOG_LEVELS,
   DEFAULT_SERVICE_NAME,
   LOG_FORMATS,
+  LOG_LEVELS,
   LogFormat,
   NODE_ENVIRONMENTS,
   NodeEnvironment,
@@ -14,6 +17,7 @@ export interface EnvironmentVariables {
   NODE_ENV: NodeEnvironment;
   PORT: number;
   LOG_FORMAT: LogFormat;
+  LOG_LEVEL: AppLogLevel;
   DB_HOST: string;
   DB_PORT: number;
   DB_USERNAME: string;
@@ -106,6 +110,8 @@ export function validateEnv(raw: RawEnvironment): EnvironmentVariables {
     return value;
   };
 
+  const nodeEnv = readOneOf('NODE_ENV', NODE_ENVIRONMENTS, 'development');
+
   const env: EnvironmentVariables = {
     SERVICE_NAME: readMatching(
       'SERVICE_NAME',
@@ -113,9 +119,10 @@ export function validateEnv(raw: RawEnvironment): EnvironmentVariables {
       DEFAULT_SERVICE_NAME,
       'lowercase kebab-case (e.g. front-desk), 3-50 characters',
     ),
-    NODE_ENV: readOneOf('NODE_ENV', NODE_ENVIRONMENTS, 'development'),
+    NODE_ENV: nodeEnv,
     PORT: readPort('PORT', DEFAULT_APP_PORT),
     LOG_FORMAT: readOneOf('LOG_FORMAT', LOG_FORMATS, 'text'),
+    LOG_LEVEL: readOneOf('LOG_LEVEL', LOG_LEVELS, DEFAULT_LOG_LEVELS[nodeEnv]),
     DB_HOST: readRequired('DB_HOST'),
     DB_PORT: readPort('DB_PORT', DEFAULT_DB_PORT),
     DB_USERNAME: readRequired('DB_USERNAME'),

@@ -30,6 +30,7 @@ describe('configuration', () => {
         nodeEnv: 'development',
         port: 4000,
         logFormat: 'text',
+        logLevel: 'debug',
       },
       database: {
         host: 'ep-example.ap-southeast-1.aws.neon.tech',

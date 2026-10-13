@@ -1,4 +1,4 @@
-import { LogFormat, NodeEnvironment } from './constants';
+import { AppLogLevel, LogFormat, NodeEnvironment } from './constants';
 import { validateEnv } from './env.validation';
 
 export interface AppConfig {
@@ -6,6 +6,7 @@ export interface AppConfig {
   nodeEnv: NodeEnvironment;
   port: number;
   logFormat: LogFormat;
+  logLevel: AppLogLevel;
 }
 
 export interface DatabaseConfig {
@@ -33,6 +34,7 @@ export default function configuration(): Configuration {
       nodeEnv: env.NODE_ENV,
       port: env.PORT,
       logFormat: env.LOG_FORMAT,
+      logLevel: env.LOG_LEVEL,
     },
     database: {
       host: env.DB_HOST,

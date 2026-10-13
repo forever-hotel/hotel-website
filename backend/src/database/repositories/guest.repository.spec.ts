@@ -1,5 +1,10 @@
 import { QueryFailedError, Repository } from 'typeorm';
 import {
+  allLoggedText,
+  LoggerSpies,
+  spyOnLogger,
+} from '../../../test/unit/logger.spy';
+import {
   createQueryBuilderMock,
   QueryBuilderMock,
 } from '../../../test/unit/query-builder.mock';
@@ -11,6 +16,7 @@ describe('GuestRepository', () => {
   let queryBuilder: QueryBuilderMock;
   let createQueryBuilder: jest.Mock;
   let repository: GuestRepository;
+  let logs: LoggerSpies;
 
   const newGuest = {
     fullName: 'Nimali Perera',
@@ -19,11 +25,16 @@ describe('GuestRepository', () => {
   };
 
   beforeEach(() => {
+    logs = spyOnLogger();
     queryBuilder = createQueryBuilderMock();
     createQueryBuilder = jest.fn().mockReturnValue(queryBuilder);
     repository = new GuestRepository({
       createQueryBuilder,
     } as unknown as Repository<Guest>);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('create', () => {
@@ -61,6 +72,21 @@ describe('GuestRepository', () => {
       expect(guest.passwordHash).toBeUndefined();
     });
 
+    it('should log the new guest id without personal data given the insert succeeds', async () => {
+      // Arrange
+      queryBuilder.execute.mockResolvedValue({
+        generatedMaps: [{ guestId: 'guest-1' }],
+      });
+
+      // Act
+      await repository.create({ ...newGuest, phone: '+94771234567' });
+
+      // Assert
+      expect(logs.log).toHaveBeenCalledWith('Guest account created: guest-1');
+      const logged = allLoggedText(logs);
+      expect(logged).not.toMatch(/nimali|perera|94771234567|bcrypt-hash/i);
+    });
+
     it('should keep the phone number given one is provided', async () => {
       // Arrange
       queryBuilder.execute.mockResolvedValue({ generatedMaps: [{}] });
@@ -74,7 +100,7 @@ describe('GuestRepository', () => {
       );
     });
 
-    it('should throw EmailAlreadyRegisteredError given the email already exists', async () => {
+    it('should throw EmailAlreadyRegisteredError and warn given the email already exists', async () => {
       // Arrange
       queryBuilder.execute.mockRejectedValue(
         new QueryFailedError(
@@ -89,11 +115,15 @@ describe('GuestRepository', () => {
 
       // Assert
       await expect(result).rejects.toBeInstanceOf(EmailAlreadyRegisteredError);
+      expect(logs.warn).toHaveBeenCalledWith(
+        'Guest account not created: email already registered',
+      );
+      expect(logs.error).not.toHaveBeenCalled();
     });
 
-    it('should rethrow the original error given any other database failure', async () => {
+    it('should log the error name and rethrow given any other database failure', async () => {
       // Arrange
-      const failure = new Error('connection lost');
+      const failure = new Error('connect failed for nimali@example.com');
       queryBuilder.execute.mockRejectedValue(failure);
 
       // Act
@@ -101,37 +131,100 @@ describe('GuestRepository', () => {
 
       // Assert
       await expect(result).rejects.toBe(failure);
+      expect(logs.error).toHaveBeenCalledWith(
+        'Inserting guest account failed: Error',
+      );
+      expect(allLoggedText(logs)).not.toContain('nimali');
     });
   });
 
-  it('should search a normalised email with a bound parameter given findByEmail is called', async () => {
-    // Arrange
-    queryBuilder.getOne.mockResolvedValue(null);
+  describe('findByEmail', () => {
+    it('should search a normalised email with a bound parameter', async () => {
+      // Arrange
+      queryBuilder.getOne.mockResolvedValue(null);
 
-    // Act
-    const guest = await repository.findByEmail(' Nimali@Example.com');
+      // Act
+      const guest = await repository.findByEmail(' Nimali@Example.com');
 
-    // Assert
-    expect(guest).toBeNull();
-    expect(createQueryBuilder).toHaveBeenCalledWith('guest');
-    expect(queryBuilder.where).toHaveBeenCalledWith('guest.email = :email', {
-      email: 'nimali@example.com',
+      // Assert
+      expect(guest).toBeNull();
+      expect(createQueryBuilder).toHaveBeenCalledWith('guest');
+      expect(queryBuilder.where).toHaveBeenCalledWith('guest.email = :email', {
+        email: 'nimali@example.com',
+      });
+      expect(logs.debug).toHaveBeenCalledWith('No guest found for email');
+    });
+
+    it('should log only the guest id given a guest is found', async () => {
+      // Arrange
+      queryBuilder.getOne.mockResolvedValue({ guestId: 'guest-1' });
+
+      // Act
+      await repository.findByEmail('nimali@example.com');
+
+      // Assert
+      expect(logs.debug).toHaveBeenCalledWith('Guest found by email: guest-1');
+      expect(allLoggedText(logs)).not.toContain('nimali');
+    });
+
+    it('should log the error name and rethrow given the query fails', async () => {
+      // Arrange
+      const failure = new TypeError('broken');
+      queryBuilder.getOne.mockRejectedValue(failure);
+
+      // Act
+      const result = repository.findByEmail('nimali@example.com');
+
+      // Assert
+      await expect(result).rejects.toBe(failure);
+      expect(logs.error).toHaveBeenCalledWith(
+        'Finding guest by email failed: TypeError',
+      );
     });
   });
 
-  it('should search by guest id with a bound parameter given findById is called', async () => {
-    // Arrange
-    const stored = { guestId: 'guest-1' } as Guest;
-    queryBuilder.getOne.mockResolvedValue(stored);
+  describe('findById', () => {
+    it('should search by guest id with a bound parameter', async () => {
+      // Arrange
+      const stored = { guestId: 'guest-1' } as Guest;
+      queryBuilder.getOne.mockResolvedValue(stored);
 
-    // Act
-    const guest = await repository.findById('guest-1');
+      // Act
+      const guest = await repository.findById('guest-1');
 
-    // Assert
-    expect(guest).toBe(stored);
-    expect(queryBuilder.where).toHaveBeenCalledWith(
-      'guest.guestId = :guestId',
-      { guestId: 'guest-1' },
-    );
+      // Assert
+      expect(guest).toBe(stored);
+      expect(queryBuilder.where).toHaveBeenCalledWith(
+        'guest.guestId = :guestId',
+        { guestId: 'guest-1' },
+      );
+      expect(logs.debug).toHaveBeenCalledWith('Guest found: guest-1');
+    });
+
+    it('should log a debug message given no guest has the id', async () => {
+      // Arrange
+      queryBuilder.getOne.mockResolvedValue(null);
+
+      // Act
+      await repository.findById('guest-404');
+
+      // Assert
+      expect(logs.debug).toHaveBeenCalledWith('Guest not found: guest-404');
+    });
+
+    it('should log the error name and rethrow given the query fails', async () => {
+      // Arrange
+      const failure = new Error('broken');
+      queryBuilder.getOne.mockRejectedValue(failure);
+
+      // Act
+      const result = repository.findById('guest-1');
+
+      // Assert
+      await expect(result).rejects.toBe(failure);
+      expect(logs.error).toHaveBeenCalledWith(
+        'Finding guest guest-1 failed: Error',
+      );
+    });
   });
 });

@@ -56,6 +56,7 @@ Edit **only** your local `.env`. Every variable is explained in `.env.example`:
 | `NODE_ENV`                                         | no       | `development`   | `development`, `test` or `production`                                  |
 | `PORT`                                             | no       | `3000`          |                                                                        |
 | `LOG_FORMAT`                                       | no       | `text`          | `json` gives structured logs for staging and production                |
+| `LOG_LEVEL`                                        | no       | by `NODE_ENV`   | `verbose`, `debug`, `log`, `warn` or `error`; default `debug` in development, `warn` in test and production |
 
 ### Using Neon
 
@@ -137,6 +138,20 @@ docker run --rm -p 3000:3000 --env-file .env hotel-website-backend
 ```
 
 The image never contains `.env`; configuration is passed at runtime.
+
+## Logging
+
+Use Nest's `Logger` with the class name as context (`new Logger(GuestRepository.name)`), and pick the level by meaning:
+
+| Level | Use for | Example |
+| --- | --- | --- |
+| `verbose` | Step-by-step trace | `Inserting guest account` |
+| `debug` | Developer detail, results | `Loaded 4 room types` |
+| `log` | Normal business events | `Guest account created: <uuid>` |
+| `warn` | Expected failures worth noticing | `Guest account not created: email already registered` |
+| `error` | Unexpected failures | `Loading room types failed: QueryFailedError` |
+
+In repositories, wrap each query in `try/catch`: log what failed with `errorName(error)` (the class name only) and rethrow. The global exception filter logs the stack once and answers the client. Never log names, emails, phones, passwords, tokens or raw database messages; use UUIDs.
 
 ## Error responses
 

@@ -13,3 +13,14 @@ export type NodeEnvironment = (typeof NODE_ENVIRONMENTS)[number];
 
 export const LOG_FORMATS = ['text', 'json'] as const;
 export type LogFormat = (typeof LOG_FORMATS)[number];
+
+// Most detailed first; a level shows itself and every level after it.
+// verbose = trace detail, debug = developer detail, log = normal events (info).
+export const LOG_LEVELS = ['verbose', 'debug', 'log', 'warn', 'error'] as const;
+export type AppLogLevel = (typeof LOG_LEVELS)[number];
+// SDS Table 20: debug logs in development, warnings and errors in production.
+export const DEFAULT_LOG_LEVELS: Record<NodeEnvironment, AppLogLevel> = {
+  development: 'debug',
+  test: 'warn',
+  production: 'warn',
+};

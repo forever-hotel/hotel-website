@@ -9,6 +9,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Guest and room data layer (DDP-#08): TypeORM entities for `guests`, `room_types`, `room_type_images`, `room_type_amenities` and `rooms` that map onto the infra schema, and `GuestRepository`, `RoomTypeRepository` and `RoomRepository` in `database/repositories/`. Emails are stored lowercase, password hashes are never returned, and duplicate emails raise `EmailAlreadyRegisteredError`.
 - Unit test that fails when an entity column does not match the team schema copy.
+- `LOG_LEVEL` setting (`verbose`, `debug`, `log`, `warn`, `error`) with defaults per environment: `debug` in development, `warn` in test and production (SDS Table 20).
+- Repository logging: each query runs in `try/catch`, logs trace, debug, event, warning and error messages with UUIDs only, and rethrows; `errorName()` logs only the error class name.
+- Startup failures after the app is built (for example the port is already in use) are logged at `fatal` level through the shared logger and exit with code 1.
 - Team rule: every repository query uses the TypeORM QueryBuilder with bound parameters; shared QueryBuilder fake for unit tests (`test/unit/query-builder.mock.ts`).
 - Backend CI integration job: a `postgres:16` service loaded with the team schema runs `npm run test:integration`.
 
