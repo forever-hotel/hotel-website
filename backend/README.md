@@ -16,10 +16,12 @@ The code follows the team-agreed backend structure: modules are grouped by busin
 src/
 ├── main.ts / app.module.ts
 ├── config/     # configuration.ts, env.validation.ts (fails fast), constants.ts
-├── database/   # database.module.ts, database.service.ts, repositories/
+├── database/   # database.module.ts, database.service.ts, postgres-errors.ts, repositories/ (all data access)
 ├── common/     # filters/ (error body), pipes/ (validation), interfaces/, utils/ (JSON logger)
 ├── health/     # GET /health
-└── <feature>/  # bookings/, room-types/, ... (to be added)
+├── guests/     # Guest entity, errors (repository in database/repositories/)
+├── room-types/ # RoomType, RoomTypeImage, RoomTypeAmenity, Room entities
+└── <feature>/  # bookings/, payments/, ... (to be added)
 test/
 ├── integration/  # real PostgreSQL + Supertest
 └── e2e/
@@ -96,10 +98,12 @@ npm run format:check   # Prettier, check only (npm run format rewrites files)
 npm run build
 npm test               # unit tests (src/**/*.spec.ts)
 npm run test:cov       # unit tests + coverage; fails below 80%
-npm run test:integration  # needs a real database from .env (use your Neon dev branch)
+npm run test:integration  # needs a real database with the team schema (DB_* from .env or the shell)
 ```
 
 Unit tests follow Arrange-Act-Assert with `should ... given ...` names. Every new endpoint needs an integration test in `test/integration/`.
+
+Integration tests write real rows, using unique test values, and delete only what they created. Run them against a throwaway database created from `../database/infra-schema/` (CI does this automatically), not the shared Neon branches.
 
 ## Request validation
 
@@ -108,6 +112,8 @@ A global `ValidationPipe` validates every request body, query, and route paramet
 - Unknown properties are **rejected**, not silently kept (`whitelist` + `forbidNonWhitelisted`).
 - Payloads become DTO class instances, and parameters get their declared types (`transform`).
 - Failures return `400 { "error": "VALIDATION_FAILED", "message": "email must be an email; ..." }`.
+
+All data access lives in `src/database/repositories/` and uses one style: the TypeORM QueryBuilder with bound parameters, for example `.where('guest.email = :email', { email })`. Never build SQL by joining strings. Repository unit tests use the shared fake in `test/unit/query-builder.mock.ts`.
 
 Put DTOs in `<feature>/dto/`, for example `bookings/dto/create-booking.dto.ts`.
 

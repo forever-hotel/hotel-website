@@ -7,6 +7,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Guest and room data layer (DDP-#08): TypeORM entities for `guests`, `room_types`, `room_type_images`, `room_type_amenities` and `rooms` that map onto the infra schema, and `GuestRepository`, `RoomTypeRepository` and `RoomRepository` in `database/repositories/`. Emails are stored lowercase, password hashes are never returned, and duplicate emails raise `EmailAlreadyRegisteredError`.
+- Unit test that fails when an entity column does not match the team schema copy.
+- Team rule: every repository query uses the TypeORM QueryBuilder with bound parameters; shared QueryBuilder fake for unit tests (`test/unit/query-builder.mock.ts`).
+- Backend CI integration job: a `postgres:16` service loaded with the team schema runs `npm run test:integration`.
+
 - Local Compose database and container CI load a read-only copy of the team schema (`database/infra-schema/`) on first start; CI checks the shared tables exist.
 
 - Local Compose stack with private backend/database networking, frontend standalone image, container health verification workflow and deployment instructions (DDP-#07).

@@ -37,7 +37,7 @@ Rashmika Nethsarani (SE/2021/017), Rasadhi Sanchala (SE/2021/021), Hiruni Ramana
 
 ## 2. Current state of the code
 
-The backend foundation follows the team-agreed structure (§9). No business feature modules exist yet.
+The backend foundation follows the team-agreed structure (§9). The guest and room data layer exists (DDP-#08): entities in `guests/entities/` and `room-types/entities/` mapped onto the infra schema, and `GuestRepository`, `RoomTypeRepository`, `RoomRepository` in `database/repositories/`. `src/database/entity-schema.spec.ts` fails if an entity column differs from `database/infra-schema/`. No API endpoints exist yet.
 
 ```
 hotel-website/
@@ -263,7 +263,8 @@ All PKs are UUIDs, except `Room.roomNumber`. Money is stored as an **INTEGER in 
   - **Money:** positive integer cents; reject decimals.
   - **Dates:** valid ISO 8601 UTC, check-in before check-out.
   - **Promo code:** see the PromotionCode rules above.
-- **SQL injection:** use only TypeORM parameterised queries or the query builder with parameters. No string-concatenated SQL.
+- **SQL injection:** use only the TypeORM QueryBuilder with bound parameters (`:name`). No string-concatenated SQL.
+- **One query style (team rule):** every repository query uses the TypeORM **QueryBuilder** (`repository.createQueryBuilder(...)`), including inserts, counts and simple lookups. Do not mix in `find`/`findOneBy`/`save`/`countBy` or raw `query()` in service code. Unit tests use the shared fake in `backend/test/unit/query-builder.mock.ts`.
 - **XSS:** rely on Next.js/JSX escaping, add a CSP header, and never use `dangerouslySetInnerHTML` with user input.
 - **PII:**
   - Guest name, email, and phone are encrypted at rest (pgcrypto AES-256-GCM, key in env).
