@@ -407,7 +407,7 @@ Blocked by: DDP-#03, DDP-#04
 
 ---
 
-## [DDP-#08] build(data): add versioned guest and room schema migrations
+## [DDP-#08] feat(data): map guest and room entities onto the infra schema
 
 **Assignee:** TBD  
 **Labels:** `epic:data-layer`, `High`, `build`  
@@ -417,7 +417,7 @@ Blocked by: DDP-#03, DDP-#04
 
 ### User Story
 
-As a developer, I want controlled guest and room data tables so that account and room features have a reliable base.
+As a developer, I want TypeORM entities that match the shared guest and room tables so that account and room features have a reliable base.
 
 ### Background / Context
 
@@ -427,17 +427,17 @@ As a developer, I want controlled guest and room data tables so that account and
 
 ### Acceptance Criteria
 
-**AC1 — Expected behaviour:** Given an empty test database, when migrations run, then guest and room-related tables and constraints are created.
+**AC1 — Expected behaviour:** Given a database created from the infra schema, when the backend starts with `DB_SYNCHRONIZE=false`, then entities for `guests`, `room_types`, `room_type_images`, `room_type_amenities` and `rooms` load and can read and write rows without changing the schema.
 
-**AC2 — Error or edge behaviour:** Given a duplicate guest email or invalid room type reference, when data is inserted, then the database rejects it.
+**AC2 — Error or edge behaviour:** Given a duplicate guest email or invalid room type reference, when data is inserted through the repository, then the database rejects it and the error is mapped to a clear error code.
 
 ### Technical Notes
 
-Confirm table ownership and prefixes with other services before changing shared PostgreSQL schema. Use versioned migrations, not synchronize in production.
+Tables are created and changed only by migrations in `forever-hotel/infra`; this repository runs no migrations. Entity names, columns and types must match the infra schema exactly. Missing columns are requested from infra, not added here. See `documents/database/hotel-website-database-decisions.md`.
 
 ### Test Requirements
 
-- [ ] Migration test: clean apply; negative test: duplicate or invalid data rejected.
+- [ ] Integration test against the Compose/CI database loaded from `database/infra-schema/`: entities read and write; negative test: duplicate or invalid data rejected.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
 
@@ -1096,7 +1096,7 @@ Blocked by: DDP-#09, DDP-#10
 
 ---
 
-## [DDP-#21] feat(bookings): add booking and payment data migrations
+## [DDP-#21] feat(bookings): map booking and payment entities onto the infra schema
 
 **Assignee:** TBD  
 **Labels:** `epic:data-layer`, `High`, `feat`  
@@ -1116,17 +1116,17 @@ As a developer, I want booking and payment records so that reservations can be s
 
 ### Acceptance Criteria
 
-**AC1 — Expected behaviour:** Given a clean database, when migrations run, then booking and payment tables, relationships and statuses exist.
+**AC1 — Expected behaviour:** Given a database created from the infra schema, when the backend starts, then booking and payment entities load with their relationships and statuses, without changing the schema.
 
 **AC2 — Error or edge behaviour:** Given an invalid guest or room reference, when a booking is inserted, then the database rejects it.
 
 ### Technical Notes
 
-Confirm ownership with front desk and shared DB maintainers. Payment records store provider references, never card data.
+Confirm ownership with front desk and shared DB maintainers. Tables come from `forever-hotel/infra` migrations; this repository runs none. Payment records store provider references, never card data.
 
 ### Test Requirements
 
-- [ ] Migration: clean apply; negative: invalid foreign keys and status constraints.
+- [ ] Integration test against the infra-schema database: entities read and write; negative: invalid foreign keys and status constraints.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
 

@@ -17,8 +17,6 @@ export interface DatabaseConfig {
   ssl: boolean;
   synchronize: boolean;
   logging: boolean;
-  /** Per-service migrations table, because all subsystems share one database (SDS 1.5.2). */
-  migrationsTableName: string;
 }
 
 export interface Configuration {
@@ -45,7 +43,6 @@ export default function configuration(): Configuration {
       ssl: env.DB_SSL,
       synchronize: env.DB_SYNCHRONIZE,
       logging: env.DB_LOGGING,
-      migrationsTableName: `${env.SERVICE_NAME.replace(/-/g, '_')}_migrations`,
     },
   };
 }

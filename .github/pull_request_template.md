@@ -29,7 +29,7 @@ Closes #
 - [ ] Coverage on new code >= 80% (`npm run test:cov`)
 - [ ] No hardcoded secrets, credentials, or personal data (including in tests and logs)
 - [ ] New environment variables added to `.env.example` with placeholder values
-- [ ] Schema changes delivered as a migration (no `DB_SYNCHRONIZE` on shared databases)
+- [ ] No schema changes here: new tables or columns requested from `forever-hotel/infra` (`DB_SYNCHRONIZE=false`)
 - [ ] API documentation updated (if an endpoint was added or modified)
 - [ ] `CHANGELOG.md` updated under `[Unreleased]`
 - [ ] Commits follow Conventional Commits and reference the issue

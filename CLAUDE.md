@@ -53,7 +53,7 @@ hotel-website/
     │   ├── main.ts                      # early AppLogger from process env, then switches to validated config; listens on app.port
     │   ├── app.module.ts                # ConfigModule(load: configuration) + DatabaseModule + HealthModule; APP_FILTER AllExceptionsFilter, APP_PIPE validation
     │   ├── config/                      # constants.ts, env.validation.ts (fail-fast, never prints values), configuration.ts (typed app/database sections)
-    │   ├── database/                    # typeorm-options.ts (shared app/CLI options), database.module.ts, data-source.ts (migrations CLI), migrations/, repositories/, database.service.ts
+    │   ├── database/                    # database.module.ts (connection options), database.service.ts, repositories/; no migrations (tables owned by forever-hotel/infra)
     │   ├── common/                      # filters/all-exceptions.filter.ts ({error,message}, HTTP only), pipes/validation.pipe.ts (VALIDATION_FAILED), interfaces/, utils/app-logger.ts
     │   └── health/                      # GET /health -> 200 {status,service,database} | 503 DATABASE_UNAVAILABLE
     └── test/
@@ -66,7 +66,7 @@ Development database: **Neon** (free plan, Singapore). Use a `dev` branch, not `
 
 There is **no frontend yet**. The SDS specifies a Next.js frontend for HW. The team-agreed repository pattern puts it in `frontend/` next to `backend/` (§9); justify the combined repo in an ADR as the course requires.
 
-This foundation doubles as the team's backend template; the README explains how to reuse it for another subsystem. `SERVICE_NAME` (env) identifies the service in logs, `/health`, and its migrations table (`<service_name>_migrations`, because all subsystems share one database).
+This foundation doubles as the team's backend template; the README explains how to reuse it for another subsystem. `SERVICE_NAME` (env) identifies the service in logs and `/health`. The shared schema is owned by `forever-hotel/infra`; a read-only copy in `database/infra-schema/` is loaded into the local Compose and CI database on first start.
 
 Remaining foundation backlog:
 - Merge `feature/42-backend-ci` (build, lint, test) and extend it with `format:check`, `test:cov` plus a coverage artifact, integration tests against a `postgres:16` service, and `npm audit --audit-level=high`. Expected merge conflicts: `package.json`, `app.module.ts`, `main.ts` (keep the foundation versions) and `config/database.config.ts` (delete it).
@@ -85,7 +85,6 @@ npm run build
 npm test                        # unit tests (src/**/*.spec.ts)
 npm run test:cov                # coverage -> backend/coverage, fails below 80%
 npm run test:integration        # test/integration/*.integration-spec.ts, needs a real DB from .env
-npm run migration:generate -- src/database/migrations/<Name>   # also: migration:create | run | revert | show
 docker build -t hotel-website-backend .
 ```
 Code style: Prettier (`singleQuote`, `trailingComma: all`), ESLint flat config with `typescript-eslint` recommendedTypeChecked. The TypeScript target is ES2023 with `module: nodenext`, and `strictNullChecks` is on.
@@ -408,7 +407,7 @@ backend/src/
 └── health/          # GET /health
 ```
 
-Put migrations under `database/migrations/`. Keep controllers thin and logic in services that depend on repository interfaces (SOLID and DIP), so unit tests can mock the repositories and the Stripe and SendGrid clients.
+This repo has no migrations: tables come from `forever-hotel/infra`, and entities must match them. Keep controllers thin and logic in services that depend on repository interfaces (SOLID and DIP), so unit tests can mock the repositories and the Stripe and SendGrid clients.
 
 **Auth split:** the gateway's `auth/` module validates JWTs and enforces roles. HW trusts the user context the gateway forwards (for example the `sub` and `role` headers or claims) and still checks **ownership**, so a guest can only reach their own bookings. HW still owns guest-specific business data (the Guest record and registration). Who *issues* the guest token at login is an open decision (§11).
 
@@ -643,7 +642,7 @@ Implemented in `backend/`, following §9:
 
 ### 13.8 Database decisions (2026-10-11)
 Recorded in full in `documents/database/hotel-website-database-decisions.md`.
-- **Shared schema:** the team's `forever_hotel_corrected_full_schema.sql` defines all tables. **Migrations belong to `forever-hotel/infra`.** This repo maps TypeORM entities onto existing tables and never runs migrations against the shared database, so the foundation's `migration:*` scripts and the `<service>_migrations` table are not used for shared tables. `DB_SYNCHRONIZE` must be `false` (it was `true` in a local `.env` during setup).
+- **Shared schema:** the team's `forever_hotel_corrected_full_schema.sql` defines all tables. **Migrations belong to `forever-hotel/infra`.** This repo maps TypeORM entities onto existing tables and has no migrations: the foundation's `migration:*` scripts, `data-source.ts` and `<service>_migrations` table were removed. A read-only copy of the schema in `database/infra-schema/` creates the tables in the local Compose and CI database. `DB_SYNCHRONIZE` must be `false` (it was `true` in a local `.env` during setup).
 - **Guest accounts:** the website creates them, so this backend writes `guests` (registration, HW-06). Emails are stored lowercase.
 - **Room types:** a fixed list with no admin screen. It lives in `room_types`, `room_type_images` and `room_type_amenities`, inserted once as **seed data by an infra migration**. The website only reads it and must not copy the list into code. The hotel still needs to supply the real list (names, prices in LKR cents, max guests, amenities, images, room numbers per type).
 - **No double booking:** bookings are per room type, so each booking (and each date or type change) runs in one transaction that takes `pg_advisory_xact_lock(hashtextextended('booking:' || room_type_id, 0))`, counts rooms not `UNDER_MAINTENANCE`, subtracts overlapping `PENDING` (unexpired hold), `CONFIRMED` and `CHECKED_IN` bookings (check-in inclusive, check-out exclusive), and inserts only if a room is free; otherwise `409 ROOM_UNAVAILABLE`. No slow work (email, Stripe) inside the lock. Front Desk walk-ins and Booking.lk imports must use the same lock key (*needs Front Desk agreement*). Rejected for now: a per-night counter table, and booking an exact room with an exclusion constraint (the SRS assigns rooms at check-in).

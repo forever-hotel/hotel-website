@@ -32,5 +32,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:' + (process.env.PORT || 3000) + '/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
 # Configuration comes from environment variables (docker compose env_file / secrets), never from a baked-in .env.
-# Apply migrations before starting a new version: docker compose run --rm <service> npm run migration:run:prod
 CMD ["node", "dist/main.js"]

@@ -7,13 +7,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Local Compose database and container CI load a read-only copy of the team schema (`database/infra-schema/`) on first start; CI checks the shared tables exist.
+
 - Local Compose stack with private backend/database networking, frontend standalone image, container health verification workflow and deployment instructions (DDP-#07).
 
 - Hotel website API contract draft covering rooms, availability, guest authentication, bookings, promotions and payments, with examples and a pending cross-team approval log. No business endpoints are implemented by this documentation change.
 
 - Global request validation (`class-validator`) with `400 VALIDATION_FAILED` errors that reject unknown properties.
-- TypeORM migrations (`migration:generate|create|run|revert|show`, `migration:run:prod`), with a per-service migrations table for the shared database.
-- `SERVICE_NAME` environment variable used in logs, `/health`, and the migrations table name.
+- `SERVICE_NAME` environment variable used in logs and `/health`.
 - Multi-stage `Dockerfile` (Node 22 Alpine, non-root, health check) and `.dockerignore`.
 - GitHub pull request and issue templates in the SENG 34213 format.
 - `engines.node >= 20.12` in `package.json`.
@@ -29,7 +30,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Changed
 
 - The exception filter answers only HTTP requests; other contexts are logged and left to their own transport filters.
-- Database connection options are shared between the app and the migrations CLI (`typeorm-options.ts`).
+- Tables are owned by `forever-hotel/infra` migrations. Removed this repo's migration scripts, `data-source.ts`, `typeorm-options.ts` and `src/database/migrations/`; connection options live in `database.module.ts`.
 - Startup logs print immediately, and stuck database connections time out after 10 seconds.
 - `npm run lint` now only checks and no longer rewrites files. Use `npm run lint:fix` to apply fixes.
 - `DB_SYNCHRONIZE` and `DB_LOGGING` are now configurable and default to `false`. Synchronize is rejected in production.
