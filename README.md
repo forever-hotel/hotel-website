@@ -84,16 +84,27 @@ docker compose up --detach --wait --wait-timeout 180
 The backend image health check eventually becomes unhealthy during an outage;
 the HTTP check should return 503. Restarting the stack restores the database.
 
-### Migrations, persistence and stopping
+### Database tables, persistence and stopping
 
-Schema synchronization stays disabled, including in this local production-mode
-container. Once migrations are introduced, apply reviewed migrations after the
-database starts and before serving the new backend version:
+Tables are owned by migrations in `forever-hotel/infra`; this repository never
+creates or changes them, and schema synchronization stays disabled. For the
+local stack, Compose mounts a read-only copy of the team schema
+([`database/infra-schema/`](database/infra-schema/)) into PostgreSQL's
+`/docker-entrypoint-initdb.d`, so the tables are created automatically the
+**first** time the database starts with an empty volume.
+
+PostgreSQL runs these files only on an empty volume. After the schema copy is
+refreshed, recreate the local database (this deletes its data):
 
 ```powershell
-docker compose up --detach --wait database
-docker compose run --rm --no-deps backend npm run migration:run:prod
-docker compose up --detach --wait
+docker compose down --volumes
+docker compose up --build --detach --wait --wait-timeout 180
+```
+
+Check that the tables exist:
+
+```powershell
+docker compose exec database psql -U hotel_website -d hotel_website -c "\dt"
 ```
 
 PostgreSQL data persists in the named `database-data` volume. Changing the root

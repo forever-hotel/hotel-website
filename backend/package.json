@@ -20,14 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json --passWithNoTests",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
-    "test:integration": "jest --config ./test/jest-integration.json --runInBand",
-    "typeorm": "typeorm-ts-node-commonjs -d src/database/data-source.ts",
-    "migration:create": "typeorm-ts-node-commonjs migration:create",
-    "migration:generate": "npm run typeorm -- migration:generate",
-    "migration:run": "npm run typeorm -- migration:run",
-    "migration:revert": "npm run typeorm -- migration:revert",
-    "migration:show": "npm run typeorm -- migration:show",
-    "migration:run:prod": "typeorm -d dist/database/data-source.js migration:run"
+    "test:integration": "jest --config ./test/jest-integration.json --runInBand"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

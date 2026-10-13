@@ -2,7 +2,7 @@
 
 NestJS backend for the **Hotel Website (HW)** subsystem of the Forever Hotel management system: the guest-facing site for room browsing, booking, and guest self-service. See the [repository CLAUDE.md](../CLAUDE.md) for requirements, architecture, and team standards.
 
-The service currently provides the foundation: configuration, PostgreSQL connection, request validation, migrations, error handling, structured logging, a health endpoint, and a Docker image. Booking and guest APIs are planned in the project issue backlog. This foundation is also the team's backend template (see [Reusing this as a template](#reusing-this-as-a-template-for-another-subsystem)).
+The service currently provides the foundation: configuration, PostgreSQL connection, request validation, error handling, structured logging, a health endpoint, and a Docker image. Booking and guest APIs are planned in the project issue backlog. This foundation is also the team's backend template (see [Reusing this as a template](#reusing-this-as-a-template-for-another-subsystem)).
 
 ## Structure
 
@@ -16,7 +16,7 @@ The code follows the team-agreed backend structure: modules are grouped by busin
 src/
 ├── main.ts / app.module.ts
 ├── config/     # configuration.ts, env.validation.ts (fails fast), constants.ts
-├── database/   # database.module.ts, typeorm-options.ts, data-source.ts (CLI), migrations/, repositories/
+├── database/   # database.module.ts, database.service.ts, repositories/
 ├── common/     # filters/ (error body), pipes/ (validation), interfaces/, utils/ (JSON logger)
 ├── health/     # GET /health
 └── <feature>/  # bookings/, room-types/, ... (to be added)
@@ -50,7 +50,7 @@ Edit **only** your local `.env`. Every variable is explained in `.env.example`:
 | `DB_SSL`                                           | no       | `false`         | Set to `true` for Neon; the server certificate is verified             |
 | `DB_SYNCHRONIZE`                                   | no       | `false`         | Only on a disposable dev database; rejected when `NODE_ENV=production` |
 | `DB_LOGGING`                                       | no       | `false`         | Prints SQL queries                                                     |
-| `SERVICE_NAME`                                     | no       | `hotel-website` | Lowercase kebab-case; appears in logs and names the migrations table   |
+| `SERVICE_NAME`                                     | no       | `hotel-website` | Lowercase kebab-case; appears in logs and the `/health` response       |
 | `NODE_ENV`                                         | no       | `development`   | `development`, `test` or `production`                                  |
 | `PORT`                                             | no       | `3000`          |                                                                        |
 | `LOG_FORMAT`                                       | no       | `text`          | `json` gives structured logs for staging and production                |
@@ -58,7 +58,7 @@ Edit **only** your local `.env`. Every variable is explained in `.env.example`:
 ### Using Neon
 
 1. In the Neon console, select your **dev** branch (not `production`) and click **Connect**.
-2. Turn **off** "Connection pooling". The app keeps its own connection pool, and migrations need a direct connection.
+2. Turn **off** "Connection pooling". The app keeps its own connection pool and needs a direct connection.
 3. Copy the host, database, role, and password into `.env`, then set `DB_SSL=true`.
 
 The connection string has the form `postgresql://<DB_USERNAME>:<DB_PASSWORD>@<DB_HOST>/<DB_NAME>?sslmode=require`.
@@ -111,19 +111,15 @@ A global `ValidationPipe` validates every request body, query, and route paramet
 
 Put DTOs in `<feature>/dto/`, for example `bookings/dto/create-booking.dto.ts`.
 
-## Database migrations
+## Database tables
 
-Schema changes go through versioned migrations (NFR-16). All subsystems share one database, so each service records its migrations in its own table (`<service_name>_migrations`, for example `hotel_website_migrations`). Migration files live in `src/database/migrations/`.
+All subsystems share one PostgreSQL database. Its tables are created and changed **only by migrations in the `forever-hotel/infra` repository** (NFR-16). This service never creates or alters tables:
 
-```powershell
-npm run migration:generate -- src/database/migrations/CreateBookings   # diff entities against the DB
-npm run migration:create -- src/database/migrations/SeedRoomTypes      # empty migration to write by hand
-npm run migration:run      # apply pending migrations
-npm run migration:revert   # undo the last migration
-npm run migration:show     # list applied and pending migrations
-```
+- TypeORM entities must match the infra tables exactly (names, columns, types).
+- Keep `DB_SYNCHRONIZE=false`, including in your local `.env` against the team Neon database.
+- Need a new column or table? Ask for it in `forever-hotel/infra`, then update the entities here.
 
-These commands use `src/database/data-source.ts`, which reads the same `.env` as the app. Review every generated migration before committing it. On a shared branch (the team Neon `dev` or `production` branch), keep `DB_SYNCHRONIZE=false` and use migrations only.
+For the local Docker Compose database, a read-only copy of the team schema in [`../database/infra-schema/`](../database/infra-schema/) is loaded automatically the first time the database starts (see the root README).
 
 ## Docker
 
@@ -134,7 +130,7 @@ docker build -t hotel-website-backend .
 docker run --rm -p 3000:3000 --env-file .env hotel-website-backend
 ```
 
-The image never contains `.env`; configuration is passed at runtime. To apply migrations inside the container, run `npm run migration:run:prod`.
+The image never contains `.env`; configuration is passed at runtime.
 
 ## Error responses
 
@@ -150,7 +146,7 @@ To return a specific code, throw a Nest HTTP exception with a code-style `error`
 
 - `backend/.env` and other `.env*` files are ignored by Git; `backend/.env.example` is the only tracked template. Add every new variable to it with a placeholder value.
 - Never commit passwords, API keys, personal data, or payment details. Use GitHub Secrets in CI.
-- `DB_SYNCHRONIZE` is `false` by default. Schema changes for shared databases must use versioned migrations (NFR-16).
+- `DB_SYNCHRONIZE` is `false` by default. Schema changes go through `forever-hotel/infra` migrations (NFR-16).
 
 From the repository root, verify the ignore rules before committing:
 

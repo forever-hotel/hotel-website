@@ -25,6 +25,12 @@ jobs:
         run: docker compose config --quiet
       - name: Build and wait for healthy containers
         run: docker compose up --build --detach --wait --wait-timeout 180
+      - name: Verify infra schema loaded
+        shell: bash
+        run: |
+          missing=$(docker compose exec -T database psql -U hotel_website -d hotel_website -tA -c \
+            "select t from unnest(array['guests','room_types','room_type_images','room_type_amenities','rooms','bookings','payments','mad_promotion_codes','mad_promotion_room_types']) t where to_regclass('public.' || t) is null")
+          if [ -n "$missing" ]; then echo "Missing tables: $missing"; exit 1; fi
       - name: Verify frontend and private backend
         shell: bash
         run: |

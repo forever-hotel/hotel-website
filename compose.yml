@@ -39,6 +39,8 @@ services:
       POSTGRES_DB: hotel_website
     volumes:
       - database-data:/var/lib/postgresql/data
+      # Team schema copy from forever-hotel/infra; runs only on an empty volume.
+      - ./database/infra-schema:/docker-entrypoint-initdb.d:ro
     networks:
       - private
     healthcheck:

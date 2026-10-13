@@ -40,7 +40,6 @@ describe('configuration', () => {
         ssl: true,
         synchronize: false,
         logging: false,
-        migrationsTableName: 'front_desk_migrations',
       },
     });
   });

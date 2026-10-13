@@ -126,7 +126,7 @@ export function validateEnv(raw: RawEnvironment): EnvironmentVariables {
     DB_LOGGING: readBoolean('DB_LOGGING', false),
   };
 
-  // Schema changes in shared environments must go through migrations (NFR-16).
+  // The shared schema is owned by forever-hotel/infra migrations (NFR-16).
   if (env.NODE_ENV === 'production' && env.DB_SYNCHRONIZE) {
     errors.push('DB_SYNCHRONIZE must not be true when NODE_ENV is production');
   }
