@@ -19,7 +19,7 @@ Traceability: draft SRS HW-01, HW-03, HW-05–HW-14 and CI-01; SDS §§1.1, 1.4.
 these references need verification against the approved documents. SDS flow
 labels must not be confused with SRS requirement identifiers.
 
-The current backend registers only `GET /health`. Its
+The current backend registers `GET /health` and `POST /guests/register` (G1). Its
 [error interface](../../backend/src/common/interfaces/error-response.interface.ts),
 [exception filter](../../backend/src/common/filters/all-exceptions.filter.ts) and
 [validation pipe](../../backend/src/common/pipes/validation.pipe.ts) already define
@@ -35,7 +35,7 @@ integration work starts. No approval is implied by this document.
 | Area                                                 | Proposed accountable team             | Required reviewers                | Named owner | Approval evidence |
 | ---------------------------------------------------- | ------------------------------------- | --------------------------------- | ----------- | ----------------- |
 | Public routes, version prefix, rate limits           | API Gateway                           | Website frontend/backend          | TBD         | Pending           |
-| Registration, login, session and logout              | Gateway/Auth                          | Website backend; guest data owner | TBD         | Pending           |
+| Registration, login, session and logout              | Website backend (decided 2026-10-14: auth per service) | Team; guest data owner | Rashmika | Team decision; ADR pending |
 | Room catalogue and prices                            | Website backend, ownership to confirm | Front Desk                        | TBD         | Pending           |
 | Availability, maintenance and inventory reservations | Front Desk, ownership to confirm      | Website backend                   | TBD         | Pending           |
 | Quotes, website bookings and self-service            | Website backend                       | Front Desk; website frontend      | TBD         | Pending           |
@@ -104,7 +104,7 @@ a separately agreed change to the shared filter and interface.
 | 403    | FORBIDDEN                                                              | Wrong role or another guest's record                                       |
 | 403    | CSRF_FAILED                                                            | Proposed mutation protection failure                                       |
 | 404    | ROOM_TYPE_NOT_FOUND / BOOKING_NOT_FOUND                                | Requested resource does not exist                                          |
-| 409    | EMAIL_ALREADY_REGISTERED                                               | Proposed registration conflict; enumeration policy needs auth review       |
+| 409    | EMAIL_ALREADY_REGISTERED                                               | Email already has an account (decided: clear message, DDP-#09)             |
 | 409    | ROOM_UNAVAILABLE                                                       | Inventory changed before reservation or confirmation                       |
 | 409    | QUOTE_EXPIRED / PRICE_CHANGED                                          | Obtain and review a fresh quote                                            |
 | 409    | BOOKING_NOT_PAYABLE                                                    | Booking is already paid, cancelled or its hold expired                     |
@@ -132,7 +132,7 @@ session. All error examples use the shared body and an explicit HTTP status.
 | R2  | GET /room-types/{roomTypeId}                                                 | Public | Website / Front Desk        | 200 room detail              | 404 ROOM_TYPE_NOT_FOUND        |
 | A1  | GET /availability?roomTypeId=…&checkInDate=…&checkOutDate=…&numberOfGuests=2 | Public | Front Desk / Website        | 200 availability             | 400 VALIDATION_FAILED          |
 | A2  | GET /room-types/{roomTypeId}/availability-calendar?from=…&to=…               | Public | Front Desk / Website        | 200 daily counts             | 404 ROOM_TYPE_NOT_FOUND        |
-| G1  | POST /auth/guests/register                                                   | Public | Gateway/Auth                | 201 guest summary            | 409 EMAIL_ALREADY_REGISTERED   |
+| G1  | POST /guests/register                                                        | Public | Website backend             | 201 guest summary            | 409 EMAIL_ALREADY_REGISTERED   |
 | G2  | POST /auth/login                                                             | Public | Gateway/Auth                | 200 session + cookie         | 401 INVALID_CREDENTIALS        |
 | G3  | GET /auth/session                                                            | Guest  | Gateway/Auth                | 200 session                  | 401 UNAUTHORIZED               |
 | G4  | POST /auth/logout                                                            | Guest  | Gateway/Auth                | 204, clear cookie            | 403 CSRF_FAILED                |
@@ -247,7 +247,8 @@ G1 → 201, without password, hash or token:
 {
   "guestId": "22222222-2222-4222-8222-222222222222",
   "fullName": "Example Guest",
-  "email": "guest@example.test"
+  "email": "guest@example.test",
+  "createdAt": "2026-10-14T08:00:00.000Z"
 }
 ```
 
@@ -256,7 +257,7 @@ G1 duplicate email → 409:
 ```json
 {
   "error": "EMAIL_ALREADY_REGISTERED",
-  "message": "Registration could not be completed with this email."
+  "message": "An account with this email already exists."
 }
 ```
 
@@ -302,9 +303,12 @@ An already absent session may also return 204. Failed CSRF verification → 403:
 ```
 
 Normalize email by trimming and lowercasing (maximum 320 characters); full name
-is required (maximum 255). Password rules, registration enumeration behavior,
-welcome email delivery and session invalidation must be approved by Auth. The
-website must not independently issue tokens while auth ownership is unresolved.
+is required (maximum 255; letters, spaces, hyphens and apostrophes); phone is
+optional (10–15 digits, optional `+`). Decided 2026-10-14 (CLAUDE.md §11.2): auth
+is implemented in this service, registration is `POST /guests/register`
+(implemented in DDP-#09), passwords are 8–72 characters (72 bytes is the bcrypt
+limit), and a used email returns `409 EMAIL_ALREADY_REGISTERED`. Login, token
+issuance and the welcome email are separate issues.
 
 ### Promotions and quotes (P1, Q1)
 

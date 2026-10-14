@@ -118,6 +118,22 @@ All data access lives in `src/database/repositories/` and uses one style: the Ty
 
 Put DTOs in `<feature>/dto/`, for example `bookings/dto/create-booking.dto.ts`.
 
+## API endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/health` | Readiness check (database up or `503 DATABASE_UNAVAILABLE`) |
+| `POST` | `/guests/register` | Create a guest account (HW-06): `201`, `400 VALIDATION_FAILED`, `409 EMAIL_ALREADY_REGISTERED` |
+
+Interactive docs (Swagger UI) are at `http://localhost:3000/docs`, and the OpenAPI JSON at `/docs-json`. They are not served when `NODE_ENV=production`. Describe every new endpoint with `@ApiOperation` and response decorators, and DTO fields with `@ApiProperty`.
+
+Try it from Swagger UI ("Try it out"), or from PowerShell:
+
+```powershell
+$body = @{ fullName = 'Nimali Perera'; email = 'nimali@example.com'; password = 'a long passphrase' } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://localhost:3000/guests/register -ContentType 'application/json' -Body $body
+```
+
 ## Database tables
 
 All subsystems share one PostgreSQL database. Its tables are created and changed **only by migrations in the `forever-hotel/infra` repository** (NFR-16). This service never creates or alters tables:

@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
+import { setupApiDocs } from './common/utils/api-docs';
 import { AppLogger } from './common/utils/app-logger';
 import { reportStartupFailure } from './common/utils/startup-failure';
 import { AppConfig } from './config/configuration';
@@ -30,6 +31,11 @@ async function bootstrap(): Promise<void> {
     ),
   );
   app.enableShutdownHooks();
+
+  // API docs for developers and testers; never exposed in production.
+  if (appConfig.nodeEnv !== 'production') {
+    setupApiDocs(app, appConfig.serviceName);
+  }
 
   await app.listen(appConfig.port);
 }

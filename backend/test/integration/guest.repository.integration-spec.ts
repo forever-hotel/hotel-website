@@ -31,7 +31,8 @@ describe('GuestRepository (integration)', () => {
     if (createdIds.length > 0) {
       await dataSource.getRepository(Guest).delete(createdIds);
     }
-    await app.close();
+    // app is undefined when startup failed (e.g. database unreachable).
+    await app?.close();
   });
 
   it('should save a guest with a lowercase email and find it in any case', async () => {

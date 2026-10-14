@@ -133,6 +133,14 @@ export function validateEnv(raw: RawEnvironment): EnvironmentVariables {
     DB_LOGGING: readBoolean('DB_LOGGING', false),
   };
 
+  // A pasted connection URL (postgresql://user:password@host/db) would put the
+  // password into DNS errors and logs, so only a bare host name is allowed.
+  if (/[/@?]/.test(env.DB_HOST)) {
+    errors.push(
+      'DB_HOST must be a host name only (e.g. ep-xxx.neon.tech), not a connection URL',
+    );
+  }
+
   // The shared schema is owned by forever-hotel/infra migrations (NFR-16).
   if (env.NODE_ENV === 'production' && env.DB_SYNCHRONIZE) {
     errors.push('DB_SYNCHRONIZE must not be true when NODE_ENV is production');
