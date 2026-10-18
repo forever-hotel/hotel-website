@@ -129,6 +129,20 @@ describe('validateEnv', () => {
     );
   });
 
+  it('should reject a connection URL in DB_HOST without printing it', () => {
+    // Arrange
+    const raw = {
+      ...validEnv(),
+      DB_HOST: 'postgresql://user:leaked-secret@ep-example.neon.tech/db',
+    };
+
+    // Act & Assert
+    expect(() => validateEnv(raw)).toThrow(
+      'DB_HOST must be a host name only (e.g. ep-xxx.neon.tech), not a connection URL',
+    );
+    expect(() => validateEnv(raw)).not.toThrow(/leaked-secret/);
+  });
+
   it('should reject unknown NODE_ENV and LOG_FORMAT values', () => {
     // Arrange
     const raw = { ...validEnv(), NODE_ENV: 'staging', LOG_FORMAT: 'xml' };

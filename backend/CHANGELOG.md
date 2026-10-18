@@ -7,6 +7,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- `POST /guests/register` (HW-06, DDP-#09): validates name, email, password (8–72 characters) and optional phone (SDS Table 14), stores the password as a bcrypt hash (cost 12, `bcryptjs`), returns `201` with `{ guestId, fullName, email, createdAt }`, `409 EMAIL_ALREADY_REGISTERED` for a used email and `400 VALIDATION_FAILED` for invalid input.
+- Startup rejects a connection URL in `DB_HOST` (only a host name is allowed), so a pasted `postgresql://user:password@...` link cannot leak the password into logs. Integration tests get a 30-second timeout for cloud databases and close cleanly when the database is unreachable.
+- Swagger/OpenAPI docs at `/docs` (JSON at `/docs-json`), not served when `NODE_ENV=production`.
+- `npm overrides` pins `js-yaml` 5.4.3 under `@nestjs/swagger` to avoid a high-severity advisory in 5.3.0.
+
 - Guest and room data layer (DDP-#08): TypeORM entities for `guests`, `room_types`, `room_type_images`, `room_type_amenities` and `rooms` that map onto the infra schema, and `GuestRepository`, `RoomTypeRepository` and `RoomRepository` in `database/repositories/`. Emails are stored lowercase, password hashes are never returned, and duplicate emails raise `EmailAlreadyRegisteredError`.
 - Unit test that fails when an entity column does not match the team schema copy.
 - `LOG_LEVEL` setting (`verbose`, `debug`, `log`, `warn`, `error`) with defaults per environment: `debug` in development, `warn` in test and production (SDS Table 20).

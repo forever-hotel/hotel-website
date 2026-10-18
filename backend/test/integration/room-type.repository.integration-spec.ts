@@ -71,7 +71,8 @@ describe('Room type and room repositories (integration)', () => {
       // Images and amenities are removed by ON DELETE CASCADE.
       await dataSource.getRepository(RoomType).delete(roomType.roomTypeId);
     }
-    await app.close();
+    // app is undefined when startup failed (e.g. database unreachable).
+    await app?.close();
   });
 
   it('should return a room type with its images and amenities given its id', async () => {

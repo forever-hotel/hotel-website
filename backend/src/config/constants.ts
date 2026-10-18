@@ -24,3 +24,20 @@ export const DEFAULT_LOG_LEVELS: Record<NodeEnvironment, AppLogLevel> = {
   test: 'warn',
   production: 'warn',
 };
+
+// Passwords are hashed with bcrypt at this cost (SDS 6.1.2: cost >= 12).
+export const BCRYPT_COST = 12;
+
+// Input rules from SDS Table 14 and the team's registration decision (CLAUDE.md §11.2).
+export const PASSWORD_MIN_LENGTH = 8;
+// bcrypt only uses the first 72 bytes of a password, so longer ones are rejected.
+export const PASSWORD_MAX_BYTES = 72;
+export const GUEST_NAME_MAX_LENGTH = 255;
+// Letters in any script (including Sinhala and Tamil marks), spaces, hyphens and apostrophes.
+export const GUEST_NAME_PATTERN = /^\p{L}[\p{L}\p{M} '’-]*$/u;
+export const EMAIL_MAX_LENGTH = 320;
+// 10-15 digits with an optional leading +.
+export const PHONE_PATTERN = /^\+?\d{10,15}$/;
+
+// Interactive API documentation (Swagger UI); not served in production.
+export const API_DOCS_PATH = 'docs';

@@ -19,7 +19,8 @@ describe('GET /health (integration)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    // app is undefined when startup failed (e.g. database unreachable).
+    await app?.close();
   });
 
   it('returns 200 with database up given a reachable database', async () => {
