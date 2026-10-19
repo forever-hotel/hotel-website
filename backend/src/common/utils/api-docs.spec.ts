@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { GuestsController } from '../../guests/guests.controller';
 import { GuestsService } from '../../guests/guests.service';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { buildApiDocument } from './api-docs';
 
 describe('buildApiDocument', () => {
@@ -11,12 +12,15 @@ describe('buildApiDocument', () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [GuestsController],
       providers: [{ provide: GuestsService, useValue: {} }],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
     app = moduleRef.createNestApplication();
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   it('should document the registration endpoint with its success and error responses', () => {
@@ -29,6 +33,19 @@ describe('buildApiDocument', () => {
     expect(Object.keys(register?.responses ?? {})).toEqual(
       expect.arrayContaining(['201', '400', '409']),
     );
+  });
+
+  it('should document guest login and the bearer-protected profile endpoint', () => {
+    // Act
+    const document = buildApiDocument(app, 'hotel-website');
+
+    // Assert
+    expect(document.paths['/guests/login']?.post?.responses).toHaveProperty(
+      '200',
+    );
+    expect(document.paths['/guests/me']?.get?.security).toEqual([
+      { bearer: [] },
+    ]);
   });
 
   it('should never document a password in the guest response', () => {

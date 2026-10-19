@@ -37,11 +37,12 @@ repository root in PowerShell:
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-Edit the root `.env` and set `COMPOSE_DB_PASSWORD` to a new local-only password.
-This is separate from `backend/.env` and does not use the remote development
-database. Never commit the populated file. A missing/empty password causes Compose
-to fail before starting containers. Avoid printing `docker compose config` with
-values; use its quiet validation mode:
+Edit the root `.env` and set `COMPOSE_DB_PASSWORD` to a new local-only password
+and `JWT_SECRET` to a private random value of at least 32 bytes. These are separate
+from `backend/.env` and the local database does not use the remote development
+database. Never commit the populated file. Missing values cause Compose to fail
+before starting containers. Avoid printing `docker compose config` with values;
+use its quiet validation mode:
 
 ```powershell
 docker compose config --quiet

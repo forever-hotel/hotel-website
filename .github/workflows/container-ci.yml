@@ -21,6 +21,9 @@ jobs:
           password=$(openssl rand -hex 24)
           echo "::add-mask::$password"
           echo "COMPOSE_DB_PASSWORD=$password" >> "$GITHUB_ENV"
+          jwt_secret=$(openssl rand -hex 32)
+          echo "::add-mask::$jwt_secret"
+          echo "JWT_SECRET=$jwt_secret" >> "$GITHUB_ENV"
       - name: Validate configuration
         run: docker compose config --quiet
       - name: Build and wait for healthy containers

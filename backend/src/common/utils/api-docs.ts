@@ -11,6 +11,7 @@ export function buildApiDocument(
     .setTitle(`${serviceName} API`)
     .setDescription('Forever Hotel backend service')
     .setVersion('0.1.0')
+    .addBearerAuth()
     .build();
   return SwaggerModule.createDocument(app, config);
 }

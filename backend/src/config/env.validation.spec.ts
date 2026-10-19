@@ -5,6 +5,8 @@ const validEnv = (): Record<string, string | undefined> => ({
   DB_USERNAME: 'hotel_user',
   DB_PASSWORD: 'super-secret-value',
   DB_NAME: 'hotel_db',
+  JWT_SECRET: 'test-jwt-secret-with-at-least-32-bytes',
+  JWT_ISSUER: 'hotel-website',
 });
 
 describe('validateEnv', () => {
@@ -30,6 +32,8 @@ describe('validateEnv', () => {
       DB_SSL: false,
       DB_SYNCHRONIZE: false,
       DB_LOGGING: false,
+      JWT_SECRET: 'test-jwt-secret-with-at-least-32-bytes',
+      JWT_ISSUER: 'hotel-website',
     });
   });
 
@@ -62,7 +66,7 @@ describe('validateEnv', () => {
   it('should list every missing required variable given an empty environment', () => {
     // Act & Assert
     expect(() => validateEnv({})).toThrow(
-      /DB_HOST is not defined[\s\S]*DB_USERNAME is not defined[\s\S]*DB_PASSWORD is not defined[\s\S]*DB_NAME is not defined/,
+      /DB_HOST is not defined[\s\S]*DB_USERNAME is not defined[\s\S]*DB_PASSWORD is not defined[\s\S]*DB_NAME is not defined[\s\S]*JWT_SECRET is not defined[\s\S]*JWT_ISSUER is not defined/,
     );
   });
 
@@ -72,6 +76,12 @@ describe('validateEnv', () => {
 
     // Act & Assert
     expect(() => validateEnv(raw)).toThrow('DB_HOST is not defined');
+  });
+
+  it('should reject a JWT secret shorter than 32 bytes', () => {
+    expect(() =>
+      validateEnv({ ...validEnv(), JWT_SECRET: 'too-short' }),
+    ).toThrow('JWT_SECRET must be at least 32 bytes');
   });
 
   it.each(['0', '65536', 'abc', '54.3'])(

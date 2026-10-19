@@ -24,6 +24,8 @@ services:
       DB_SSL: "false"
       DB_SYNCHRONIZE: "false"
       DB_LOGGING: "false"
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the root .env}
+      JWT_ISSUER: hotel-website
     depends_on:
       database:
         condition: service_healthy
