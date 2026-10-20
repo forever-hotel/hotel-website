@@ -6,13 +6,15 @@ import { RoomTypeAmenity } from './entities/room-type-amenity.entity';
 import { RoomTypeImage } from './entities/room-type-image.entity';
 import { RoomType } from './entities/room-type.entity';
 import { Room } from './entities/room.entity';
+import { RoomTypesController } from './room-types.controller';
+import { RoomTypesService } from './room-types.service';
 
-// The room catalogue API (HW-03, HW-04) adds its controller and service here.
 @Module({
   imports: [
     TypeOrmModule.forFeature([RoomType, RoomTypeImage, RoomTypeAmenity, Room]),
   ],
-  providers: [RoomTypeRepository, RoomRepository],
+  controllers: [RoomTypesController],
+  providers: [RoomTypeRepository, RoomRepository, RoomTypesService],
   exports: [RoomTypeRepository, RoomRepository],
 })
 export class RoomTypesModule {}

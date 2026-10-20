@@ -19,6 +19,14 @@ This file is the working context for contributors and coding assistants in this 
 
 ## Current repository state
 
+- DDP-#11 adds public `GET /room-types` and `GET /room-types/:roomTypeId` routes
+  through controller → service → existing repository. Responses include images,
+  amenities, capacity, and prices in LKR cents. All seeded types are public because
+  the schema has no publication flag. The fixed catalogue returns all types without
+  pagination; gateway mapping and named maintenance ownership remain pending.
+  See `backend/README.md` and the API contract for the implemented request/response
+  shapes. The historical branch notes below do not describe this feature's state.
+
 - This issue 4 branch starts from `pre-develop`; the backend described below exists on separate backend branches and is not included in this branch. The root README links to the frontend setup guide.
 - Frontend commands: run `npm ci`, `npm run dev` (port 3001), `npm run lint`, `npm run format:check`, `npm run typecheck`, `npm run build`, and `npm test` from `frontend/`. Production smoke tests require a build. No environment file is needed.
 - `.github/workflows/frontend-ci.yml` runs frontend checks on all pushes and PRs targeting `develop` or `pre-develop`.

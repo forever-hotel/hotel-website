@@ -125,6 +125,8 @@ Put DTOs in `<feature>/dto/`, for example `bookings/dto/create-booking.dto.ts`.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Readiness check (database up or `503 DATABASE_UNAVAILABLE`) |
+| `GET` | `/room-types` | Public catalogue with images, amenities, and nightly prices, cheapest first |
+| `GET` | `/room-types/:roomTypeId` | Public room type details (`400 VALIDATION_FAILED` for an invalid UUID, `404 ROOM_TYPE_NOT_FOUND` for an unknown UUID) |
 | `POST` | `/guests/login` | Verify guest credentials and issue a 24-hour HS256 bearer token (`200`, `401 INVALID_CREDENTIALS`) |
 | `POST` | `/guests/register` | Create a guest account (HW-06): `201`, `400 VALIDATION_FAILED`, `409 EMAIL_ALREADY_REGISTERED` |
 | `GET` | `/guests/me` | Return the current guest profile; requires `Authorization: Bearer <token>` (`401 UNAUTHORIZED` when missing, invalid, or expired) |
@@ -150,6 +152,24 @@ and `JWT_ISSUER` as documented above. CI generates its own disposable signing
 key. Do not run integration tests against production.
 
 ## Database tables
+
+### Room catalogue (HW-03, DDP-#11)
+
+`GET /room-types` returns `{ "items": [...], "nextCursor": null }`. This is a
+small, fixed catalogue: all seeded room types are returned without pagination.
+Each item includes `roomTypeId`, `typeName`, `description`, `pricePerNight`,
+`currency`, `maxGuests`, `imageUrls`, and `amenities`. Prices are integer LKR
+cents (`250000` means LKR 2,500.00). Missing descriptions are `null`; missing
+images and amenities are empty arrays. An empty catalogue returns HTTP 200.
+
+Both routes are public and require no token. Test them with Postman or Swagger
+at `/docs`. Use a room type UUID from the list when requesting details.
+
+The shared schema has no publication flag, so all seeded room types are public.
+Room types, images, amenities, and prices are maintained through infra-owned
+seed data/migrations; this API only reads them. Named maintenance ownership and
+gateway mapping still need team agreement. Date-based availability belongs to
+the availability feature and is not inferred from the catalogue.
 
 All subsystems share one PostgreSQL database. Its tables are created and changed **only by migrations in the `forever-hotel/infra` repository** (NFR-16). This service never creates or alters tables:
 

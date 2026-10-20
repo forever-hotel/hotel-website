@@ -12,6 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Public room catalogue endpoints (HW-03, DDP-#11): `GET /room-types` and `GET /room-types/:roomTypeId` return names, descriptions, images, amenities, capacity, and prices in LKR cents. Invalid UUIDs return `400 VALIDATION_FAILED`; unknown UUIDs return `404 ROOM_TYPE_NOT_FOUND`. Includes Swagger documentation, service/HTTP checks, and database-backed API integration checks.
 - `POST /guests/login` (HW-07, DDP-#10): verifies a submitted password against the stored bcrypt hash and issues a signed HS256 JWT with `iss`, `sub`, `iat`, `exp`, and `role=GUEST` claims and a 24-hour expiry. Adds `GET /guests/me`, protected by a bearer-token guard, plus validated `JWT_SECRET` and `JWT_ISSUER` configuration.
 - `POST /guests/register` (HW-06, DDP-#09): validates name, email, password (8–72 characters) and optional phone (SDS Table 14), stores the password as a bcrypt hash (cost 12, `bcryptjs`), returns `201` with `{ guestId, fullName, email, createdAt }`, `409 EMAIL_ALREADY_REGISTERED` for a used email and `400 VALIDATION_FAILED` for invalid input.
 - Startup rejects a connection URL in `DB_HOST` (only a host name is allowed), so a pasted `postgresql://user:password@...` link cannot leak the password into logs. Integration tests get a 30-second timeout for cloud databases and close cleanly when the database is unreachable.
