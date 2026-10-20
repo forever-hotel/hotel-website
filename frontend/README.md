@@ -1,8 +1,45 @@
 # Forever Hotel frontend
 
-Next.js App Router scaffold with TypeScript, ESLint, and Prettier. The welcome
-page is a placeholder for later website features. No backend, database, external
-fonts, environment files, or credentials are required.
+Next.js App Router application with TypeScript, ESLint, and Prettier. The home
+page follows the supplied Grand Meridian screenshots as one scrolling page:
+photo hero, stay planner, story, services, rooms, promotions, testimonial, FAQ,
+and footer. It uses plain CSS, system fonts, and locally stored substitute photos;
+no new dependencies are required.
+
+Use [UI_GUIDE.md](UI_GUIDE.md) for the team's Figma reference, design inspection
+status, and steps for building the hotel website UI. The screenshot composition
+is implemented; exact Figma assets, fonts, hotel copy, and mobile frames still need
+confirmation. Room rates and the testimonial are design samples, and the stay
+planner does not check live inventory or create reservations.
+
+## Home page and promotions (DDP-#12)
+
+The route stays in `src/app/page.tsx`; promotion validation and presentation live
+in `src/features/promotions/`. Server-side gateway access lives in `src/lib/api/`.
+The hotel copy is introductory content; confirm it with the hotel before release.
+
+To enable offers, copy `.env.example` to `.env.local` and set `API_GATEWAY_URL`
+to the API Gateway origin (without `/api/v1`). This is server-only configuration,
+not a `NEXT_PUBLIC_*` value. Never use a subsystem backend URL here.
+
+The integration consumes the documented P1 draft:
+`GET /api/v1/promotions?limit=20`. That endpoint must return **published public
+offers only**; its response has no publication flag for frontend verification.
+The frontend additionally validates the response and shows only offers where
+`validFrom <= now < validUntil`. This boundary convention needs confirmation
+with Manager Dashboard because D5 remains pending. No private promotion fields
+or endpoint are invented. Fixed discounts are LKR minor units; displayed expiry
+times use Asia/Colombo. `FIXED` is the frontend's proposed fixed-discount enum;
+P1 currently documents only `PERCENTAGE`, so confirm this value with the owner
+before enabling fixed offers. Booking eligibility remains subject to validation.
+
+Without configuration, or on timeout (3 seconds), HTTP failure, malformed data,
+or an empty response, the offers section shows a neutral empty state. Suspense
+allows hotel content to render while offers load. Requests are uncached so
+deactivated or expired offers are not retained between page requests.
+
+The gateway route and publication ownership still require cross-team approval;
+live offers cannot be verified until the upstream service is available.
 
 ## Agreed frontend structure
 
@@ -11,8 +48,8 @@ when implementing or reorganizing the frontend. It preserves the supplied Word
 document, including the common skeleton, hotel website routes and feature modules,
 naming rules, and API, testing and deployment conventions.
 
-This is the target structure for future work; the current application is still a
-scaffold. Start with sections 3–6 for this frontend and review section 26 for
+The home page follows this structure with a small promotion feature module.
+Start with sections 3–6 for this frontend and review section 26 for
 decisions the source document still marks for team confirmation.
 
 ## Local setup
@@ -24,7 +61,7 @@ Before adding API integrations, review the
 [hotel website API contract draft](../documents/api/hotel-website-contracts.md).
 Its route paths and session contract remain subject to cross-team approval.
 
-Install Node.js 22 or newer and npm. From the repository root:
+Install Node.js 22.14 or newer and npm. From the repository root:
 
 ```sh
 cd frontend
@@ -47,13 +84,15 @@ npm run format:check
 npm run typecheck
 npm run build
 npm test
+npm run test:coverage
 npm start
 ```
 
 The smoke test starts and stops its own production server on a temporary port.
-It checks that `/` returns HTTP 200 with the welcome heading, page title, and
-English language declaration, and an unknown route returns HTTP 404. Build
-before running it. To smoke-test development startup in PowerShell:
+It checks the home content, active and fixed-discount offers, exclusion of future
+and expired offers, empty responses, upstream failure, and unknown-route 404.
+It starts its own local mock gateway; no live service is required. Build before
+running it. To smoke-test development startup in PowerShell:
 
 ```powershell
 $env:SMOKE_MODE = 'dev'
@@ -62,8 +101,9 @@ Remove-Item Env:SMOKE_MODE
 ```
 
 In Bash, use `SMOKE_MODE=dev npm test`. `npm start` serves the production build
-at http://localhost:3001. No unit coverage target applies to this static scaffold;
-add unit coverage as behavior is introduced.
+at http://localhost:3001. `test:coverage` measures promotion filtering and gateway
+logic using Node's built-in test runner and TypeScript stripping (Node 22.14+).
+The HTTP smoke test separately exercises the server-rendered UI.
 
 CI installs from the committed lockfile and runs lint, format, type, build, and
 production smoke checks on pushes and PRs to `develop` or `pre-develop`.
@@ -92,3 +132,14 @@ Local checks passed with Node.js 22.14.0 and npm 10.9.2:
 
 The GitHub Actions run and peer review remain pending until this branch is pushed
 and a PR is opened.
+
+## Issue 12 verification evidence
+
+Local ESLint, Prettier, TypeScript, production build, and all six tests passed.
+The production HTTP integration check uses a temporary mock gateway to exercise
+main content, percentage and fixed offers, expired and future exclusions, empty
+results, and an upstream 503. Unit checks cover malformed payloads, date boundaries,
+invalid JSON, missing configuration, connection failures, and timeout handling.
+Promotion and gateway TypeScript logic achieved 100% line, branch, and function
+coverage. This figure excludes JSX; rendered UI behavior is checked over HTTP.
+Visual browser checks, live gateway verification, CI, and peer review remain pending.
