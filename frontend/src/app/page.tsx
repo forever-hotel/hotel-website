@@ -1,5 +1,6 @@
 ﻿import Image from 'next/image';
 import { SiteHeader } from '@/components/layout/site-header';
+import Link from 'next/link';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { Suspense } from 'react';
 import { ActiveOffers } from '@/features/promotions/components/active-offers';
@@ -17,8 +18,8 @@ export default function Home() {
         <section className="hero" aria-labelledby="hero-title">
           <Image
             className="hero-image"
-            src="/images/hotel-pool.jpg"
-            alt="A resort swimming pool surrounded by tropical greenery"
+            src="/images/forever-city-pool.webp"
+            alt="Forever City Hotel and its swimming pool in Kiribathgoda"
             fill
             preload
             sizes="100vw"
@@ -58,11 +59,12 @@ export default function Home() {
           <div className="story-inner">
             <div className="story-image">
               <Image
-                src="/images/junior-suite.jpg"
-                alt="A bright guest room with a neatly made bed and large windows"
+                src="/images/forever-city-room-enhanced.webp"
+                alt="AI-enhanced view of a guest room at Forever City Hotel in Kiribathgoda"
                 fill
                 sizes="(max-width: 760px) 90vw, 38vw"
               />
+              <span className="image-caption">AI-enhanced photograph</span>
             </div>
             <div className="story-copy">
               <p className="eyebrow">Our story</p>
@@ -119,12 +121,21 @@ export default function Home() {
           <div className="service-grid">
             {services.map((service) => (
               <article className="service-card" key={service.title}>
-                <Image
-                  src={`/images/${service.image}`}
-                  alt={service.alt}
-                  fill
-                  sizes="(max-width: 580px) 90vw, (max-width: 900px) 45vw, 25vw"
-                />
+                {service.image ? (
+                  <Image
+                    src={`/images/${service.image}`}
+                    alt={service.alt}
+                    fill
+                    sizes="(max-width: 580px) 90vw, (max-width: 900px) 45vw, 25vw"
+                  />
+                ) : (
+                  <span className="service-photo-missing">
+                    Photograph coming soon
+                  </span>
+                )}
+                {service.illustrative && (
+                  <span className="image-caption">Illustrative image</span>
+                )}
                 <div>
                   <h3>{service.title}</h3>
                   <p className="eyebrow">{service.subtitle}</p>
@@ -132,9 +143,9 @@ export default function Home() {
               </article>
             ))}
           </div>
-          <a href="#contact" className="button button-outline">
-            Ask about services
-          </a>
+          <Link href="/services" className="button button-outline">
+            View all services
+          </Link>
         </section>
         <section
           className="rooms section-light"
@@ -183,7 +194,7 @@ export default function Home() {
             Plan your stay
           </a>
           <p className="preview-note">
-            Illustrative room previews from the design. Live room details and
+            Room previews include AI-enhanced photography. Live room details and
             rates are not connected yet.
           </p>
         </section>

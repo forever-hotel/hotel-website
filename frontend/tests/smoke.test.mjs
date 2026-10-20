@@ -85,8 +85,8 @@ test(
       assert.match(html, /Our <em>Finest<\/em> Rooms/);
       assert.match(html, /Frequently Asked/);
       assert.match(html, /<details open=""/);
-      assert.match(html, /Illustrative room previews/);
-      assert.match(html, /src="[^\"]*hotel-pool/);
+      assert.match(html, /Room previews include AI-enhanced photography/);
+      assert.match(html, /src="[^\"]*forever-city-pool/);
       assert.match(html, /id="offers"/);
       assert.match(html, /<dt>20\+<\/dt><dd>Years of experience<\/dd>/);
       assert.match(html, /<dt>30\+<\/dt>/);
@@ -100,7 +100,7 @@ test(
       );
       assert.match(html, /aria-label="Explore the hotel"/);
       assert.match(html, /aria-label="Guest information"/);
-      assert.match(html, /Full pages are coming soon/);
+      assert.match(html, /href="\/services"/);
       assert.doesNotMatch(html, /href="\/about(?:["/#?])/);
       // Check actual rendered anchors, not the scripts used for streamed content.
       const pageIds = new Set(
@@ -160,6 +160,42 @@ test(
         /There are no offers to show right now/,
       );
       const missing = await fetch(`${baseUrl}/does-not-exist`);
+      const servicesResponse = await fetch(`${baseUrl}/services`);
+      assert.equal(servicesResponse.status, 200);
+      const servicesHtml = await servicesResponse.text();
+      assert.match(
+        servicesHtml,
+        /Services &amp; Facilities \| Forever City Hotel/,
+      );
+      for (const name of [
+        'Spa &amp; Wellness Centre',
+        'WON Restaurant',
+        'Meeting Rooms',
+        'Infinity Swimming Pool',
+        'State-of-the-Art Gym',
+        'Mini Function Hall',
+        'Karaoke Rooms',
+        'Scenic Photo Locations',
+      ]) {
+        assert.ok(servicesHtml.includes(name), `Missing facility: ${name}`);
+      }
+      assert.match(servicesHtml, /Illustrative image/);
+      assert.doesNotMatch(servicesHtml, /Photograph coming soon/);
+      for (const asset of ['spa', 'gym', 'meeting', 'function', 'karaoke']) {
+        const imageResponse = await fetch(
+          `${baseUrl}/images/illustrative-${asset}.webp`,
+        );
+        assert.equal(imageResponse.status, 200);
+        assert.match(imageResponse.headers.get('content-type'), /image\/webp/);
+      }
+      assert.match(
+        servicesHtml,
+        /Online facility reservations are not available yet/,
+      );
+      assert.match(servicesHtml, /honeymoon packages/);
+      assert.match(servicesHtml, /href="\/#offers"/);
+      assert.match(servicesHtml, /id="main-content"/);
+      assert.doesNotMatch(servicesHtml, /The Grand Meridian/);
       assert.equal(missing.status, 404);
       const about = await fetch(`${baseUrl}/about`);
       assert.equal(about.status, 404);

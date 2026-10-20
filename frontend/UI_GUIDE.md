@@ -2,6 +2,26 @@
 
 ## Design source and status
 
+Latest image treatment: generated spa, gym, meeting, function-hall and karaoke
+illustrations replace empty photo boxes, with visible illustration labels. The
+room photograph has an AI-enhanced variant labelled as such; it may reconstruct
+fine details and is not a new documentary photograph. Original source files are
+preserved. The hero uses the larger original pool photograph. Active copies use
+WebP with responsive Next.js image loading. This supersedes earlier placeholder
+notes; generated illustrations are not verified hotel facility photos.
+
+Photography update (21 October 2026): Home and Services use pool, dining and room
+photos identified on Forever City Hotel's public listings. Image sources are in
+`public/images/README.md`. Unverified facility photos now use placeholders; room
+category assignment still awaits catalogue integration. This supersedes earlier
+notes describing active stock/substitute photos.
+
+Implementation update (21 October 2026): `/services` now implements the Services
+screen using shared navigation/footer and scoped styles. Missing or failed photos
+have a readable fallback; Karaoke awaits a photograph. Operating hours are omitted
+because none were provided. Services navigation opens the new route; Rooms,
+Offers and Contact still use existing Home sections. See `README.md` for details.
+
 Brand correction: the user confirms the hotel name is **Forever City Hotel**.
 Use it in visible copy, the wordmark, footer, and metadata. “The Grand Meridian”
 in the screenshots is reference branding and must not appear in the website.
@@ -82,8 +102,8 @@ headings, image alternatives, and reduced-motion support.
 ## Content and integration boundaries
 
 - Issue 13 extracts shared navigation/header/footer under `src/components/layout/`.
-  Full Rooms/Services/Offers/Contact pages are not implemented yet, so links use
-  Home previews (`/#...`) and the footer explains this temporary behaviour.
+  Rooms/Offers/Contact still use Home previews (`/#...`); Services now links
+  to `/services`. The footer explains the remaining temporary destinations.
   Plan Your Stay actions lead to the existing planner without claiming booking.
 - Content confirmation: on 20 October 2026 the user confirmed that the hotel
   details are real, and subsequently corrected the statistics to **20+ years of
@@ -103,8 +123,8 @@ headings, image alternatives, and reduced-motion support.
 - Do not invent contact numbers, email addresses, or policy pages. The footer
   shows Colombo from the reference and a pending-contact message.
 - Header and card actions use working section anchors. Guest services links to
-  the footer. View All Services links to contact information; no separate catalogue
-  route is claimed. Book actions lead to the stay planner.
+  the footer. View All Services opens `/services`; planning actions lead to
+  the stay planner.
 - The planner validates that check-out follows check-in, then scrolls to room
   previews. It clearly states live booking is unavailable; it does not reserve a
   room, query inventory, or claim availability.

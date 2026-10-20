@@ -12,6 +12,36 @@ is implemented; exact Figma assets, fonts, hotel copy, and mobile frames still n
 confirmation. Room rates remain design previews, and the stay
 planner does not check live inventory or create reservations.
 
+## Services and Facilities (DDP-#14)
+
+Image-quality update: missing facility images now use labelled AI-generated
+illustrations. Room previews include an explicitly labelled AI-enhanced photograph;
+original files are retained. The hero uses the larger actual pool photo instead
+of the low-resolution night image. Active assets are locally stored WebP files;
+see `public/images/README.md` for provenance.
+
+`/services` follows the saved Services screenshot with a photo hero, introduction,
+responsive facility cards, scenic-photo tile, and shared header/footer. Header,
+footer and Home's View All Services action link to this route.
+
+Facility content lives in `src/features/services/content.ts`; page-specific styles
+use `services.module.css`. The small `FacilityImage` client component handles
+missing/failed photos, while facility names and descriptions remain server-rendered.
+Karaoke has a deliberate photo placeholder until an approved image is supplied.
+Pool, dining and room photos now come from public Forever City Hotel listings;
+source URLs are in `public/images/README.md`. Unverified facility photos use
+placeholders rather than stock photos of other properties.
+
+The restaurant retains the screenshot's WON name; confirm any WOK/WON discrepancy
+with the hotel. No opening hours, prices, package inclusions or facility-booking
+capabilities have been invented. The page links honeymoon packages to current
+published offers and explains that online facility reservations are unavailable.
+Descriptions are concise presentation copy and should be checked by the hotel.
+
+HTTP tests cover the route, facility names, missing-photo state, offers link and
+unavailable-reservation notice. Visual/mobile/keyboard and actual failed-image
+browser checks remain pending.
+
 ## Hotel information and navigation (DDP-#13)
 
 Shared header/footer components and public destinations live in

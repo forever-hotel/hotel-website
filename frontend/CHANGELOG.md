@@ -17,6 +17,10 @@
 
 ### Added
 
+- Issue 14: Services and Facilities route with a responsive facility catalogue,
+  page-scoped CSS, missing/failed image fallback, local event-space photographs,
+  and navigation links from Home/header/footer. No facility reservations
+  or unprovided operating hours are claimed.
 - Home page with hero, hotel introduction, highlights, accessible section navigation,
   responsive styling, and optional current offers (HW-01, DDP-#12).
 - Server-side P1 gateway integration with validity filtering, LKR discount formatting,

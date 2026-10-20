@@ -37,6 +37,11 @@ This file is the working context for contributors and coding assistants in this 
 
 ## Current repository state
 
+- DDP-#14 adds `/services`, with content and scoped styles in
+  `frontend/src/features/services/` and a small missing/failed-photo component.
+  Shared navigation and Home link to the route. Hours and facility booking are
+  not invented; restaurant spelling and approved imagery need confirmation.
+
 - DDP-#13 extracts shared public header/footer/navigation under
   `frontend/src/components/layout/`. The user confirmed the supplied hotel details
   as real on 20 October 2026; sample notices for those details are removed.

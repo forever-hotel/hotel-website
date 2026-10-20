@@ -385,6 +385,25 @@ h1 em {
   object-fit: cover;
   transition: transform 0.4s;
 }
+.service-photo-missing {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #3a3028;
+  color: #e8d8bd;
+  font-size: 0.8rem;
+}
+.image-caption {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 2;
+  padding: 5px 8px;
+  background: #1b1815dd;
+  color: #fff;
+  font-size: 0.65rem;
+}
 .service-card:hover img {
   transform: scale(1.04);
 }
