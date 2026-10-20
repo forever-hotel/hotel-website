@@ -1,6 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomUUID } from 'crypto';
+import request from 'supertest';
+import type { App } from 'supertest/types';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { AppModule } from '../../src/app.module';
 import { RoomStatus } from '../../src/common/enums/room-status.enum';
@@ -9,12 +11,13 @@ import { RoomRepository } from '../../src/database/repositories/room.repository'
 import { RoomTypeAmenity } from '../../src/room-types/entities/room-type-amenity.entity';
 import { RoomTypeImage } from '../../src/room-types/entities/room-type-image.entity';
 import { RoomType } from '../../src/room-types/entities/room-type.entity';
+import type { RoomTypeResponseDto } from '../../src/room-types/dto/room-type-response.dto';
 import { Room } from '../../src/room-types/entities/room.entity';
 
 // Requires a database created from database/infra-schema/ (DB_* variables).
 // Seeds one uniquely named room type and deletes only what it created.
 describe('Room type and room repositories (integration)', () => {
-  let app: INestApplication;
+  let app: INestApplication<App>;
   let dataSource: DataSource;
   let roomTypes: RoomTypeRepository;
   let rooms: RoomRepository;
@@ -109,6 +112,45 @@ describe('Room type and room repositories (integration)', () => {
   it('should return null given a room type id that does not exist', async () => {
     // Act & Assert
     await expect(roomTypes.findById(randomUUID())).resolves.toBeNull();
+  });
+
+  it('should expose seeded room details through the public catalogue API (HW-03)', async () => {
+    const detail = await request(app.getHttpServer())
+      .get(`/room-types/${roomType.roomTypeId}`)
+      .expect(200);
+    expect(detail.body).toEqual({
+      roomTypeId: roomType.roomTypeId,
+      typeName: roomType.typeName,
+      description: 'Integration test room type',
+      pricePerNight: 2_500_000,
+      currency: 'LKR',
+      maxGuests: 2,
+      imageUrls: expect.arrayContaining([
+        '/images/it/a.jpg',
+        '/images/it/b.jpg',
+      ]) as string[],
+      amenities: ['Air conditioning', 'Wi-Fi'],
+    });
+
+    const catalogue = await request(app.getHttpServer())
+      .get('/room-types')
+      .expect(200);
+    expect(catalogue.body).toMatchObject({
+      items: expect.arrayContaining([
+        detail.body as RoomTypeResponseDto,
+      ]) as RoomTypeResponseDto[],
+      nextCursor: null,
+    });
+  });
+
+  it('should return 404 for an unknown UUID through the catalogue API', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/room-types/${randomUUID()}`)
+      .expect(404);
+    expect(response.body).toEqual({
+      error: 'ROOM_TYPE_NOT_FOUND',
+      message: 'The requested room type does not exist.',
+    });
   });
 
   it('should count only rooms that are not under maintenance', async () => {

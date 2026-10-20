@@ -1,6 +1,6 @@
 # Hotel website API contracts
 
-Status: **Draft for team review — not approved. Some guest-auth endpoints are
+Status: **Draft for team review — not approved. Room catalogue and some guest-auth endpoints are
 implemented; gateway mappings and the remaining proposed routes are not.**
 
 Planning task: DDP-#06 in [issue.md](../../issue.md). Its actual GitHub issue number
@@ -21,7 +21,8 @@ these references need verification against the approved documents. SDS flow
 labels must not be confused with SRS requirement identifiers.
 
 The current backend registers `GET /health`, `POST /guests/register` (G1),
-`POST /guests/login` (G2) and `GET /guests/me` (G3). Its
+`POST /guests/login` (G2), `GET /guests/me` (G3), `GET /room-types` (R1), and
+`GET /room-types/{roomTypeId}` (R2). Its
 [error interface](../../backend/src/common/interfaces/error-response.interface.ts),
 [exception filter](../../backend/src/common/filters/all-exceptions.filter.ts) and
 [validation pipe](../../backend/src/common/pipes/validation.pipe.ts) define the
@@ -130,7 +131,7 @@ session. All error examples use the shared body and an explicit HTTP status.
 
 | ID  | Method and proposed path                                                     | Access | Proposed owner              | Success                      | Main failure                   |
 | --- | ---------------------------------------------------------------------------- | ------ | --------------------------- | ---------------------------- | ------------------------------ |
-| R1  | GET /room-types?limit=20                                                     | Public | Website / Front Desk        | 200 room list                | 400 VALIDATION_FAILED          |
+| R1  | GET /room-types                                                              | Public | Website / Front Desk        | 200 room list                | 500 INTERNAL_SERVER_ERROR      |
 | R2  | GET /room-types/{roomTypeId}                                                 | Public | Website / Front Desk        | 200 room detail              | 404 ROOM_TYPE_NOT_FOUND        |
 | A1  | GET /availability?roomTypeId=…&checkInDate=…&checkOutDate=…&numberOfGuests=2 | Public | Front Desk / Website        | 200 availability             | 400 VALIDATION_FAILED          |
 | A2  | GET /room-types/{roomTypeId}/availability-calendar?from=…&to=…               | Public | Front Desk / Website        | 200 daily counts             | 404 ROOM_TYPE_NOT_FOUND        |
@@ -150,7 +151,7 @@ session. All error examples use the shared body and an explicit HTTP status.
 
 ### Rooms and availability examples (R1–A2)
 
-R1: `GET /api/v1/room-types?limit=20` → 200:
+R1: `GET /api/v1/room-types` → 200:
 
 ```json
 {
@@ -158,6 +159,7 @@ R1: `GET /api/v1/room-types?limit=20` → 200:
     {
       "roomTypeId": "11111111-1111-4111-8111-111111111111",
       "typeName": "Deluxe Double",
+      "description": "A double room for two guests.",
       "pricePerNight": 250000,
       "currency": "LKR",
       "maxGuests": 2,
@@ -168,6 +170,16 @@ R1: `GET /api/v1/room-types?limit=20` → 200:
   "nextCursor": null
 }
 ```
+
+R1/R2 are implemented internally at `/room-types` and `/room-types/{roomTypeId}`.
+The `/api/v1` gateway prefix remains proposed. The fixed catalogue returns all
+seeded room types, ordered by nightly price and name, with `nextCursor: null`;
+`limit` and `cursor` pagination are not implemented for R1. The schema has no
+publication flag, so all seeded room types are included. Missing descriptions
+are `null`; absent images and amenities are empty arrays. No room types returns
+`{ "items": [], "nextCursor": null }` with HTTP 200. Room content is maintained
+through infra-owned seed data/migrations; named maintenance ownership and gateway
+approval remain pending. These endpoints do not report date-based availability.
 
 R2: `GET /api/v1/room-types/11111111-1111-4111-8111-111111111111` → 200:
 
@@ -216,10 +228,16 @@ assignability. Occupancy is a positive integer within room capacity. Maintenance
 blocks and overlapping reservations must be included. Zero inventory is a valid
 200 search result, not an error; a failed reservation is 409.
 
-R1/A1 invalid query → 400:
+A1 invalid query → 400:
 
 ```json
 { "error": "VALIDATION_FAILED", "message": "Check-out must be after check-in." }
+```
+
+R2 invalid UUID → 400:
+
+```json
+{ "error": "VALIDATION_FAILED", "message": "roomTypeId must be a UUID" }
 ```
 
 R2/A2 unknown UUID → 404:

@@ -3,6 +3,8 @@ import { Test } from '@nestjs/testing';
 import { GuestsController } from '../../guests/guests.controller';
 import { GuestsService } from '../../guests/guests.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RoomTypesController } from '../../room-types/room-types.controller';
+import { RoomTypesService } from '../../room-types/room-types.service';
 import { buildApiDocument } from './api-docs';
 
 describe('buildApiDocument', () => {
@@ -10,8 +12,11 @@ describe('buildApiDocument', () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      controllers: [GuestsController],
-      providers: [{ provide: GuestsService, useValue: {} }],
+      controllers: [GuestsController, RoomTypesController],
+      providers: [
+        { provide: GuestsService, useValue: {} },
+        { provide: RoomTypesService, useValue: {} },
+      ],
     })
       .overrideGuard(JwtAuthGuard)
       .useValue({ canActivate: () => true })
@@ -46,6 +51,19 @@ describe('buildApiDocument', () => {
     expect(document.paths['/guests/me']?.get?.security).toEqual([
       { bearer: [] },
     ]);
+  });
+
+  it('should document the public catalogue and detail errors (HW-03)', () => {
+    const document = buildApiDocument(app, 'hotel-website');
+    expect(document.paths['/room-types']?.get?.responses).toHaveProperty('200');
+    const detail = document.paths['/room-types/{roomTypeId}']?.get;
+    expect(Object.keys(detail?.responses ?? {})).toEqual(
+      expect.arrayContaining(['200', '400', '404']),
+    );
+    expect(detail?.security).toBeUndefined();
+    const schemas = document.components?.schemas ?? {};
+    expect(schemas).toHaveProperty('RoomTypeResponseDto');
+    expect(schemas).toHaveProperty('RoomTypeListResponseDto');
   });
 
   it('should never document a password in the guest response', () => {
