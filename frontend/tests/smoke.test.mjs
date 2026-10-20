@@ -88,6 +88,25 @@ test(
       assert.match(html, /Illustrative room previews/);
       assert.match(html, /src="[^\"]*hotel-pool/);
       assert.match(html, /id="offers"/);
+      assert.match(html, /Years of excellence/);
+      assert.match(html, /Guest satisfaction/);
+      assert.match(html, /id="hotel-policies"/);
+      assert.match(html, /Check-in is from 2:00 PM/);
+      assert.doesNotMatch(
+        html,
+        /statistics below await|not confirmed hotel policies|design location/,
+      );
+      assert.match(html, /aria-label="Explore the hotel"/);
+      assert.match(html, /aria-label="Guest information"/);
+      assert.match(html, /Full pages are coming soon/);
+      assert.doesNotMatch(html, /href="\/about(?:["/#?])/);
+      // Check actual rendered anchors, not the scripts used for streamed content.
+      const pageIds = new Set(
+        [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]),
+      );
+      for (const anchor of html.matchAll(/<a\b[^>]*\bhref="\/?#([^"]+)"/g)) {
+        assert.ok(pageIds.has(anchor[1]), `Broken Home link: ${anchor[1]}`);
+      }
       assert.match(html, /There are no offers to show right now/);
       assert.match(html, /<title>The Grand Meridian \| Forever Hotel<\/title>/);
       const active = {
@@ -139,6 +158,8 @@ test(
       );
       const missing = await fetch(`${baseUrl}/does-not-exist`);
       assert.equal(missing.status, 404);
+      const about = await fetch(`${baseUrl}/about`);
+      assert.equal(about.status, 404);
     } finally {
       if (server.exitCode === null) {
         const stopped = once(server, 'exit');

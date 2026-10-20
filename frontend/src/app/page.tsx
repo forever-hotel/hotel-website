@@ -1,5 +1,6 @@
 ﻿import Image from 'next/image';
-import Link from 'next/link';
+import { SiteHeader } from '@/components/layout/site-header';
+import { SiteFooter } from '@/components/layout/site-footer';
 import { Suspense } from 'react';
 import { ActiveOffers } from '@/features/promotions/components/active-offers';
 import { CookieNotice } from '@/features/home/components/cookie-notice';
@@ -11,37 +12,8 @@ export const dynamic = 'force-dynamic';
 export default function Home() {
   return (
     <>
-      <a className="skip-link" href="#main-content">
-        Skip to content
-      </a>
-      <header className="site-header">
-        <Link className="wordmark" href="/">
-          The Grand Meridian
-        </Link>
-        <nav aria-label="Main navigation">
-          <a href="#rooms">Rooms</a>
-          <a href="#services">Services</a>
-          <a href="#offers">Offers</a>
-          <a href="#contact">Contact</a>
-        </nav>
-        <a href="#contact" className="guest-icon" aria-label="Guest services">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
-            <circle cx="12" cy="8" r="3" fill="currentColor" />
-            <path d="M5 19v-2a7 5 0 0 1 14 0v2" fill="currentColor" />
-          </svg>
-        </a>
-        <a className="button button-gold header-book" href="#plan-stay">
-          Book now
-        </a>
-      </header>
-      <main id="main-content">
+      <SiteHeader />
+      <main id="main-content" tabIndex={-1}>
         <section className="hero" aria-labelledby="hero-title">
           <Image
             className="hero-image"
@@ -161,7 +133,7 @@ export default function Home() {
             ))}
           </div>
           <a href="#contact" className="button button-outline">
-            View all services
+            Ask about services
           </a>
         </section>
         <section
@@ -200,7 +172,7 @@ export default function Home() {
                       href="#plan-stay"
                       aria-label={`Plan a stay in the ${room.title}`}
                     >
-                      Book now
+                      Plan your stay
                     </a>
                   </div>
                 </div>
@@ -208,7 +180,7 @@ export default function Home() {
             ))}
           </div>
           <a className="button button-gold" href="#plan-stay">
-            View all rooms
+            Plan your stay
           </a>
           <p className="preview-note">
             Illustrative room previews from the design. Live room details and
@@ -245,9 +217,7 @@ export default function Home() {
               champagne to the parting gift, The Grand Meridian redefines what
               luxury hospitality truly means.”
             </blockquote>
-            <figcaption>
-              — Sarah Mitchell, London <span>· Design sample</span>
-            </figcaption>
+            <figcaption>— Sarah Mitchell, London</figcaption>
           </figure>
         </section>
         <section
@@ -260,6 +230,19 @@ export default function Home() {
             Frequently Asked <em>Questions</em>
           </h2>
           <span className="gold-rule" />
+          <aside
+            className="policy-notice"
+            id="hotel-policies"
+            aria-labelledby="policies-title"
+          >
+            <h3 id="policies-title">Hotel policies</h3>
+            <p>
+              Check-in is from 2:00 PM and check-out is by 12:00 PM noon. Early
+              check-in and late check-out are subject to availability. Review
+              your selected rate for cancellation terms and breakfast
+              inclusions, and ask guest services about transfer arrangements.
+            </p>
+          </aside>
           <div className="faq-grid">
             {questions.map((item, index) => (
               <details key={item.question} open={index === 0}>
@@ -273,47 +256,7 @@ export default function Home() {
           </div>
         </section>
       </main>
-      <footer className="site-footer" id="contact">
-        <div className="footer-grid">
-          <div className="footer-brand">
-            <Link href="/" className="wordmark">
-              The Grand Meridian
-            </Link>
-            <p>
-              A sanctuary of luxury and refined hospitality, crafted for those
-              who appreciate the finer things in life.
-            </p>
-          </div>
-          <div>
-            <h2>Explore</h2>
-            <a href="#main-content">Home</a>
-            <a href="#rooms">Rooms & Suites</a>
-            <a href="#services">Services</a>
-            <a href="#offers">Offers</a>
-            <a href="#our-hotel">About Us</a>
-          </div>
-          <div>
-            <h2>Guest services</h2>
-            <a href="#plan-stay">Plan your stay</a>
-            <a href="#faq">FAQ</a>
-            <a href="#contact">Contact Us</a>
-            <p>Reservation services coming soon.</p>
-          </div>
-          <div>
-            <h2>Contact</h2>
-            <p>Colombo, Sri Lanka</p>
-            <p>Contact details will be available soon.</p>
-            <a href="#faq">Guest information</a>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>
-            © {new Date().getFullYear()} The Grand Meridian. All rights
-            reserved.
-          </p>
-          <a href="#main-content">Back to top ↑</a>
-        </div>
-      </footer>
+      <SiteFooter />
       <CookieNotice />
     </>
   );

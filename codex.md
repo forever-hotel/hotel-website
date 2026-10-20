@@ -17,7 +17,7 @@ This file is the working context for contributors and coding assistants in this 
   [frontend/UI_GUIDE.md](frontend/UI_GUIDE.md) for its link, inspection status,
   and implementation steps. Six supplied screenshots now guide the single-page
   Grand Meridian layout; original Figma assets and exact measurements remain
-  unavailable. Sample room rates and the testimonial are labelled; live booking
+  unavailable. Static room rates remain labelled as samples; live booking
   is not connected.
 
 - `SDS_Forever_Hotel_Management_System.pdf` (provided separately) is the **Software Design Specification**, not the SRS. Its architecture and design sections are summarized below.
@@ -34,6 +34,13 @@ This file is the working context for contributors and coding assistants in this 
 - The intended guest journey covers browsing rooms, checking availability, registering and signing in, booking, paying, and managing bookings. The issue plan also covers content pages, promotions, email, accessibility, security, and release work. These are planned features, not a claim that they are implemented.
 
 ## Current repository state
+
+- DDP-#13 extracts shared public header/footer/navigation under
+  `frontend/src/components/layout/`. The user confirmed the supplied hotel details
+  as real on 20 October 2026; sample notices for those details are removed.
+  `/#hotel-policies` is linked from the footer with confirmed check-in/out times.
+  Full-page destinations temporarily use existing Home sections; no About Us
+  route is added. Full contact details and browser checks remain pending.
 
 - DDP-#12 replaces the frontend welcome scaffold with a responsive home page,
   introduction, highlights, and streamed active offers. The optional server-only
@@ -62,6 +69,10 @@ This file is the working context for contributors and coding assistants in this 
 - `backend/.env` is local and must remain untracked. `backend/package-lock.json` is tracked.
 
 ## Development workflow
+
+Implementation preference: keep code simple, readable and easy to understand in
+every change. Prefer small focused components, clear names and direct control
+flow; avoid unnecessary abstractions, dependencies and clever coding patterns.
 
 1. Read the relevant ticket in [issue.md](issue.md), including its acceptance criteria, dependencies, tests, and Definition of Done. Check the actual GitHub issue and current branch state before using any draft ticket ID.
 2. Use one `feature/<GitHub-issue-number>-<slug>` branch per issue and target `develop` with the PR, as described in the issue plan. Confirm project-board details with the team rather than inventing labels, assignees, milestones, or issue numbers.

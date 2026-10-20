@@ -75,12 +75,22 @@ headings, image alternatives, and reduced-motion support.
 
 ## Content and integration boundaries
 
+- Issue 13 extracts shared navigation/header/footer under `src/components/layout/`.
+  Full Rooms/Services/Offers/Contact pages are not implemented yet, so links use
+  Home previews (`/#...`) and the footer explains this temporary behaviour.
+  Plan Your Stay actions lead to the existing planner without claiming booking.
+- Content confirmation: on 20 October 2026 the user confirmed that the hotel
+  details in the supplied design are real, after being asked about the 45+ years,
+  120 rooms and 2 PM/noon check-in/out times. Use the supplied history, statistics,
+  testimonial and Colombo location without sample notices. This confirmation
+  does not provide a street address, contact details, additional cancellation
+  rules or live pricing/inventory. Do not invent those details.
 - “The Grand Meridian” is reproduced from the screenshots. This repository remains
   the Forever Hotel project; metadata includes both names. Confirm final branding
   before release.
-- Room names, descriptions, sample USD rates, story statistics, and the testimonial
-  come from the design. Rates and the testimonial are labelled as samples. They
-  are presentation content, not verified inventory, pricing, awards, or guest reviews.
+- Room names/descriptions and USD rates still come from static design previews;
+  rates remain labelled samples until catalogue integration. Story statistics
+  and the testimonial are user-confirmed design content, not live API records.
 - Only the visible first FAQ answer is directly transcribed; the other answers
   use cautious provisional wording and need hotel confirmation.
 - Do not invent contact numbers, email addresses, or policy pages. The footer

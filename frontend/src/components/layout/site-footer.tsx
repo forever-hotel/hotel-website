@@ -1,0 +1,53 @@
+﻿import Link from 'next/link';
+import { publicLinks } from './navigation';
+
+export function SiteFooter() {
+  return (
+    <footer className="site-footer" id="contact">
+      <div className="footer-grid">
+        <div className="footer-brand">
+          <Link href="/" className="wordmark">
+            The Grand Meridian
+          </Link>
+          <p>
+            A sanctuary of luxury and refined hospitality, crafted for those who
+            appreciate the finer things in life.
+          </p>
+        </div>
+        <nav aria-label="Explore the hotel">
+          <h2>Explore</h2>
+          <Link href="/#main-content">Home</Link>
+          {publicLinks.map((link) => (
+            <Link key={link.href} href={link.href}>
+              {link.label}
+            </Link>
+          ))}
+          <Link href="/#our-hotel">Our story</Link>
+          <p>
+            Room, service and offer links currently open Home previews. Full
+            pages are coming soon.
+          </p>
+        </nav>
+        <nav aria-label="Guest information">
+          <h2>Guest services</h2>
+          <Link href="/#plan-stay">Plan your stay</Link>
+          <Link href="/#faq">FAQ</Link>
+          <Link href="/#hotel-policies">Hotel policies</Link>
+          <p>Live reservations and guest accounts are coming soon.</p>
+        </nav>
+        <div>
+          <h2>Contact</h2>
+          <p>Colombo, Sri Lanka</p>
+          <p>Confirmed address and contact details will be available soon.</p>
+          <Link href="/#hotel-policies">Guest information</Link>
+        </div>
+      </div>
+      <div className="footer-bottom">
+        <p>
+          © {new Date().getFullYear()} The Grand Meridian. All rights reserved.
+        </p>
+        <Link href="/#main-content">Back to top ↑</Link>
+      </div>
+    </footer>
+  );
+}

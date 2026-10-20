@@ -573,6 +573,20 @@ h1 em {
   margin-top: 42px;
   align-items: start;
 }
+.policy-notice {
+  max-width: 1040px;
+  padding: 22px;
+  border: 1px solid #ae925566;
+  scroll-margin-top: 24px;
+}
+.policy-notice h3 {
+  font-size: 1.4rem;
+}
+.policy-notice p {
+  margin-top: 12px;
+  color: #d2c6b4;
+  font-size: 0.85rem;
+}
 details {
   border-bottom: 1px solid #ae92552e;
   padding: 18px 0;

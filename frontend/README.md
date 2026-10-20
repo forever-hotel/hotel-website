@@ -9,8 +9,27 @@ no new dependencies are required.
 Use [UI_GUIDE.md](UI_GUIDE.md) for the team's Figma reference, design inspection
 status, and steps for building the hotel website UI. The screenshot composition
 is implemented; exact Figma assets, fonts, hotel copy, and mobile frames still need
-confirmation. Room rates and the testimonial are design samples, and the stay
+confirmation. Room rates remain design previews, and the stay
 planner does not check live inventory or create reservations.
+
+## Hotel information and navigation (DDP-#13)
+
+Shared header/footer components and public destinations live in
+`src/components/layout/`. Until full pages are built, destinations use `/#...`
+links to existing Home previews so they also resolve when components are reused
+on another page. Update `navigation.ts` when an owning issue implements a full
+route; Home story remains `/#our-hotel`, with no separate About Us page.
+
+The user confirmed the supplied hotel details as real on 20 October 2026; see
+the confirmation record in `UI_GUIDE.md`. Story statistics, location and the
+testimonial no longer carry sample notices. `/#hotel-policies` presents the
+confirmed 2 PM/noon check-in/out times, with package-specific terms left to the
+selected rate. No additional cancellation rules or contact details are invented.
+Contact/map work remains #15; live room data and booking remain later tickets.
+
+The HTTP smoke test checks hotel/policy content, navigation targets, and that
+no standalone `/about` route is introduced. Browser visual/keyboard verification
+remain outstanding.
 
 ## Home page and promotions (DDP-#12)
 

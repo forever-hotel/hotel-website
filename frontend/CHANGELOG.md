@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Issue 13: extracted shared header/footer and navigation destinations, retained
+  hotel background on Home, labelled unapproved story/statistics and FAQ policy
+  samples, and added a reachable hotel-policy notice. Unfinished catalogue and
+  booking features use existing previews and honest planning labels.
 - Rebuilt the home page from six supplied Grand Meridian screenshots as one
   scrolling page with a photo hero, stay planner, story, services, room previews,
   live promotions, testimonial, FAQ, and footer. Added responsive styles, local
