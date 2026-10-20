@@ -2,6 +2,14 @@
 
 ## Design source and status
 
+See [SCREEN_CATALOGUE.md](SCREEN_CATALOGUE.md) for all additional supplied screens:
+Rooms, Services, Contact, Offers, Profile, Sign In, Sign Up, and the booking flow.
+There is **no separate About Us screen**. Hotel background belongs on Home,
+facilities on Services, and location/map on Contact. Draft Issue 13 now reflects
+this scope; do not invent an About Us route. See the
+[backlog alignment review](../documents/planning/screenshot-backlog-alignment.md)
+for the complete ticket mapping.
+
 Use the [Forever City Hotel Figma file](https://www.figma.com/design/oHP2rxAfJCZeAB2aodrH8I/Forever-city-Hotel-Management-system?node-id=397-2084&p=f)
 (file key `oHP2rxAfJCZeAB2aodrH8I`, entry node `397:2084`) and the six home-page
 screenshots supplied in this conversation on 20 October 2026.
