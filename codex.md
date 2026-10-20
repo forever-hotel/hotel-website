@@ -4,6 +4,22 @@ This file is the working context for contributors and coding assistants in this 
 
 ## Source documents and authority
 
+- [frontend/SCREEN_CATALOGUE.md](frontend/SCREEN_CATALOGUE.md) preserves the user's
+  supplied hotel website screen inventory and implementation notes. Consult it
+  before frontend issues. There is no separate About Us page: Home contains hotel
+  background, Services covers facilities, and Contact covers location. Draft
+  Issue 13 is aligned with this design. The
+  [backlog review](documents/planning/screenshot-backlog-alignment.md) maps all 36
+  draft tickets to the supplied screens and records missing contract decisions;
+  consult it with `issue.md` before upcoming work.
+
+- The team's Figma file is the visual reference for hotel website UI work. See
+  [frontend/UI_GUIDE.md](frontend/UI_GUIDE.md) for its link, inspection status,
+  and implementation steps. Six supplied screenshots now guide the single-page
+  Grand Meridian layout; original Figma assets and exact measurements remain
+  unavailable. Sample room rates and the testimonial are labelled; live booking
+  is not connected.
+
 - `SDS_Forever_Hotel_Management_System.pdf` (provided separately) is the **Software Design Specification**, not the SRS. Its architecture and design sections are summarized below.
 - `SENG34213_System_Development_Project.pdf` (provided separately) is the **course development guide**. Its repository, ticket, review, test, and CI expectations are summarized below.
 - The approved **Software Requirements Specification (SRS) was not supplied**. The `HW-*` references below are requirement summaries inferred from the draft tickets in [issue.md](issue.md), not verified quotations or complete SRS wording. Check the actual SRS before finalizing acceptance criteria or claiming full requirement coverage.
@@ -18,6 +34,13 @@ This file is the working context for contributors and coding assistants in this 
 - The intended guest journey covers browsing rooms, checking availability, registering and signing in, booking, paying, and managing bookings. The issue plan also covers content pages, promotions, email, accessibility, security, and release work. These are planned features, not a claim that they are implemented.
 
 ## Current repository state
+
+- DDP-#12 replaces the frontend welcome scaffold with a responsive home page,
+  introduction, highlights, and streamed active offers. The optional server-only
+  `API_GATEWAY_URL` consumes the P1 public promotion draft. Missing configuration,
+  invalid data, and upstream failures produce a non-blocking empty state. P1 must
+  supply published offers only; D5 and the validity boundary still need upstream
+  agreement. See `frontend/README.md` for setup and verification.
 
 - DDP-#11 adds public `GET /room-types` and `GET /room-types/:roomTypeId` routes
   through controller → service → existing repository. Responses include images,
@@ -59,13 +82,13 @@ This file is the working context for contributors and coding assistants in this 
 
 The draft backlog in [issue.md](issue.md) maps `HW-01` through `HW-17` to website work. Its proposed scope is:
 
-| Area | Draft SRS references | Planned guest-facing behavior |
-| --- | --- | --- |
-| Public content | HW-01–HW-04, HW-15–HW-16 | Home and promotions, About Us, services and facilities, FAQ, and contact |
-| Rooms | HW-03, HW-05, HW-09 | Room catalogue and details, date-based availability, comparison of up to three room types, and an availability calendar |
-| Guest identity | HW-06–HW-07 | Registration, login, and protected guest session |
-| Booking and payment | HW-08–HW-14 | Booking quote and reservation, promotion code application, test checkout, confirmation email, booking dashboard, and eligible changes or cancellations |
-| Quality | HW-17 and relevant NFRs | Responsive and accessible pages, secure guest data and payments, and reliable booking under load |
+| Area                | Draft SRS references     | Planned guest-facing behavior                                                                                                                          |
+| ------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Public content      | HW-01–HW-04, HW-15–HW-16 | Home and promotions, About Us, services and facilities, FAQ, and contact                                                                               |
+| Rooms               | HW-03, HW-05, HW-09      | Room catalogue and details, date-based availability, comparison of up to three room types, and an availability calendar                                |
+| Guest identity      | HW-06–HW-07              | Registration, login, and protected guest session                                                                                                       |
+| Booking and payment | HW-08–HW-14              | Booking quote and reservation, promotion code application, test checkout, confirmation email, booking dashboard, and eligible changes or cancellations |
+| Quality             | HW-17 and relevant NFRs  | Responsive and accessible pages, secure guest data and payments, and reliable booking under load                                                       |
 
 These groupings follow the draft tickets and must be checked against the SRS. The SDS independently defines the website's two roles as anonymous **Visitor** and authenticated **Registered Guest**, and four primary flows: registration, login, online room booking, and booking modification/cancellation (SDS §5.2.1, Figures 14–17). The SDS captions call these flows `HW-01`–`HW-04`; these are **flow labels** and should not be assumed to be the same as the SRS `HW-*` requirement IDs used in `issue.md`.
 

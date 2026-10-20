@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Forever Hotel',
-  description: 'Welcome to Forever Hotel. Our new website is coming soon.',
+  title: 'The Grand Meridian | Forever Hotel',
+  description:
+    'Discover The Grand Meridian: refined hospitality, elegant rooms, wellness, dining, and current offers in Colombo.',
 };
 
 export default function RootLayout({
