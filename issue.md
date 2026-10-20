@@ -12,14 +12,31 @@ Copy each issue below into **hotel-website** GitHub Issues. These are draft tick
 
 The course guide calls development sprints **Sprint 5–8** (PDF pages 6–7). It asks for issue titles, user stories, SRS/SDS references, acceptance criteria, technical notes, tests, Definition of Done, estimates, dependencies, assignee, labels, sprint, priority and phase (PDF pages 13–17). The SDS describes Next.js, NestJS, shared PostgreSQL, gateway routing, and staged CI/CD (SDS §§1, 2, 7.5). No date or GitHub issue number is invented here.
 
+## Screenshot alignment (20 October 2026)
+
+All 36 draft tickets were reviewed against the supplied Home, Rooms, Services,
+Contact, Offers, Profile, Sign In/Up and four booking screenshots. See the
+[screen catalogue](frontend/SCREEN_CATALOGUE.md) and
+[alignment review](documents/planning/screenshot-backlog-alignment.md).
+DDP-#01–#11 retain foundation/API scope; missing contract fields are follow-ups,
+not silent changes to implemented APIs. DDP-#12–#36 are aligned below.
+This documentation update does not mark issues complete or update GitHub tickets.
+
+There is no separate About Us route. #13 owns Home background/policy access and
+shared navigation, #14 facilities, #15 Contact/location, and #24 the full Offers
+page. Booking uses four supplied screens and five progress milestones. Social
+login/recovery, newsletter, loyalty, add-ons and PDF need recorded owner/contract
+decisions before enabling them. Revised estimates are provisional; split linked
+subtasks if work exceeds the team's five-working-day branch limit.
+
 ## Suggested creation order
 
-| Sprint | Focus | Draft tickets |
-| --- | --- | --- |
-| 5 | Foundation and infrastructure | DDP-#01–DDP-#10 |
-| 6 | Core website features | DDP-#11–DDP-#22 |
-| 7 | Integration and user journeys | DDP-#23–DDP-#31 |
-| 8 | Quality and release | DDP-#32–DDP-#36 |
+| Sprint | Focus                         | Draft tickets   |
+| ------ | ----------------------------- | --------------- |
+| 5      | Foundation and infrastructure | DDP-#01–DDP-#10 |
+| 6      | Core website features         | DDP-#11–DDP-#22 |
+| 7      | Integration and user journeys | DDP-#23–DDP-#31 |
+| 8      | Quality and release           | DDP-#32–DDP-#36 |
 
 ---
 
@@ -643,15 +660,23 @@ As a visitor, I want a clear home page so that I can learn about the hotel and c
 
 **AC2 — Error or edge behaviour:** Given active promotions, when I open the home page, then only active offers appear; when none exist, the layout remains usable.
 
+**AC3 — Screenshot alignment:** Home is one scrolling page: hero, stay planner, story/statistics, services and room previews, promotions, testimonial, FAQ, footer. Only published active offers appear; empty/error states remain non-blocking. Until integrated, room rates/reviews and unapproved facts remain explicitly illustrative. Hotel background is on Home, not an About Us route.
+
 ### Technical Notes
 
 Promotion data is owned by manager dashboard; consume the agreed read contract and allow a non-blocking empty state.
+
+#13 owns approved story/policy content and shared navigation; #14/#16/#24 provide full catalogue destinations; #15 owns Contact. #16 replaces hardcoded Home room images/names/rates with catalogue data; #19/#23 connect date search/booking. Existing UI does not imply these integrations are complete.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] UI: main content renders; integration: active offer shown; negative: empty offer response handled.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Section order, navigation/CTA targets, responsive layout, FAQ expansion, cookie dismissal, active/expired/future/empty/failed offers, missing images, and honest sample/unconnected states.
 
 ### Definition of Done
 
@@ -672,7 +697,7 @@ Blocked by: DDP-#04, DDP-#06
 
 ---
 
-## [DDP-#13] feat(frontend): build About Us page
+## [DDP-#13] feat(frontend): align Home hotel information and shared navigation
 
 **Assignee:** TBD  
 **Labels:** `epic:ui-frontend`, `High`, `feat`  
@@ -682,7 +707,7 @@ Blocked by: DDP-#04, DDP-#06
 
 ### User Story
 
-As a visitor, I want hotel background and location so that I can decide whether to visit.
+As a visitor, I want approved hotel background on Home and clear links to facilities, policies and location so that I can decide whether to visit without a separate About Us page.
 
 ### Background / Context
 
@@ -692,19 +717,26 @@ As a visitor, I want hotel background and location so that I can decide whether 
 
 ### Acceptance Criteria
 
-**AC1 — Expected behaviour:** Given approved hotel content, when I open About Us, then history, facilities and policies are readable.
+**AC1 — Expected behaviour:** Given approved history, description and statistics, Home's Our Story section presents them readably. Shared navigation/footer links hotel background to /#our-hotel, and Rooms, Services, Offers and Contact to their implemented destinations.
 
-**AC2 — Error or edge behaviour:** Given a slow or blocked map embed, when I open About Us, then the address and page content remain usable.
+**AC2 — Error or edge behaviour:** Missing/unapproved facts, testimonials, policies or benefits are omitted or labelled as samples; no invented About Us route or dead link to unfinished pages is introduced. Temporary destinations are honest until their owning ticket lands.
+
+**AC3 — Requirement allocation:** Background is owned here on Home, facilities by #14 on Services, and approved address/map plus blocked-map fallback by #15 on Contact. Approved general policy text remains accessible from Home FAQ/footer or a clearly linked existing section. Record content approval and placement before release.
 
 ### Technical Notes
 
-Use approved hotel facts and the agreed Google Maps location; avoid inventing policies.
+Use approved hotel facts and policies on Home. The approved Google Maps location and map-failure fallback are delivered under #15 on Contact.
+
+Supersedes the former standalone About Us scope per user clarification. Extract simple shared header/footer elements for upcoming screens where useful. Do not create /about solely for the original title. Preserve history/facility/policy/location coverage across #13/#14/#15; this allocation does not mark any requirement complete.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
-- [ ] UI: content present; negative: map failure leaves address accessible.
-- [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
-- [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+- [ ] UI: approved Home story and policy access, shared navigation/footer, hotel-background link.
+- [ ] Negative: unavailable content and unfinished destinations do not create fabricated claims or dead links.
+- [ ] Traceability: history/facilities/policies/location assigned to #13/#14/#15; map-failure test belongs to #15.
+- [ ] Attach acceptance-criteria evidence.
 
 ### Definition of Done
 
@@ -717,11 +749,11 @@ Use approved hotel facts and the agreed Google Maps location; avoid inventing po
 
 ### Estimate
 
-Estimated: 4 hours
+Estimated: 6 hours (revised planning estimate after screenshot review; confirm with the assignee).
 
 ### Dependencies
 
-Blocked by: DDP-#04
+Blocked by: DDP-#12; approved hotel facts and policy content. #14/#15 deliver their separately allocated content.
 
 ---
 
@@ -749,15 +781,23 @@ As a visitor, I want to browse facilities so that I know what the hotel offers.
 
 **AC2 — Error or edge behaviour:** Given a facility without an image, when I view it, then its name and description remain readable.
 
+**AC3 — Screenshot alignment:** /services matches the supplied hero, centred introduction, three-column varied-height facility cards and photo-location tile, with shared footer. Missing/failed photos retain readable approved descriptions/hours; layout stacks on mobile. Preserve pool, karaoke, restaurant, meeting rooms, function hall, spa, gym, scenic photos and honeymoon-package coverage; link approved packages to Offers where appropriate.
+
 ### Technical Notes
 
 Use approved descriptions and images. Do not imply a facility is bookable online unless the SRS says so.
+
+Resolve WOK (original draft) versus WON (screenshot) restaurant naming with the hotel. Do not copy the solar-panel photo used for the pool tile; use an approved pool image. Hours and facility reservations need approved facts/services rather than screenshot assumptions.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] UI: required facilities listed; negative: missing image fallback.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Required facilities/packages, hero/grid/footer, missing/broken images, absent hours, mobile reading order and unsupported facility-booking actions.
 
 ### Definition of Done
 
@@ -774,11 +814,11 @@ Estimated: 5 hours
 
 ### Dependencies
 
-Blocked by: DDP-#04
+Blocked by: DDP-#04, DDP-#13; approved facility content and imagery.
 
 ---
 
-## [DDP-#15] feat(frontend): add FAQ and contact form
+## [DDP-#15] feat(contact): build Contact page and retain Home FAQ
 
 **Assignee:** TBD  
 **Labels:** `epic:core-features`, `Medium`, `feat`  
@@ -798,19 +838,26 @@ As a visitor, I want answers and a contact form so that I can ask the hotel ques
 
 ### Acceptance Criteria
 
-**AC1 — Expected behaviour:** Given approved FAQs, when I open the FAQ section, then questions and answers are readable and accessible.
+**AC1 — Expected behaviour:** Home retains accessible FAQ accordions. /contact follows the screenshot: photographic hero, map/address beside a labelled enquiry form, approved guest-relations information and shared footer. Form fields cover name, email, optional phone, subject and message according to the agreed contract.
 
-**AC2 — Error or edge behaviour:** Given a valid contact request, when I submit the form, then management receives an email and I see a success message; invalid input is rejected.
+**AC2 — Error or edge behaviour:** A slow/blocked/failed map never prevents reading the approved address/contact details or using the form. Invalid input is rejected; delivery/provider failure retains safe inputs and offers retry without claiming success.
+
+**AC3 — Delivery:** Valid enquiries use the agreed backend/gateway management-email contract and rate limits. The UI distinguishes accepted/queued from delivered status according to the actual provider guarantee and prevents accidental duplicate submissions.
 
 ### Technical Notes
 
 Confirm management recipient and email provider with the team. Protect against abuse with rate limits at the gateway.
 
+Owns the original #13 location/map-failure requirement. Confirm address, coordinates, contact API/recipient/provider, guest-relations identities/portraits and permissions for social links. Do not invent personal contacts or unreadable screenshot details. FAQ policies need approval; no separate FAQ page is required.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
+
 ### Test Requirements
 
-- [ ] UI: FAQ and success state; integration: email dispatch; negative: invalid email and provider failure.
-- [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
-- [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+- [ ] UI: accessible Home FAQ, Contact hero/map/form, approved team information and responsive layout.
+- [ ] Negative: block map requests and verify text address/form remain usable; invalid input, provider failure, retry and repeated submit.
+- [ ] Integration: management delivery via sandbox/mock and honest accepted/delivered feedback.
+- [ ] Attach acceptance-criteria evidence.
 
 ### Definition of Done
 
@@ -823,15 +870,15 @@ Confirm management recipient and email provider with the team. Protect against a
 
 ### Estimate
 
-Estimated: 7 hours
+Estimated: 10 hours (revised planning estimate after screenshot review; confirm with the assignee).
 
 ### Dependencies
 
-Blocked by: DDP-#04, DDP-#06
+Blocked by: DDP-#04, DDP-#06, DDP-#12, DDP-#13; approved location/contact data and enquiry/email contract.
 
 ---
 
-## [DDP-#16] feat(frontend): build room listing and detail pages
+## [DDP-#16] feat(frontend): build Rooms catalogue and API-backed Home room previews
 
 **Assignee:** TBD  
 **Labels:** `epic:ui-frontend`, `High`, `feat`  
@@ -851,19 +898,26 @@ As a visitor, I want to see rooms, amenities and prices so that I can choose a r
 
 ### Acceptance Criteria
 
-**AC1 — Expected behaviour:** Given room data, when I open Rooms, then room types show images, amenities, price per night and current availability indicator.
+**AC1 — Expected behaviour:** /rooms follows the screenshot with room-photo hero, room-type filter/search, availability legend, comparison affordances, responsive room grid and footer. API records supply images, names, descriptions, capacity, amenities, currency and nightly prices. Home previews use the same catalogue source instead of sample records/rates.
 
-**AC2 — Error or edge behaviour:** Given an empty or failed room response, when I open Rooms, then I see a useful message instead of a broken page.
+**AC2 — Error or edge behaviour:** Empty/failed responses and missing/failed images show useful fallbacks. Unknown room selection has a clear not-found state. Availability without a live date query is labelled unknown/check dates, never assumed available.
+
+**AC3 — Details and ownership:** Room details remain accessible through cards or the booking selection panel; no separate detail-page design was supplied. #18 owns comparison behaviour, #19 date-scoped availability and #23 booking handoff.
 
 ### Technical Notes
 
 Consume the agreed catalogue API. Show currency and price basis clearly.
 
+Consume gateway APIs rather than database access. Database image records provide approved storage URLs; configure permitted remote-image hosts accordingly. Use API currency/minor units, not mixed USD/LKR screenshot samples. Merchandising/publication badges need real metadata or omission. Do not hardcode the screenshot's six room types. Existing detail API remains available without inventing a mandatory new route.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
+
 ### Test Requirements
 
-- [ ] UI: catalogue renders; integration: API data displayed; negative: empty and failed response states.
-- [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
-- [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+- [ ] UI/integration: Rooms and Home use API images/names/prices; filtering, details, capacity, amenities and currency formatting.
+- [ ] Negative: empty/failure response, unknown room, missing/broken image and unknown availability.
+- [ ] Verify comparison/booking controls integrate under #18/#19/#23 without fake availability.
+- [ ] Attach acceptance-criteria evidence.
 
 ### Definition of Done
 
@@ -876,11 +930,11 @@ Consume the agreed catalogue API. Show currency and price basis clearly.
 
 ### Estimate
 
-Estimated: 8 hours
+Estimated: 12 hours (revised planning estimate after screenshot review; confirm with the assignee).
 
 ### Dependencies
 
-Blocked by: DDP-#11
+Blocked by: DDP-#04, DDP-#06, DDP-#11, DDP-#13. Live date/status integration is owned by #19 after #17.
 
 ---
 
@@ -908,15 +962,23 @@ As a visitor, I want to check dates so that I only choose rooms that can be book
 
 **AC2 — Error or edge behaviour:** Given checkout before check-in or an invalid date, when availability is requested, then the API returns a validation error.
 
+**AC3 — Screenshot alignment:** The agreed availability response supports room status/counts, quantities/occupancy where approved, and blocked/available calendar dates for Rooms and booking step 1. Inventory dependency failure is reported as unknown/error rather than falsely available.
+
 ### Technical Notes
 
 Coordinate room blocks and status with front desk owner. Define timezone, date boundaries and response shape in contract.
+
+Home planner, room indicators, results and calendar share the same date context and timezone semantics. Agree child/quantity support and capacity validation with owners; schema changes belong to Infra.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] Integration: available and occupied dates; negative: invalid range and blocked date.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Status/count/calendar consistency, invalid supported quantity/occupancy, inventory outage and no false availability.
 
 ### Definition of Done
 
@@ -961,15 +1023,23 @@ As a visitor, I want to compare rooms so that I can choose the best option.
 
 **AC2 — Error or edge behaviour:** Given three selected types, when I try to add a fourth, then the UI prevents it and explains the limit.
 
+**AC3 — Screenshot alignment:** Room-card selections drive the Rooms Compare bar. Fewer than two selections cannot open an empty comparison; removing selections updates counts. Keyboard users can enter/leave the comparison and the two/three-room limit remains enforced.
+
 ### Technical Notes
 
 Use catalogue data as the single source of room details.
+
+No expanded comparison screenshot was supplied. Use a simple accessible panel/dialog or table with shared tokens, documenting that design adaptation instead of inventing a required separate route.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] UI: compare two and three; edge: fourth selection blocked.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Checkbox/bar count, zero/one-selection state, removal, fourth-selection limit, focus/close and responsive comparison.
 
 ### Definition of Done
 
@@ -990,7 +1060,7 @@ Blocked by: DDP-#16
 
 ---
 
-## [DDP-#19] feat(frontend): show room availability calendar
+## [DDP-#19] feat(frontend): integrate date search and booking availability calendar
 
 **Assignee:** TBD  
 **Labels:** `epic:ui-frontend`, `High`, `feat`  
@@ -1010,19 +1080,25 @@ As a visitor, I want a calendar so that I can find dates when a room type is fre
 
 ### Acceptance Criteria
 
-**AC1 — Expected behaviour:** Given a room type, when I open its calendar, then available and blocked dates are visually distinct and labelled for screen readers.
+**AC1 — Expected behaviour:** Home planner and Rooms entry carry selected dates, guests and room type into live search. Booking step 1 shows actual available-room count/sort controls and its dark calendar with month navigation, check-in/out, range and booked states, all labelled accessibly.
 
-**AC2 — Error or edge behaviour:** Given an API error or no dates, when I open the calendar, then I see a clear retry or empty state.
+**AC2 — Error or edge behaviour:** Invalid ranges, blocked dates, empty inventory and API errors have clear validation/empty/retry states. Date changes invalidate stale results; cached availability is never a reservation guarantee.
+
+**AC3 — Shared context:** Search fields, card statuses, results and calendar agree on the same date/room context. Keyboard selection cannot treat blocked dates as available.
 
 ### Technical Notes
 
 Use date-based API data and avoid treating cached availability as a booking guarantee.
 
+Use #17 API and #16 catalogue cards. Own live planner/date search and booking step-1 calendar primitives; #23 owns subsequent selection/configuration. Opening or editing a calendar must not create repeated reservation holds.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
+
 ### Test Requirements
 
-- [ ] UI: date states and keyboard access; negative: API failure state.
-- [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
-- [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+- [ ] UI/integration: planner handoff, date search, result count/sort/status, month navigation, keyboard range selection.
+- [ ] Negative: invalid/blocked dates, empty inventory, failed API and stale response after edits.
+- [ ] Attach acceptance-criteria evidence.
 
 ### Definition of Done
 
@@ -1035,11 +1111,11 @@ Use date-based API data and avoid treating cached availability as a booking guar
 
 ### Estimate
 
-Estimated: 7 hours
+Estimated: 10 hours (revised planning estimate after screenshot review; confirm with the assignee).
 
 ### Dependencies
 
-Blocked by: DDP-#17
+Blocked by: DDP-#12, DDP-#16, DDP-#17.
 
 ---
 
@@ -1063,19 +1139,25 @@ As a visitor, I want to create an account or sign in so that I can book a room.
 
 ### Acceptance Criteria
 
-**AC1 — Expected behaviour:** Given valid registration or login data, when I submit the correct form, then I reach the expected signed-in page.
+**AC1 — Expected behaviour:** Sign In/Up match the split-photo/white-form screenshots, branding and cross-links. Registration validates displayed names, email, password/confirmation and approved consent; navigation follows the real API response instead of assuming registration creates a session. Login returns to a safe intended booking/profile destination.
 
-**AC2 — Error or edge behaviour:** Given invalid input or credentials, when I submit, then field or server errors are shown without leaking sensitive details.
+**AC2 — Error or edge behaviour:** Invalid input, duplicate email, 401, network failure and expired session have usable errors without credential leaks. Safe stay selection survives login; untrusted external return URLs are rejected.
+
+**AC3 — Design controls:** Google/Facebook login and Forgot Password are enabled only with approved supporting services; otherwise omit them or explain unavailability. Terms/privacy consent links require approved accessible content before release.
 
 ### Technical Notes
 
 Follow the team session approach agreed with the auth/gateway owner; do not persist raw passwords.
 
+Use the agreed auth/gateway session approach; do not store raw passwords or JWTs in localStorage/sessionStorage. Map displayed first/last names to the actual fullName payload without inventing API fields. Social/recovery services, loyalty points and member/cancellation benefits are not confirmed by screenshot artwork.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
+
 ### Test Requirements
 
-- [ ] UI: success routes; negative: invalid form and 401 handling.
-- [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
-- [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+- [ ] UI/integration: layouts, cross-links, name mapping, password confirmation/consent, real registration/login outcome and intended return.
+- [ ] Negative: duplicate email, 401, invalid input, network/session failure, unsafe return URL, unsupported social/recovery.
+- [ ] Attach acceptance-criteria evidence.
 
 ### Definition of Done
 
@@ -1088,11 +1170,11 @@ Follow the team session approach agreed with the auth/gateway owner; do not pers
 
 ### Estimate
 
-Estimated: 7 hours
+Estimated: 10 hours (revised planning estimate after screenshot review; confirm with the assignee).
 
 ### Dependencies
 
-Blocked by: DDP-#09, DDP-#10
+Blocked by: DDP-#04, DDP-#06, DDP-#09, DDP-#10, DDP-#13; agreed session handling and approved legal content.
 
 ---
 
@@ -1124,11 +1206,17 @@ As a developer, I want booking and payment records so that reservations can be s
 
 Confirm ownership with front desk and shared DB maintainers. Tables come from `forever-hotel/infra` migrations; this repository runs none. Payment records store provider references, never card data.
 
+Map screenshot room quantities, adult/child counts, meal plans, arrival time, requests and summary fields to existing infra fields, derived values or recorded unsupported features. Request missing fields from Infra; never create local migrations or raw-card storage to match the design.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
+
 ### Test Requirements
 
 - [ ] Integration test against the infra-schema database: entities read and write; negative: invalid foreign keys and status constraints.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Document each booking-screen field as supported storage, derived value or unresolved owner decision.
 
 ### Definition of Done
 
@@ -1173,15 +1261,23 @@ As a guest, I want to reserve a room for chosen dates so that I can complete pay
 
 **AC2 — Error or edge behaviour:** Given blocked dates or two simultaneous requests for the last room, when a reservation is attempted, then no overbooking occurs and the losing request receives a conflict error.
 
+**AC3 — Screenshot alignment:** Quote/reservation contracts cover approved room quantities, occupancy and guest/request/add-on fields and return authoritative currency, line items, taxes, discounts, total and quote/reservation identity. Unsupported options are rejected or excluded explicitly. Stale/replayed submissions follow agreed idempotency/hold-expiry rules.
+
 ### Technical Notes
 
 Recheck availability in a transaction. A pending reservation is not confirmed until Stripe confirms payment.
+
+Separate quote recalculation from reservation creation; UI edits must not multiply holds. Agree child/quantity/meal support, guest field mapping and hold TTL under #06. Never trust browser prices, stepper limits or sample totals.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] Unit: pricing and date rules; integration: create booking; concurrency: last-room race; negative: overlap.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Quantity/occupancy pricing, line items, tampered prices, unsupported fields, stale quote/hold, duplicate submit and unavailable quantity.
 
 ### Definition of Done
 
@@ -1202,7 +1298,7 @@ Blocked by: DDP-#10, DDP-#17, DDP-#21
 
 ---
 
-## [DDP-#23] feat(frontend): build room booking steps
+## [DDP-#23] feat(frontend): build booking selection and guest-information flow
 
 **Assignee:** TBD  
 **Labels:** `epic:ui-frontend`, `High`, `feat`  
@@ -1222,19 +1318,26 @@ As a logged-in guest, I want guided booking steps so that I can enter details an
 
 ### Acceptance Criteria
 
-**AC1 — Expected behaviour:** Given a selected room, when I choose dates, guests and requests, then the room selection and guest details steps show a quote before payment.
+**AC1 — Expected behaviour:** Four supplied booking screens share five milestones: Select Room, Room Details, Guest Info, Payment, Confirmation. This issue builds screens 1–3: room results/selection, room configuration and rate sidebar, guest form with room/quote summary and payment handoff. Safe dates/guests/room quantities persist through supported back/forward navigation.
 
-**AC2 — Error or edge behaviour:** Given invalid dates or a sold-out result, when I continue, then the form explains the problem and keeps safe inputs.
+**AC2 — Error or edge behaviour:** Invalid dates/capacity, sold-out rooms, stale quotes, network or sign-in failure block invalid progression, explain recovery and retain safe inputs. Editing dates or configuration revalidates dependent selections and totals.
+
+**AC3 — Ownership:** #19 supplies search/calendar, #24 promo application, #25 payment/final confirmation, #26 email, #29 modification UI. Meal plans, child counts and arrival options are enabled only with agreed pricing/contracts. Do not implement raw card entry here.
 
 ### Technical Notes
 
-Use the real booking quote API. Show Room Selection, Guest Details and Payment progress.
+Use the real booking quote API. Show the five designed milestones: Select Room, Room Details, Guest Info, Payment and Confirmation, across the four supplied booking screens.
+
+Follow booking screenshots 1–3, using #22 quote/reservation identity. Include selected-card treatment, supported adult/child/room steppers, editable dates, guest email confirmation, requests and field errors. Five milestones do not require a fifth designed page. Mock fixtures must not appear as a live reservation. Requote after changes.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
-- [ ] UI: complete valid steps; negative: unavailable room and invalid date.
-- [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
-- [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+- [ ] UI/integration: selection/configuration, guest validation, consistent sidebar, progress milestones and handoff.
+- [ ] Negative: sold-out, invalid dates/capacity, stale quote, API/session failure, refresh/back and duplicate continue.
+- [ ] Supported optional fields and safe-input recovery follow the actual contract.
+- [ ] Attach acceptance-criteria evidence.
 
 ### Definition of Done
 
@@ -1247,15 +1350,15 @@ Use the real booking quote API. Show Room Selection, Guest Details and Payment p
 
 ### Estimate
 
-Estimated: 8 hours
+Estimated: 16 hours (revised planning estimate after screenshot review; confirm with the assignee).
 
 ### Dependencies
 
-Blocked by: DDP-#19, DDP-#20, DDP-#22
+Blocked by: DDP-#16, DDP-#19, DDP-#20, DDP-#22. Base flow does not depend on later #24/#25 integrations.
 
 ---
 
-## [DDP-#24] feat(promotions): read and apply manager promo codes
+## [DDP-#24] feat(promotions): build Offers page and apply manager promo codes
 
 **Assignee:** TBD  
 **Labels:** `epic:integration`, `High`, `feat`  
@@ -1275,19 +1378,26 @@ As a guest, I want to apply a valid promo code so that I receive the advertised 
 
 ### Acceptance Criteria
 
-**AC1 — Expected behaviour:** Given an active applicable code, when I apply it, then the server returns the reduced total and the UI shows the discount.
+**AC1 — Expected behaviour:** /offers follows the screenshot with photographic hero, code strip, supported filters, featured active offer, offer cards and footer. Home/Offers share published active data. A valid code applied to a selected stay updates server-priced booking line items and total.
 
-**AC2 — Error or edge behaviour:** Given expired, inactive, exhausted or inapplicable code, when I apply it, then no discount is applied and I see a clear error.
+**AC2 — Error or edge behaviour:** Expired/inactive/exhausted/ineligible codes do not reduce prices. Empty/failed public data preserves layout. Code entry without stay context guides selection without claiming validation. Unsupported category/featured fields are not fabricated.
+
+**AC3 — Contract readiness:** Public offer titles, imagery, descriptions, inclusions, terms, categories and featured flags require an agreed marketing contract; current P1 code/discount fields alone are insufficient. Newsletter submission is enabled only with an approved subscription/consent contract; otherwise explain its unavailable state.
 
 ### Technical Notes
 
 Manager dashboard owns creation and activation; use its published contract. Calculate final totals on the server.
 
+Manager Dashboard owns publication/eligibility/redemption. Resolve marketing-field and newsletter ownership under #06 follow-up. Reuse Home filtering/error handling and revalidate after booking edits. Existing Home integration does not complete Offers. Never hardcode screenshot discounts/packages or fake subscription success.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
+
 ### Test Requirements
 
-- [ ] Integration: valid percent and fixed discounts; negative: inactive and expired codes.
-- [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
-- [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+- [ ] UI/contract: hero, supported filters/featured/cards, Home consistency and empty/error states.
+- [ ] Integration: percent/fixed application, inactive/expired/exhausted/ineligible code and stale context.
+- [ ] Code entry without a stay; honest newsletter state or approved opt-in/provider success/failure.
+- [ ] Attach acceptance-criteria evidence.
 
 ### Definition of Done
 
@@ -1300,15 +1410,15 @@ Manager dashboard owns creation and activation; use its published contract. Calc
 
 ### Estimate
 
-Estimated: 8 hours
+Estimated: 16 hours (revised planning estimate after screenshot review; confirm with the assignee).
 
 ### Dependencies
 
-Blocked by: DDP-#06, DDP-#22; manager promotion API
+Blocked by: DDP-#06, DDP-#12, DDP-#13, DDP-#22, DDP-#23; Manager Dashboard marketing/validation contract. Newsletter needs a separately agreed provider contract.
 
 ---
 
-## [DDP-#25] feat(payments): integrate Stripe test checkout
+## [DDP-#25] feat(payments): integrate Stripe checkout and reservation confirmation
 
 **Assignee:** TBD  
 **Labels:** `epic:integration`, `High`, `feat`  
@@ -1332,15 +1442,23 @@ As a guest, I want to pay in full or pay an advance deposit so that my booking c
 
 **AC2 — Error or edge behaviour:** Given a failed or cancelled payment or repeated callback, when the system processes it, then no duplicate charge or duplicate confirmation occurs.
 
+**AC3 — Screenshot alignment:** Final booking screen shows real reference/status, room/dates/nights/guests, line items/currency and supported masked provider details only after authoritative confirmation. Pending/failed payment or delayed webhook has honest recovery state; redirects alone cannot claim reservation success. Print has a usable print view. PDF needs an agreed guest-authorized document contract, or an explained unavailable state with recorded follow-up; modify/cancel integrate under #29.
+
 ### Technical Notes
 
 Build the frontend payment step and server payment flow using Stripe test mode, server-side verification and idempotency. Do not store card details or trust a browser success redirect alone.
+
+Owns Payment milestone and final supplied booking screen. Preserve full-payment/deposit support despite the screenshot showing one total. Card-brand artwork is not raw-card processing. Use authenticated status reads, webhook verification and idempotency. Coordinate PDF/status with #06 and email state with #26; do not promise actual email delivery from a browser redirect.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] UI and integration: full and deposit success; negative: failure and replayed callback.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Confirmation content/line items, forged redirect, delayed webhook, pending/failure/refresh, full/deposit amounts, print and supported/unsupported authorized PDF.
 
 ### Definition of Done
 
@@ -1353,11 +1471,11 @@ Build the frontend payment step and server payment flow using Stripe test mode, 
 
 ### Estimate
 
-Estimated: 10 hours
+Estimated: 16 hours (revised planning estimate after screenshot review; confirm with the assignee).
 
 ### Dependencies
 
-Blocked by: DDP-#22, DDP-#24
+Blocked by: DDP-#22, DDP-#23, DDP-#24; provider and booking-status/document contracts.
 
 ---
 
@@ -1385,15 +1503,23 @@ As a guest, I want an email receipt so that I have my booking details.
 
 **AC2 — Error or edge behaviour:** Given email provider failure, when delivery is attempted, then the paid booking remains recorded and the failure is logged for retry.
 
+**AC3 — Screenshot alignment:** Email and final reservation view agree on reference, room, dates, currency, paid amount and balance. Queued/failed email does not invalidate a paid booking or cause false delivered claims. Pre-arrival instructions/contacts are approved, not sample content.
+
 ### Technical Notes
 
 Use SendGrid sandbox outside production. Avoid duplicate emails from repeated payment events.
+
+Use confirmed reservation data; payment failure must not generate success email. Repeated callbacks cannot generate duplicate mail.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] Integration: email content and single send; negative: provider failure and retry.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Email/final-screen consistency, deposit/balance correctness, no email before confirmation and honest delivery-failure state.
 
 ### Definition of Done
 
@@ -1438,15 +1564,23 @@ As a guest, I want upcoming and past reservations so that I can track my stays.
 
 **AC2 — Error or edge behaviour:** Given another guest's booking ID, when I request it, then access is denied and no private data is returned.
 
+**AC3 — Screenshot alignment:** Profile is My Bookings: signed-in header/sidebar/sign-out, summary tiles, Upcoming/Past/Cancelled tabs, rows with room thumbnails, dates, status, price/currency and details. Counts derive from guest records. Loyalty/member metrics need a service; omit or explain unsupported values rather than invent them.
+
 ### Technical Notes
 
 Enforce ownership in backend, not only in the UI. Agree booking state names with front desk.
+
+Use guest-authorized detail/status reads shared with confirmation where appropriate; sign-out follows session invalidation rules. #29 owns working modify/cancel controls. Do not use screenshot guest identities or fake membership balances.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] Integration: own list; security: cross-guest access denied; UI: empty state.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Tabs/counts/details, empty/failure state, missing image, sign-out, cross-guest denial and unsupported loyalty state.
 
 ### Definition of Done
 
@@ -1459,11 +1593,11 @@ Enforce ownership in backend, not only in the UI. Agree booking state names with
 
 ### Estimate
 
-Estimated: 8 hours
+Estimated: 12 hours (revised planning estimate after screenshot review; confirm with the assignee).
 
 ### Dependencies
 
-Blocked by: DDP-#10, DDP-#22
+Blocked by: DDP-#10, DDP-#20, DDP-#22, DDP-#25.
 
 ---
 
@@ -1491,15 +1625,23 @@ As a guest, I want to change or cancel in time so that I can manage my plans.
 
 **AC2 — Error or edge behaviour:** Given my booking is inside the 24-hour limit or belongs to another guest, when I request a change, then it is rejected without changing the booking.
 
+**AC3 — Screenshot alignment:** Changes return authoritative dates, price/payment/refund state and booking status so Profile and confirmation agree. Repeated requests/provider errors cannot duplicate refunds or claim unperformed cancellation.
+
 ### Technical Notes
 
 Apply the approved cancellation policy and any payment/refund rules agreed with hotel management. Recheck availability on date changes.
+
+Confirm exact 24-hour cutoff/timezone, eligible states, deposit/refund and change rules against approved policy under #06; screenshot marketing is not authoritative policy. #26 supplies email delivery.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] Integration: eligible change and cancel; negative: late and cross-guest requests.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Cutoff boundary/timezone, repricing, duplicate cancellation, refund/provider failure and cross-view consistency.
 
 ### Definition of Done
 
@@ -1516,7 +1658,7 @@ Estimated: 10 hours
 
 ### Dependencies
 
-Blocked by: DDP-#17, DDP-#25, DDP-#27
+Blocked by: DDP-#17, DDP-#25, DDP-#26, DDP-#27; approved modification/refund policy.
 
 ---
 
@@ -1544,15 +1686,23 @@ As a guest, I want clear change and cancel controls so that I can manage eligibl
 
 **AC2 — Error or edge behaviour:** Given an ineligible or failed request, when I open it, then the UI explains why it cannot be changed and keeps the current state.
 
+**AC3 — Screenshot alignment:** Profile rows and final confirmation expose consistent eligible View/Modify/Cancel actions. Cancellation has explicit review/confirmation including real fee/refund outcome. Successful changes refresh both views; failed requests preserve actual booking data.
+
 ### Technical Notes
 
 The server is authoritative for eligibility; do not rely on hidden buttons as the only rule.
+
+No modify/cancel dialog screenshot was supplied; document a simple accessible form/dialog design adaptation. Print/PDF use #25 support rather than duplicate document/payment logic.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] UI: eligible actions; negative: 24-hour cutoff and server rejection.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Both entry points, cancellation confirmation/back-out, refreshed totals/status, focus return, cutoff and server rejection.
 
 ### Definition of Done
 
@@ -1569,7 +1719,7 @@ Estimated: 6 hours
 
 ### Dependencies
 
-Blocked by: DDP-#27, DDP-#28
+Blocked by: DDP-#23, DDP-#25, DDP-#27, DDP-#28.
 
 ---
 
@@ -1597,15 +1747,21 @@ As a developer, I want integration tests so that changes across services do not 
 
 **AC2 — Error or edge behaviour:** Given a missing or changed response field, when the suite runs, then the relevant contract test fails.
 
+**AC3 — Screenshot alignment:** Fixtures also cover image URLs, supported occupancy/quantity/add-ons, offer marketing versus validation, quote refresh/line items and guest-scoped confirmation/Profile status reads. Unsupported contract fields remain named gaps.
+
 ### Technical Notes
 
 Use test DB, Stripe test fixtures and email sandbox/mocks; coordinate gateway and manager mocks.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] Contract: success payloads; negative: changed payload and error response; integration: critical booking flow.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Room image/price contracts, public offer metadata, enquiry failure, pending-to-confirmed transition, quote consistency and cross-view ownership.
 
 ### Definition of Done
 
@@ -1622,7 +1778,7 @@ Estimated: 9 hours
 
 ### Dependencies
 
-Blocked by: DDP-#24–DDP-#29
+Blocked by: DDP-#15, DDP-#16, DDP-#24–DDP-#29; agreed gateway/manager/provider fixtures.
 
 ---
 
@@ -1650,15 +1806,21 @@ As a developer, I want a browser test so that the main guest journey works end t
 
 **AC2 — Error or edge behaviour:** Given a sold-out room or failed payment, when the journey runs, then no confirmed booking is shown.
 
+**AC3 — Screenshot alignment:** Browser journey starts on Home/Rooms, retains dates through registration/login, selects/configures rooms, applies an offer, enters guest details, pays in test mode, opens confirmed reservation and finds it in Profile. Five milestones correspond to the four supplied booking screens.
+
 ### Technical Notes
 
 Use test accounts and Stripe test mode only; make fixtures repeatable.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] E2E: successful journey; negative: sold-out and payment failure.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Safe return after auth, back/refresh, repricing, payment pending/retry, no success on forged redirect, print view and Profile consistency.
 
 ### Definition of Done
 
@@ -1675,7 +1837,7 @@ Estimated: 8 hours
 
 ### Dependencies
 
-Blocked by: DDP-#23–DDP-#27
+Blocked by: DDP-#16, DDP-#18, DDP-#19, DDP-#20, DDP-#23–DDP-#27.
 
 ---
 
@@ -1703,15 +1865,21 @@ As a visitor, I want usable pages on my device so that I can complete a booking.
 
 **AC2 — Error or edge behaviour:** Given keyboard-only use, when I navigate forms and calendars, then focus, labels and error messages are usable.
 
+**AC3 — Screenshot alignment:** Compare Home, Rooms, Services, Contact, Offers, Profile, Sign In/Up and all booking screens with the saved catalogue at mobile/tablet/desktop widths. Verify full Home scroll, card crops, navigation, map fallback, calendar/stepper/comparison focus, FAQ, cookie notice and balanced scrollbar layout. Document approximations where fonts/assets/mobile frames are absent.
+
 ### Technical Notes
 
 Check core pages and booking flow at representative viewport sizes; use accessible text for availability states.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] Browser: viewport checks; accessibility: keyboard and form error checks.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: All catalogue screens at 320px/tablet/desktop, zoom/reflow, contrast, reduced motion, focus/errors/state announcements, blocked map/image and no horizontal overflow.
 
 ### Definition of Done
 
@@ -1756,15 +1924,21 @@ As a guest, I want my account and payment details protected so that I can trust 
 
 **AC2 — Error or edge behaviour:** Given a payment or log event, when stored data is inspected, then card details, plaintext passwords and secrets are absent.
 
+**AC3 — Screenshot alignment:** Profile, reservation status/documents and modify/cancel deny cross-guest access. Untrusted image URLs, return URLs, enquiries and promo input follow agreed validation. Social/recovery and card-brand UI cannot bypass auth/provider boundaries.
+
 ### Technical Notes
 
 Review validation, rate limits with gateway owner, TLS through gateway, and secret handling. Record fixes as separate issues if needed.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] Security: cross-guest access, invalid JWT, injection/XSS input and sensitive-data checks.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Status/document ownership, unsafe URLs, enquiry abuse, replayed payment/cancel and no sensitive browser persistence/logs.
 
 ### Definition of Done
 
@@ -1813,11 +1987,17 @@ As a guest, I want room search and booking to stay responsive during busy period
 
 Coordinate a realistic 300-user system-wide test with infra; record hardware, dataset and any bottlenecks.
 
+Include photo-heavy public pages, calendar queries and quote-refresh traffic. Measure optimized image loading/payloads, gateway/manager timeout effects and real last-room contention instead of sample-only inventory.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
+
 ### Test Requirements
 
 - [ ] Load: room search and booking metrics; concurrency: last-room protection.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Image delivery, availability/calendar and quote refresh performance alongside original concurrency/load targets.
 
 ### Definition of Done
 
@@ -1866,11 +2046,17 @@ As a developer, I want a controlled staging release so that the website can be c
 
 Coordinate gateway routes, registry and staging credentials with infra. Production deployment remains approval-gated per SDS.
 
+Staging smoke includes implemented catalogue routes/images, gateway config, protected Profile/confirmation redirects and payment-return status checks. Unsupported features remain explicit rather than false-success controls.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
+
 ### Test Requirements
 
 - [ ] Pipeline: staging success; negative: failed smoke check and rollback rehearsal.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Public route/image availability, unknown-route 404, protected guest routes, payment-return status and rollback.
 
 ### Definition of Done
 
@@ -1915,15 +2101,21 @@ As a teammate, I want clear setup and release notes so that the website can be m
 
 **AC2 — Error or edge behaviour:** Given the final demo, when the website is shown, then requirements HW-01 through HW-17 have linked issues, tests or a clearly recorded gap.
 
+**AC3 — Screenshot alignment:** Each screen/control maps to an owning issue, test evidence or named unresolved decision. Document Home-only background, four booking screens/five milestones, substitute assets, API rooms and deferred social/recovery/newsletter/loyalty/add-on/PDF features without claiming they shipped.
+
 ### Technical Notes
 
 Include architecture, gateway dependencies, API examples, test commands and staging URL when available. Record approved SDS deviations in ADRs.
+
+Design reference: [screen catalogue](frontend/SCREEN_CATALOGUE.md); see [backlog alignment](documents/planning/screenshot-backlog-alignment.md) for ownership and pending contract decisions.
 
 ### Test Requirements
 
 - [ ] Documentation check: teammate setup walk-through; traceability check: each HW requirement mapped.
 - [ ] AC1: Attach the passing test or documented manual check for expected behaviour.
 - [ ] AC2: Attach the passing test or documented manual check for the error or edge case.
+
+- [ ] Screenshot/integration checks: Catalogue-to-issue traceability, approved/deferred feature states and removal/labeling of sample production content.
 
 ### Definition of Done
 
@@ -1940,6 +2132,6 @@ Estimated: 6 hours
 
 ### Dependencies
 
-Blocked by: DDP-#30–DDP-#35
+Blocked by: DDP-#30–DDP-#35; approved final hotel content/assets and owner decisions.
 
 ---

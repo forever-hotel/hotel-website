@@ -4,6 +4,15 @@ This file is the working context for contributors and coding assistants in this 
 
 ## Source documents and authority
 
+- [frontend/SCREEN_CATALOGUE.md](frontend/SCREEN_CATALOGUE.md) preserves the user's
+  supplied hotel website screen inventory and implementation notes. Consult it
+  before frontend issues. There is no separate About Us page: Home contains hotel
+  background, Services covers facilities, and Contact covers location. Draft
+  Issue 13 is aligned with this design. The
+  [backlog review](documents/planning/screenshot-backlog-alignment.md) maps all 36
+  draft tickets to the supplied screens and records missing contract decisions;
+  consult it with `issue.md` before upcoming work.
+
 - The team's Figma file is the visual reference for hotel website UI work. See
   [frontend/UI_GUIDE.md](frontend/UI_GUIDE.md) for its link, inspection status,
   and implementation steps. Six supplied screenshots now guide the single-page

@@ -14,6 +14,10 @@ planner does not check live inventory or create reservations.
 
 ## Home page and promotions (DDP-#12)
 
+The [screen catalogue](SCREEN_CATALOGUE.md) records all supplied website screens
+and the booking flow for future implementation. It records the user's clarification
+that About Us content belongs on Home, without a separate page.
+
 The route stays in `src/app/page.tsx`; promotion validation and presentation live
 in `src/features/promotions/`. Server-side gateway access lives in `src/lib/api/`.
 The hotel copy is introductory content; confirm it with the hotel before release.
