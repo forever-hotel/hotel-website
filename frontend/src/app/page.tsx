@@ -73,7 +73,7 @@ export default function Home() {
               </h2>
               <span className="gold-rule" />
               <p>
-                Since our founding, The Grand Meridian has set the benchmark for
+                Since our founding, Forever City Hotel has set the benchmark for
                 luxury hospitality — where timeless elegance meets contemporary
                 comfort. Every corner of our hotel tells a story of meticulous
                 craftsmanship and heartfelt service.
@@ -85,11 +85,11 @@ export default function Home() {
               </p>
               <dl className="story-stats">
                 <div>
-                  <dt>45+</dt>
-                  <dd>Years of excellence</dd>
+                  <dt>20+</dt>
+                  <dd>Years of experience</dd>
                 </div>
                 <div>
-                  <dt>120</dt>
+                  <dt>30+</dt>
                   <dd>Luxury rooms & suites</dd>
                 </div>
                 <div>
@@ -97,7 +97,7 @@ export default function Home() {
                   <dd>Guest satisfaction</dd>
                 </div>
                 <div>
-                  <dt>15+</dt>
+                  <dt>5+</dt>
                   <dd>Awards & recognitions</dd>
                 </div>
               </dl>
@@ -214,7 +214,7 @@ export default function Home() {
           <figure>
             <blockquote>
               “Every detail was flawlessly considered. From the welcome
-              champagne to the parting gift, The Grand Meridian redefines what
+              champagne to the parting gift, Forever City Hotel redefines what
               luxury hospitality truly means.”
             </blockquote>
             <figcaption>— Sarah Mitchell, London</figcaption>

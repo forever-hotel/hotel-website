@@ -9,7 +9,7 @@ export function SiteHeader() {
       </a>
       <header className="site-header">
         <Link className="wordmark" href="/">
-          The Grand Meridian
+          Forever City Hotel
         </Link>
         <nav aria-label="Main navigation">
           {publicLinks.map((link) => (

@@ -27,6 +27,8 @@ This file is the working context for contributors and coding assistants in this 
 
 ## Purpose and boundaries
 
+- The user-confirmed public hotel name is **Forever City Hotel**. Screenshot
+  branding “The Grand Meridian” is superseded for all rendered UI and metadata.
 - Build the guest-facing Forever Hotel website and its supporting backend.
 - The frontend is a Next.js App Router and TypeScript application in `frontend/`, with a placeholder welcome page, ESLint, Prettier, and smoke checks.
 - The existing backend is a NestJS 11 and TypeScript application in `backend/`. It uses `@nestjs/config`, TypeORM, and PostgreSQL.

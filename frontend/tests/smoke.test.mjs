@@ -88,7 +88,9 @@ test(
       assert.match(html, /Illustrative room previews/);
       assert.match(html, /src="[^\"]*hotel-pool/);
       assert.match(html, /id="offers"/);
-      assert.match(html, /Years of excellence/);
+      assert.match(html, /<dt>20\+<\/dt><dd>Years of experience<\/dd>/);
+      assert.match(html, /<dt>30\+<\/dt>/);
+      assert.match(html, /<dt>5\+<\/dt>/);
       assert.match(html, /Guest satisfaction/);
       assert.match(html, /id="hotel-policies"/);
       assert.match(html, /Check-in is from 2:00 PM/);
@@ -108,7 +110,8 @@ test(
         assert.ok(pageIds.has(anchor[1]), `Broken Home link: ${anchor[1]}`);
       }
       assert.match(html, /There are no offers to show right now/);
-      assert.match(html, /<title>The Grand Meridian \| Forever Hotel<\/title>/);
+      assert.match(html, /<title>Forever City Hotel<\/title>/);
+      assert.doesNotMatch(html, /The Grand Meridian/);
       const active = {
         promoId: 'active',
         code: 'ACTIVE10',

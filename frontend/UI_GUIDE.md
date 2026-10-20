@@ -2,6 +2,12 @@
 
 ## Design source and status
 
+Brand correction: the user confirms the hotel name is **Forever City Hotel**.
+Use it in visible copy, the wordmark, footer, and metadata. “The Grand Meridian”
+in the screenshots is reference branding and must not appear in the website.
+Use normal browser scrollbar behaviour; do not add a matching empty gutter on
+the left side of the page.
+
 See [SCREEN_CATALOGUE.md](SCREEN_CATALOGUE.md) for all additional supplied screens:
 Rooms, Services, Contact, Offers, Profile, Sign In, Sign Up, and the booking flow.
 There is **no separate About Us screen**. Hotel background belongs on Home,
@@ -80,8 +86,9 @@ headings, image alternatives, and reduced-motion support.
   Home previews (`/#...`) and the footer explains this temporary behaviour.
   Plan Your Stay actions lead to the existing planner without claiming booking.
 - Content confirmation: on 20 October 2026 the user confirmed that the hotel
-  details in the supplied design are real, after being asked about the 45+ years,
-  120 rooms and 2 PM/noon check-in/out times. Use the supplied history, statistics,
+  details are real, and subsequently corrected the statistics to **20+ years of
+  experience, 30+ rooms and 5+ awards**. These values supersede the screenshot's
+  original statistics. Check-in/out remains 2 PM/noon. Use the supplied history,
   testimonial and Colombo location without sample notices. This confirmation
   does not provide a street address, contact details, additional cancellation
   rules or live pricing/inventory. Do not invent those details.

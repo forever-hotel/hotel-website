@@ -7,7 +7,7 @@ export function SiteFooter() {
       <div className="footer-grid">
         <div className="footer-brand">
           <Link href="/" className="wordmark">
-            The Grand Meridian
+            Forever City Hotel
           </Link>
           <p>
             A sanctuary of luxury and refined hospitality, crafted for those who
@@ -44,7 +44,7 @@ export function SiteFooter() {
       </div>
       <div className="footer-bottom">
         <p>
-          © {new Date().getFullYear()} The Grand Meridian. All rights reserved.
+          © {new Date().getFullYear()} Forever City Hotel. All rights reserved.
         </p>
         <Link href="/#main-content">Back to top ↑</Link>
       </div>

@@ -12,10 +12,6 @@
   color: var(--ink);
   font-family: var(--body);
 }
-html {
-  /* Balance the space used by a traditional scrollbar on both sides. */
-  scrollbar-gutter: stable both-edges;
-}
 * {
   box-sizing: border-box;
 }
