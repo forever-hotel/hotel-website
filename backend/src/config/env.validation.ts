@@ -4,6 +4,7 @@ import {
   DEFAULT_DB_PORT,
   DEFAULT_LOG_LEVELS,
   DEFAULT_SERVICE_NAME,
+  JWT_SECRET_MIN_BYTES,
   LOG_FORMATS,
   LOG_LEVELS,
   LogFormat,
@@ -26,6 +27,8 @@ export interface EnvironmentVariables {
   DB_SSL: boolean;
   DB_SYNCHRONIZE: boolean;
   DB_LOGGING: boolean;
+  JWT_SECRET: string;
+  JWT_ISSUER: string;
 }
 
 type RawEnvironment = Record<string, string | undefined>;
@@ -131,7 +134,13 @@ export function validateEnv(raw: RawEnvironment): EnvironmentVariables {
     DB_SSL: readBoolean('DB_SSL', false),
     DB_SYNCHRONIZE: readBoolean('DB_SYNCHRONIZE', false),
     DB_LOGGING: readBoolean('DB_LOGGING', false),
+    JWT_SECRET: readRequired('JWT_SECRET'),
+    JWT_ISSUER: readRequired('JWT_ISSUER'),
   };
+
+  if (Buffer.byteLength(env.JWT_SECRET, 'utf8') < JWT_SECRET_MIN_BYTES) {
+    errors.push(`JWT_SECRET must be at least ${JWT_SECRET_MIN_BYTES} bytes`);
+  }
 
   // A pasted connection URL (postgresql://user:password@host/db) would put the
   // password into DNS errors and logs, so only a bare host name is allowed.

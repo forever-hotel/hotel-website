@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { hash } from 'bcryptjs';
+import { compare, hash } from 'bcryptjs';
 import { BCRYPT_COST } from '../config/constants';
 
 /**
@@ -10,5 +10,9 @@ import { BCRYPT_COST } from '../config/constants';
 export class PasswordHasher {
   hash(password: string): Promise<string> {
     return hash(password, BCRYPT_COST);
+  }
+
+  compare(password: string, passwordHash: string): Promise<boolean> {
+    return compare(password, passwordHash);
   }
 }

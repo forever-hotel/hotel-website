@@ -20,9 +20,15 @@ export interface DatabaseConfig {
   logging: boolean;
 }
 
+export interface JwtConfig {
+  secret: string;
+  issuer: string;
+}
+
 export interface Configuration {
   app: AppConfig;
   database: DatabaseConfig;
+  jwt: JwtConfig;
 }
 
 export default function configuration(): Configuration {
@@ -45,6 +51,10 @@ export default function configuration(): Configuration {
       ssl: env.DB_SSL,
       synchronize: env.DB_SYNCHRONIZE,
       logging: env.DB_LOGGING,
+    },
+    jwt: {
+      secret: env.JWT_SECRET,
+      issuer: env.JWT_ISSUER,
     },
   };
 }

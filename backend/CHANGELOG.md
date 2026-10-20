@@ -5,8 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- Guest authentication build and lint errors, Swagger test guard setup, and typed integration-test response handling (DDP-#10). Formatting checks now use the same line-ending policy as ESLint. Backend CI enforces formatting and the existing 80% unit coverage threshold.
+- Documented the proposed per-service authentication architecture in ADR 001; team and gateway approval remain pending.
+
 ### Added
 
+- `POST /guests/login` (HW-07, DDP-#10): verifies a submitted password against the stored bcrypt hash and issues a signed HS256 JWT with `iss`, `sub`, `iat`, `exp`, and `role=GUEST` claims and a 24-hour expiry. Adds `GET /guests/me`, protected by a bearer-token guard, plus validated `JWT_SECRET` and `JWT_ISSUER` configuration.
 - `POST /guests/register` (HW-06, DDP-#09): validates name, email, password (8–72 characters) and optional phone (SDS Table 14), stores the password as a bcrypt hash (cost 12, `bcryptjs`), returns `201` with `{ guestId, fullName, email, createdAt }`, `409 EMAIL_ALREADY_REGISTERED` for a used email and `400 VALIDATION_FAILED` for invalid input.
 - Startup rejects a connection URL in `DB_HOST` (only a host name is allowed), so a pasted `postgresql://user:password@...` link cannot leak the password into logs. Integration tests get a 30-second timeout for cloud databases and close cleanly when the database is unreachable.
 - Swagger/OpenAPI docs at `/docs` (JSON at `/docs-json`), not served when `NODE_ENV=production`.

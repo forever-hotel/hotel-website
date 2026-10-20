@@ -33,8 +33,11 @@ jobs:
       - name: Lint backend
         run: npm run lint
 
-      - name: Run unit tests
-        run: npm test -- --runInBand
+      - name: Check backend formatting
+        run: npm run format:check
+
+      - name: Run unit tests and enforce coverage
+        run: npm run test:cov -- --runInBand
 
   integration:
     name: Integration tests
@@ -69,6 +72,7 @@ jobs:
       DB_NAME: hotel_website
       DB_SSL: 'false'
       DB_SYNCHRONIZE: 'false'
+      JWT_ISSUER: hotel-website
 
     steps:
       - name: Check out code
@@ -88,6 +92,12 @@ jobs:
         env:
           PGPASSWORD: ci-throwaway-only
         run: psql -v ON_ERROR_STOP=1 -h localhost -U hotel_website -d hotel_website -f ../database/infra-schema/01_forever_hotel_schema.sql
+
+      - name: Generate disposable JWT signing key
+        run: |
+          jwt_secret=$(openssl rand -hex 32)
+          echo "::add-mask::$jwt_secret"
+          echo "JWT_SECRET=$jwt_secret" >> "$GITHUB_ENV"
 
       - name: Run integration tests
         run: npm run test:integration

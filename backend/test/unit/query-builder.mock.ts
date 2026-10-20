@@ -6,6 +6,7 @@ const CHAIN_METHODS = [
   'values',
   'where',
   'andWhere',
+  'addSelect',
   'leftJoinAndSelect',
   'orderBy',
   'addOrderBy',
@@ -13,8 +14,7 @@ const CHAIN_METHODS = [
 const RESULT_METHODS = ['execute', 'getOne', 'getMany', 'getCount'] as const;
 
 type QueryBuilderMethod =
-  | (typeof CHAIN_METHODS)[number]
-  | (typeof RESULT_METHODS)[number];
+  (typeof CHAIN_METHODS)[number] | (typeof RESULT_METHODS)[number];
 
 export type QueryBuilderMock = Record<QueryBuilderMethod, jest.Mock>;
 

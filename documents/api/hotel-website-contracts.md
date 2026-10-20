@@ -1,6 +1,7 @@
 # Hotel website API contracts
 
-Status: **Draft for team review — not approved or implemented.**
+Status: **Draft for team review — not approved. Some guest-auth endpoints are
+implemented; gateway mappings and the remaining proposed routes are not.**
 
 Planning task: DDP-#06 in [issue.md](../../issue.md). Its actual GitHub issue number
 has not been assigned here. Prepared on 2026-09-29.
@@ -19,12 +20,12 @@ Traceability: draft SRS HW-01, HW-03, HW-05–HW-14 and CI-01; SDS §§1.1, 1.4.
 these references need verification against the approved documents. SDS flow
 labels must not be confused with SRS requirement identifiers.
 
-The current backend registers `GET /health` and `POST /guests/register` (G1). Its
+The current backend registers `GET /health`, `POST /guests/register` (G1),
+`POST /guests/login` (G2) and `GET /guests/me` (G3). Its
 [error interface](../../backend/src/common/interfaces/error-response.interface.ts),
 [exception filter](../../backend/src/common/filters/all-exceptions.filter.ts) and
-[validation pipe](../../backend/src/common/pipes/validation.pipe.ts) already define
-the error format below. Business routes, DTOs, gateway mappings and sessions in
-this document are proposals. This change adds documentation, not endpoints.
+[validation pipe](../../backend/src/common/pipes/validation.pipe.ts) define the
+error format below. Other business routes and gateway mappings remain proposals.
 
 ## Ownership and approval
 
@@ -35,7 +36,7 @@ integration work starts. No approval is implied by this document.
 | Area                                                 | Proposed accountable team             | Required reviewers                | Named owner | Approval evidence |
 | ---------------------------------------------------- | ------------------------------------- | --------------------------------- | ----------- | ----------------- |
 | Public routes, version prefix, rate limits           | API Gateway                           | Website frontend/backend          | TBD         | Pending           |
-| Registration, login, session and logout              | Website backend (decided 2026-10-14: auth per service) | Team; guest data owner | Rashmika | Team decision; ADR pending |
+| Registration, login, session and logout              | Website backend (decided 2026-10-14: auth per service) | Team; guest data owner | Rashmika | Team decision; [ADR 001 proposed](../architecture/adr-001-guest-authentication.md), approval pending |
 | Room catalogue and prices                            | Website backend, ownership to confirm | Front Desk                        | TBD         | Pending           |
 | Availability, maintenance and inventory reservations | Front Desk, ownership to confirm      | Website backend                   | TBD         | Pending           |
 | Quotes, website bookings and self-service            | Website backend                       | Front Desk; website frontend      | TBD         | Pending           |
@@ -69,10 +70,11 @@ satisfy the backlog's named-owner requirement.
 - Guest routes derive identity from the authenticated session. Never accept a
   client-supplied `guestId` as ownership proof. Guest lists contain only their
   records; accessing another guest's booking returns proposed `403 FORBIDDEN`.
-- Proposed browser transport is an HttpOnly, Secure session cookie; the gateway
-  must agree its name, SameSite mode, expiry, CORS and CSRF protection, and how
-  authenticated identity is forwarded to private services. Mutations require
-  the agreed CSRF control. Do not store JWTs in localStorage or sessionStorage.
+- The draft browser contract proposes an HttpOnly, Secure session cookie. The
+  current backend instead returns a signed JWT for the client to send as a
+  Bearer token. The auth owners must approve the browser transport before
+  frontend integration; cookie handling, CORS and CSRF protection are not
+  implemented here. Do not store JWTs in localStorage or sessionStorage.
 - Session, quotes, bookings and payments return `Cache-Control: no-store`.
   Availability must be rechecked on booking creation, regardless of caching.
 - For booking, payment and cancellation creation, require `Idempotency-Key`.
@@ -133,8 +135,8 @@ session. All error examples use the shared body and an explicit HTTP status.
 | A1  | GET /availability?roomTypeId=…&checkInDate=…&checkOutDate=…&numberOfGuests=2 | Public | Front Desk / Website        | 200 availability             | 400 VALIDATION_FAILED          |
 | A2  | GET /room-types/{roomTypeId}/availability-calendar?from=…&to=…               | Public | Front Desk / Website        | 200 daily counts             | 404 ROOM_TYPE_NOT_FOUND        |
 | G1  | POST /guests/register                                                        | Public | Website backend             | 201 guest summary            | 409 EMAIL_ALREADY_REGISTERED   |
-| G2  | POST /auth/login                                                             | Public | Gateway/Auth                | 200 session + cookie         | 401 INVALID_CREDENTIALS        |
-| G3  | GET /auth/session                                                            | Guest  | Gateway/Auth                | 200 session                  | 401 UNAUTHORIZED               |
+| G2  | POST /guests/login                                                           | Public | Website backend             | 200 bearer token + guest     | 401 INVALID_CREDENTIALS        |
+| G3  | GET /guests/me                                                               | Guest  | Website backend             | 200 guest profile            | 401 UNAUTHORIZED               |
 | G4  | POST /auth/logout                                                            | Guest  | Gateway/Auth                | 204, clear cookie            | 403 CSRF_FAILED                |
 | P1  | GET /promotions?limit=20                                                     | Public | Manager Dashboard / Website | 200 active public promotions | 503 DEPENDENCY_UNAVAILABLE     |
 | Q1  | POST /booking-quotes                                                         | Guest  | Website / Manager Dashboard | 201 quote                    | 422 PROMO_INVALID              |
@@ -267,21 +269,30 @@ G2 request:
 { "email": "guest@example.test", "password": "Example-only-password-123!" }
 ```
 
-G2 and G3 → 200 (G2 also sets the agreed session cookie):
+G2 → 200:
 
 ```json
 {
-  "user": {
+  "accessToken": "<signed JWT>",
+  "tokenType": "Bearer",
+  "expiresIn": 86400,
+  "guest": {
     "guestId": "22222222-2222-4222-8222-222222222222",
     "fullName": "Example Guest",
-    "role": "GUEST"
-  },
-  "expiresAt": "2026-09-30T06:00:00Z"
+    "email": "guest@example.test",
+    "createdAt": "2026-10-14T08:00:00.000Z"
+  }
 }
 ```
 
-The expiry illustrates a 24-hour session; auth owners must resolve the website
-session lifetime independently of the checked-in Guest App's room-linked token.
+G3 request:
+
+```http
+Authorization: Bearer <signed JWT>
+```
+
+G3 → 200 returns the authenticated guest's public profile in the same shape as
+the `guest` object above. The JWT expires after 24 hours.
 
 G2 wrong password → 401:
 
@@ -289,7 +300,7 @@ G2 wrong password → 401:
 { "error": "INVALID_CREDENTIALS", "message": "Email or password is incorrect." }
 ```
 
-G3 expired/missing cookie → 401:
+G3 missing, malformed or expired bearer token → 401:
 
 ```json
 { "error": "UNAUTHORIZED", "message": "Please sign in to continue." }
@@ -307,8 +318,9 @@ is required (maximum 255; letters, spaces, hyphens and apostrophes); phone is
 optional (10–15 digits, optional `+`). Decided 2026-10-14 (CLAUDE.md §11.2): auth
 is implemented in this service, registration is `POST /guests/register`
 (implemented in DDP-#09), passwords are 8–72 characters (72 bytes is the bcrypt
-limit), and a used email returns `409 EMAIL_ALREADY_REGISTERED`. Login, token
-issuance and the welcome email are separate issues.
+limit), and a used email returns `409 EMAIL_ALREADY_REGISTERED`. Login and
+24-hour bearer-token issuance are implemented in DDP-#10. The welcome email
+remains a separate feature.
 
 ### Promotions and quotes (P1, Q1)
 

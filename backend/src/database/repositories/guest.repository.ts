@@ -73,6 +73,28 @@ export class GuestRepository {
     }
   }
 
+  async findByEmailForAuthentication(email: string): Promise<Guest | null> {
+    this.logger.verbose('Finding guest for authentication');
+    try {
+      const guest = await this.guests
+        .createQueryBuilder('guest')
+        .addSelect('guest.passwordHash')
+        .where('guest.email = :email', { email: normalizeEmail(email) })
+        .getOne();
+      this.logger.debug(
+        guest
+          ? `Guest found for authentication: ${guest.guestId}`
+          : 'No guest found for authentication',
+      );
+      return guest;
+    } catch (error) {
+      this.logger.error(
+        `Finding guest for authentication failed: ${errorName(error)}`,
+      );
+      throw error;
+    }
+  }
+
   async findById(guestId: string): Promise<Guest | null> {
     this.logger.verbose(`Finding guest ${guestId}`);
     try {

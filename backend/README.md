@@ -53,6 +53,8 @@ Edit **only** your local `.env`. Every variable is explained in `.env.example`:
 | `DB_SYNCHRONIZE`                                   | no       | `false`         | Only on a disposable dev database; rejected when `NODE_ENV=production` |
 | `DB_LOGGING`                                       | no       | `false`         | Prints SQL queries                                                     |
 | `SERVICE_NAME`                                     | no       | `hotel-website` | Lowercase kebab-case; appears in logs and the `/health` response       |
+| `JWT_SECRET`                                       | yes      | –               | Private random signing key, at least 32 bytes; never commit or share   |
+| `JWT_ISSUER`                                       | yes      | –               | Issuer written into and checked on guest access tokens                 |
 | `NODE_ENV`                                         | no       | `development`   | `development`, `test` or `production`                                  |
 | `PORT`                                             | no       | `3000`          |                                                                        |
 | `LOG_FORMAT`                                       | no       | `text`          | `json` gives structured logs for staging and production                |
@@ -123,7 +125,9 @@ Put DTOs in `<feature>/dto/`, for example `bookings/dto/create-booking.dto.ts`.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Readiness check (database up or `503 DATABASE_UNAVAILABLE`) |
+| `POST` | `/guests/login` | Verify guest credentials and issue a 24-hour HS256 bearer token (`200`, `401 INVALID_CREDENTIALS`) |
 | `POST` | `/guests/register` | Create a guest account (HW-06): `201`, `400 VALIDATION_FAILED`, `409 EMAIL_ALREADY_REGISTERED` |
+| `GET` | `/guests/me` | Return the current guest profile; requires `Authorization: Bearer <token>` (`401 UNAUTHORIZED` when missing, invalid, or expired) |
 
 Interactive docs (Swagger UI) are at `http://localhost:3000/docs`, and the OpenAPI JSON at `/docs-json`. They are not served when `NODE_ENV=production`. Describe every new endpoint with `@ApiOperation` and response decorators, and DTO fields with `@ApiProperty`.
 
@@ -133,6 +137,17 @@ Try it from Swagger UI ("Try it out"), or from PowerShell:
 $body = @{ fullName = 'Nimali Perera'; email = 'nimali@example.com'; password = 'a long passphrase' } | ConvertTo-Json
 Invoke-RestMethod -Method Post -Uri http://localhost:3000/guests/register -ContentType 'application/json' -Body $body
 ```
+
+Log in with `POST /guests/login` using JSON `{ "email": "...", "password": "..." }`.
+Use its `accessToken` as `Authorization: Bearer <token>` when calling
+`GET /guests/me`. Tokens expire after 24 hours; log in again after expiry.
+
+The proposed architecture and outstanding team/gateway approvals are recorded in
+[ADR 001](../documents/architecture/adr-001-guest-authentication.md).
+For integration tests, configure a disposable database loaded from
+`database/infra-schema/`, keep `DB_SYNCHRONIZE=false`, and supply `JWT_SECRET`
+and `JWT_ISSUER` as documented above. CI generates its own disposable signing
+key. Do not run integration tests against production.
 
 ## Database tables
 
@@ -181,8 +196,9 @@ To return a specific code, throw a Nest HTTP exception with a code-style `error`
 
 ## Configuration and secrets
 
-- `backend/.env` and other `.env*` files are ignored by Git; `backend/.env.example` is the only tracked template. Add every new variable to it with a placeholder value.
+- `backend/.env` and other `.env*` files are ignored by Git; `backend/.env.example` is the only tracked backend template. Add every new variable to it with a placeholder value.
 - Never commit passwords, API keys, personal data, or payment details. Use GitHub Secrets in CI.
+- `JWT_SECRET` must be a private random value of at least 32 bytes. `JWT_ISSUER` identifies the token issuer. Never log signing keys or access tokens, and never return the signing key. Return access tokens only in the successful login response.
 - `DB_SYNCHRONIZE` is `false` by default. Schema changes go through `forever-hotel/infra` migrations (NFR-16).
 
 From the repository root, verify the ignore rules before committing:

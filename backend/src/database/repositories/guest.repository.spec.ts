@@ -155,6 +155,49 @@ describe('GuestRepository', () => {
       expect(logs.debug).toHaveBeenCalledWith('No guest found for email');
     });
 
+    describe('findByEmailForAuthentication', () => {
+      it('should select the password hash and normalize the email given login lookup', async () => {
+        // Arrange
+        const stored = { guestId: 'guest-1', passwordHash: 'bcrypt-hash' };
+        queryBuilder.getOne.mockResolvedValue(stored);
+
+        // Act
+        const guest = await repository.findByEmailForAuthentication(
+          ' Nimali@Example.com ',
+        );
+
+        // Assert
+        expect(guest).toBe(stored);
+        expect(queryBuilder.addSelect).toHaveBeenCalledWith(
+          'guest.passwordHash',
+        );
+        expect(queryBuilder.where).toHaveBeenCalledWith(
+          'guest.email = :email',
+          {
+            email: 'nimali@example.com',
+          },
+        );
+        expect(allLoggedText(logs)).not.toContain('nimali@example.com');
+      });
+
+      it('should log the error name and rethrow given the login lookup fails', async () => {
+        // Arrange
+        const failure = new TypeError('broken');
+        queryBuilder.getOne.mockRejectedValue(failure);
+
+        // Act
+        const result =
+          repository.findByEmailForAuthentication('nimali@example.com');
+
+        // Assert
+        await expect(result).rejects.toBe(failure);
+        expect(logs.error).toHaveBeenCalledWith(
+          'Finding guest for authentication failed: TypeError',
+        );
+        expect(allLoggedText(logs)).not.toContain('nimali@example.com');
+      });
+    });
+
     it('should log only the guest id given a guest is found', async () => {
       // Arrange
       queryBuilder.getOne.mockResolvedValue({ guestId: 'guest-1' });

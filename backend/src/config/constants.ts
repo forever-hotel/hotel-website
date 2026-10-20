@@ -27,6 +27,8 @@ export const DEFAULT_LOG_LEVELS: Record<NodeEnvironment, AppLogLevel> = {
 
 // Passwords are hashed with bcrypt at this cost (SDS 6.1.2: cost >= 12).
 export const BCRYPT_COST = 12;
+export const JWT_EXPIRES_IN_SECONDS = 24 * 60 * 60;
+export const JWT_SECRET_MIN_BYTES = 32;
 
 // Input rules from SDS Table 14 and the team's registration decision (CLAUDE.md §11.2).
 export const PASSWORD_MIN_LENGTH = 8;
