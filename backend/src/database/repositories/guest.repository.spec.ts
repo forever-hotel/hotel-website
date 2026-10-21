@@ -1,4 +1,4 @@
-import { QueryFailedError, Repository } from 'typeorm';
+import { EntityManager, QueryFailedError, Repository } from 'typeorm';
 import {
   allLoggedText,
   LoggerSpies,
@@ -17,6 +17,8 @@ describe('GuestRepository', () => {
   let createQueryBuilder: jest.Mock;
   let repository: GuestRepository;
   let logs: LoggerSpies;
+  let query: jest.Mock;
+  let transaction: jest.Mock;
 
   const newGuest = {
     fullName: 'Nimali Perera',
@@ -28,8 +30,15 @@ describe('GuestRepository', () => {
     logs = spyOnLogger();
     queryBuilder = createQueryBuilderMock();
     createQueryBuilder = jest.fn().mockReturnValue(queryBuilder);
+    query = jest.fn().mockResolvedValue([]);
+    const manager = { query, getRepository: () => ({ createQueryBuilder }) };
+    transaction = jest.fn(
+      (_isolation: string, callback: (manager: EntityManager) => unknown) =>
+        callback(manager as unknown as EntityManager),
+    );
     repository = new GuestRepository({
       createQueryBuilder,
+      manager: { transaction },
     } as unknown as Repository<Guest>);
   });
 
@@ -38,6 +47,27 @@ describe('GuestRepository', () => {
   });
 
   describe('create', () => {
+    it('rejects an existing email without relying on a database unique index', async () => {
+      query.mockResolvedValueOnce([]).mockResolvedValueOnce([{ exists: 1 }]);
+      await expect(repository.create(newGuest)).rejects.toBeInstanceOf(
+        EmailAlreadyRegisteredError,
+      );
+      expect(transaction).toHaveBeenCalledWith(
+        'READ COMMITTED',
+        expect.any(Function),
+      );
+      expect(query).toHaveBeenNthCalledWith(
+        1,
+        'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+        ['hw-guest-email:nimali@example.com'],
+      );
+      expect(query).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining('lower(btrim(email)) = $1'),
+        ['nimali@example.com'],
+      );
+      expect(queryBuilder.execute).not.toHaveBeenCalled();
+    });
     it('should insert a normalised email and return the guest without the hash given new details', async () => {
       // Arrange
       const createdAt = new Date('2026-10-13T08:00:00Z');
@@ -156,10 +186,28 @@ describe('GuestRepository', () => {
     });
 
     describe('findByEmailForAuthentication', () => {
+      it('refuses ambiguous authentication when legacy duplicate emails exist', async () => {
+        queryBuilder.getMany.mockResolvedValue([
+          { guestId: 'first' },
+          { guestId: 'second' },
+        ]);
+        expect(
+          await repository.findByEmailForAuthentication(' Nimali@Example.com '),
+        ).toBeNull();
+        expect(queryBuilder.limit).toHaveBeenCalledWith(2);
+      });
+      it('returns null when no account exists', async () => {
+        queryBuilder.getMany.mockResolvedValue([]);
+        expect(
+          await repository.findByEmailForAuthentication(
+            'missing@example.invalid',
+          ),
+        ).toBeNull();
+      });
       it('should select the password hash and normalize the email given login lookup', async () => {
         // Arrange
         const stored = { guestId: 'guest-1', passwordHash: 'bcrypt-hash' };
-        queryBuilder.getOne.mockResolvedValue(stored);
+        queryBuilder.getMany.mockResolvedValue([stored]);
 
         // Act
         const guest = await repository.findByEmailForAuthentication(
@@ -172,7 +220,7 @@ describe('GuestRepository', () => {
           'guest.passwordHash',
         );
         expect(queryBuilder.where).toHaveBeenCalledWith(
-          'guest.email = :email',
+          'lower(btrim(guest.email)) = :email',
           {
             email: 'nimali@example.com',
           },
@@ -183,7 +231,7 @@ describe('GuestRepository', () => {
       it('should log the error name and rethrow given the login lookup fails', async () => {
         // Arrange
         const failure = new TypeError('broken');
-        queryBuilder.getOne.mockRejectedValue(failure);
+        queryBuilder.getMany.mockRejectedValue(failure);
 
         // Act
         const result =

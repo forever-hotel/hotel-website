@@ -2,7 +2,19 @@
 
 ## Unreleased
 
+### Fixed
+
+- Authentication errors now appear in a red alert with focus and scroll handling.
+  Required/invalid fields use the same inline feedback rather than relying only
+  on browser validation tooltips; general paragraph styling no longer overrides
+  the error color.
+
 ### Added
+
+- DDP-#20: registration and sign-in forms, safe return navigation, server-side
+  gateway authentication, an HttpOnly guest cookie, verified account page and
+  sign-out. Includes validation, expiry/outage feedback and authentication tests.
+  Approved legal content/consent and team session review remain release prerequisites.
 
 - DDP-#19: live Home-to-Rooms date search, guest capacity checks, available-room
   counts and sorting, gateway-backed daily calendars with month navigation and

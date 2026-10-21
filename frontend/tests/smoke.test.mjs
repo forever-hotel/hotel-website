@@ -311,6 +311,19 @@ test(
       assert.doesNotMatch(servicesHtml, /The Grand Meridian/);
       assert.equal(missing.status, 404);
       const roomsResponse = await fetch(`${baseUrl}/rooms`);
+      const signIn = await fetch(
+        `${baseUrl}/sign-in?returnTo=https://evil.example`,
+      );
+      assert.equal(signIn.status, 200);
+      const signInHtml = await signIn.text();
+      assert.match(signInHtml, /autocomplete="current-password"/i);
+      assert.match(signInHtml, /name="returnTo" value="\/profile"/);
+      const signUp = await fetch(`${baseUrl}/sign-up`);
+      assert.equal(signUp.status, 200);
+      assert.match(await signUp.text(), /name="confirmPassword"/);
+      const profile = await fetch(`${baseUrl}/profile`, { redirect: 'manual' });
+      assert.equal(profile.status, 307);
+      assert.match(profile.headers.get('location'), /\/sign-in\?returnTo=/);
       const availability = await fetch(
         `${baseUrl}/api/availability?roomTypeId=${room.roomTypeId}&checkInDate=2026-12-10&checkOutDate=2026-12-12&numberOfGuests=2`,
       );

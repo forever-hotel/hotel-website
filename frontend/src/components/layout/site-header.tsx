@@ -18,11 +18,7 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
-        <Link
-          href="/contact"
-          className="guest-icon"
-          aria-label="Guest services"
-        >
+        <Link href="/profile" className="guest-icon" aria-label="Guest account">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle
               cx="12"

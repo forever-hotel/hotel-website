@@ -7,6 +7,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Guest registration now checks normalized email under a transaction-scoped
+  PostgreSQL advisory lock, preventing duplicate registrations through this
+  service when the deployed schema lacks its email uniqueness constraint.
+  Authentication rejects ambiguous existing duplicates. Existing accounts are
+  not modified; Infra must review duplicates and add the missing unique index.
+
 - Guest authentication build and lint errors, Swagger test guard setup, and typed integration-test response handling (DDP-#10). Formatting checks now use the same line-ending policy as ESLint. Backend CI enforces formatting and the existing 80% unit coverage threshold.
 - Documented the proposed per-service authentication architecture in ADR 001; team and gateway approval remain pending.
 

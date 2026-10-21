@@ -12,6 +12,22 @@ is implemented; exact Figma assets, fonts, hotel copy, and mobile frames still n
 confirmation. Room cards use catalogue API prices. The stay planner now carries
 dates and guests into live availability search; it does not create reservations.
 
+## Guest authentication (DDP-#20)
+
+Visit `/sign-up` to create a development account, then `/sign-in` to sign in.
+Registration does not log the guest in automatically. The header guest icon opens
+`/profile`, which verifies the session against the guest backend and offers
+sign-out. To preserve a stay, use a safe local `returnTo`, for example
+`/sign-in?returnTo=%2Frooms%3FnumberOfGuests%3D2`.
+
+Authentication uses the existing `API_GATEWAY_URL`; no new environment variables
+are required. Tokens are kept in an HttpOnly frontend cookie and forwarded by
+the server as bearer credentials. See
+[frontend authentication](../documents/api/frontend-authentication.md) for exact
+contracts, cookie behavior, tests and the pending legal/session release decisions.
+Social login and password recovery are not implemented. The minimal account page
+does not implement booking management.
+
 ## Date search and calendar (DDP-#19)
 
 Home's planner submits `checkInDate`, `checkOutDate`, `numberOfGuests` and an

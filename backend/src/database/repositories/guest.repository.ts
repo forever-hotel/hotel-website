@@ -33,19 +33,39 @@ export class GuestRepository {
     };
     this.logger.verbose('Inserting guest account');
     try {
-      const result = await this.guests
-        .createQueryBuilder()
-        .insert()
-        .into(Guest)
-        .values({ ...values, passwordHash: data.passwordHash })
-        .execute();
+      const result = await this.guests.manager.transaction(
+        'READ COMMITTED',
+        async (manager) => {
+          // Protect registrations through this service even if the shared database
+          // is missing its email uniqueness constraint. The lock spans check+insert.
+          await manager.query(
+            'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+            [`hw-guest-email:${values.email}`],
+          );
+          const existing = await manager.query<{ exists: number }[]>(
+            'SELECT 1 AS exists FROM guests WHERE lower(btrim(email)) = $1 LIMIT 1',
+            [values.email],
+          );
+          if (existing.length) throw new EmailAlreadyRegisteredError();
+          return manager
+            .getRepository(Guest)
+            .createQueryBuilder()
+            .insert()
+            .into(Guest)
+            .values({ ...values, passwordHash: data.passwordHash })
+            .execute();
+        },
+      );
       // PostgreSQL returns the generated id and timestamps for the new row.
       const [generated] = result.generatedMaps as Partial<Guest>[];
       const guest = Object.assign(new Guest(), values, generated);
       this.logger.log(`Guest account created: ${guest.guestId}`);
       return guest;
     } catch (error) {
-      if (isUniqueViolation(error)) {
+      if (
+        error instanceof EmailAlreadyRegisteredError ||
+        isUniqueViolation(error)
+      ) {
         this.logger.warn('Guest account not created: email already registered');
         throw new EmailAlreadyRegisteredError();
       }
@@ -76,11 +96,17 @@ export class GuestRepository {
   async findByEmailForAuthentication(email: string): Promise<Guest | null> {
     this.logger.verbose('Finding guest for authentication');
     try {
-      const guest = await this.guests
+      const matches = await this.guests
         .createQueryBuilder('guest')
         .addSelect('guest.passwordHash')
-        .where('guest.email = :email', { email: normalizeEmail(email) })
-        .getOne();
+        .where('lower(btrim(guest.email)) = :email', {
+          email: normalizeEmail(email),
+        })
+        .limit(2)
+        .getMany();
+      // Existing duplicates must be reviewed by the data owner, not selected
+      // arbitrarily when authenticating someone.
+      const guest = matches.length === 1 ? matches[0] : null;
       this.logger.debug(
         guest
           ? `Guest found for authentication: ${guest.guestId}`
