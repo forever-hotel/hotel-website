@@ -12,6 +12,25 @@ is implemented; exact Figma assets, fonts, hotel copy, and mobile frames still n
 confirmation. Room rates remain design previews, and the stay
 planner does not check live inventory or create reservations.
 
+## Contact and enquiries (DDP-#15)
+
+`/contact` follows the saved Contact screen: photo hero, Google map alongside an
+accessible form, independently readable text address/directions, guest-relations
+introduction and shared navigation/footer. Staff names, portraits and direct
+contacts remain unfilled until confirmed. Home's FAQ stays on Home.
+
+The browser submits to same-origin `/api/contact`, which uses server-only
+`API_GATEWAY_URL` to reach the proposed `/api/v1/contact/enquiries` gateway path.
+It never calls a subsystem backend directly. Configure delivery only in the
+backend after the hotel confirms its exact enquiry email and provider settings.
+Missing/disabled settings return a clear failure rather than fake success.
+Sandbox feedback explicitly says no email was sent; accepted feedback does not
+claim inbox delivery. Inputs survive failure and repeated concurrent clicks are
+blocked. The map need not load for the text address or form to work.
+
+See [the contact contract](../documents/api/contact-enquiries.md) for setup,
+validation, throttling, provider behaviour and remaining owner decisions.
+
 ## Services and Facilities (DDP-#14)
 
 Image-quality update: missing facility images now use labelled AI-generated

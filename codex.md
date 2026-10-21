@@ -37,6 +37,12 @@ This file is the working context for contributors and coding assistants in this 
 
 ## Current repository state
 
+- DDP-#15 adds `/contact` with text address/map fallback and an accessible enquiry
+  form. Next.js `/api/contact` forwards through the proposed gateway route to
+  backend `/contact/enquiries`. Brevo delivery defaults off; exact management
+  recipient/provider configuration, gateway per-client limits and team identities
+  remain pending. See `documents/api/contact-enquiries.md`. No live email was sent.
+
 - DDP-#14 adds `/services`, with content and scoped styles in
   `frontend/src/features/services/` and a small missing/failed-photo component.
   Shared navigation and Home link to the route. Hours and facility booking are

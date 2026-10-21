@@ -19,7 +19,7 @@ export function SiteHeader() {
           ))}
         </nav>
         <Link
-          href="/#contact"
+          href="/contact"
           className="guest-icon"
           aria-label="Guest services"
         >

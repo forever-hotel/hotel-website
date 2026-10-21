@@ -1,5 +1,6 @@
 ﻿import Link from 'next/link';
 import { publicLinks } from './navigation';
+import { hotelContact } from '@/features/contact/content';
 
 export function SiteFooter() {
   return (
@@ -37,8 +38,8 @@ export function SiteFooter() {
         </nav>
         <div>
           <h2>Contact</h2>
-          <p>Colombo, Sri Lanka</p>
-          <p>Confirmed address and contact details will be available soon.</p>
+          <p>{hotelContact.address}</p>
+          <Link href="/contact">Send an enquiry</Link>
           <Link href="/#hotel-policies">Guest information</Link>
         </div>
       </div>

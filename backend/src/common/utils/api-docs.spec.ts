@@ -6,16 +6,19 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RoomTypesController } from '../../room-types/room-types.controller';
 import { RoomTypesService } from '../../room-types/room-types.service';
 import { buildApiDocument } from './api-docs';
+import { ContactController } from '../../contact/contact.controller';
+import { ContactService } from '../../contact/contact.service';
 
 describe('buildApiDocument', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      controllers: [GuestsController, RoomTypesController],
+      controllers: [GuestsController, RoomTypesController, ContactController],
       providers: [
         { provide: GuestsService, useValue: {} },
         { provide: RoomTypesService, useValue: {} },
+        { provide: ContactService, useValue: {} },
       ],
     })
       .overrideGuard(JwtAuthGuard)
@@ -64,6 +67,13 @@ describe('buildApiDocument', () => {
     const schemas = document.components?.schemas ?? {};
     expect(schemas).toHaveProperty('RoomTypeResponseDto');
     expect(schemas).toHaveProperty('RoomTypeListResponseDto');
+  });
+
+  it('documents contact acceptance, validation, throttling and outage responses', () => {
+    const document = buildApiDocument(app, 'hotel-website');
+    expect(
+      Object.keys(document.paths['/contact/enquiries']?.post?.responses ?? {}),
+    ).toEqual(expect.arrayContaining(['202', '400', '429', '503']));
   });
 
   it('should never document a password in the guest response', () => {

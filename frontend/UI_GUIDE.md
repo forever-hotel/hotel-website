@@ -2,6 +2,13 @@
 
 ## Design source and status
 
+Issue 15: `/contact` implements the photo hero, split map/form, guest-relations
+introduction and shared footer. The hotel's published Makola Road address is
+outside the iframe, with a separate directions link. Staff identities and direct
+contacts are not fabricated. Home FAQ remains in place. Contact navigation and
+the footer enquiry link open `/contact`. See `documents/api/contact-enquiries.md`
+from the repository root for delivery modes and pending gateway/provider settings.
+
 Latest image treatment: generated spa, gym, meeting, function-hall and karaoke
 illustrations replace empty photo boxes, with visible illustration labels. The
 room photograph has an AI-enhanced variant labelled as such; it may reconstruct

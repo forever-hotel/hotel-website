@@ -18,7 +18,25 @@ test(
 
     let offers = [];
     let gatewayStatus = 200;
+    let contactStatus = 202;
+    let contactResult = { status: 'accepted' };
+    let lastEnquiry;
     const gateway = createHttpServer((request, response) => {
+      if (request.url === '/api/v1/contact/enquiries') {
+        assert.equal(request.method, 'POST');
+        let body = '';
+        request.on('data', (chunk) => {
+          body += chunk;
+        });
+        request.on('end', () => {
+          lastEnquiry = JSON.parse(body);
+          response.writeHead(contactStatus, {
+            'Content-Type': 'application/json',
+          });
+          response.end(JSON.stringify(contactResult));
+        });
+        return;
+      }
       assert.equal(request.url, '/api/v1/promotions?limit=20');
       response.writeHead(gatewayStatus, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify({ items: offers, nextCursor: null }));
@@ -160,6 +178,62 @@ test(
         /There are no offers to show right now/,
       );
       const missing = await fetch(`${baseUrl}/does-not-exist`);
+      const contactResponse = await fetch(`${baseUrl}/contact`);
+      assert.equal(contactResponse.status, 200);
+      const contactHtml = await contactResponse.text();
+      assert.match(contactHtml, /Contact Us \| Forever City Hotel/);
+      const withoutMap = contactHtml.replace(
+        /<iframe\b[^>]*>[\s\S]*?<\/iframe>/g,
+        '',
+      );
+      assert.match(withoutMap, /243\/3, Makola Road, Kiribathgoda/);
+      assert.match(withoutMap, /Send Us a/);
+      assert.match(withoutMap, /Open directions in Google Maps/);
+      for (const field of ['name', 'email', 'phone', 'subject', 'message']) {
+        assert.ok(contactHtml.includes(`name="${field}"`));
+      }
+      assert.match(
+        contactHtml,
+        /Team introductions and direct contact details/,
+      );
+      assert.match(html, /href="\/contact"/);
+      const enquiry = {
+        name: 'Nimali',
+        email: 'nimali@example.test',
+        subject: 'General enquiry',
+        message: 'I would like to ask about rooms.',
+      };
+      const submit = (body = JSON.stringify(enquiry), headers = {}) =>
+        fetch(`${baseUrl}/api/contact`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...headers },
+          body,
+        });
+      let submitted = await submit();
+      assert.equal(submitted.status, 202);
+      assert.deepEqual(await submitted.json(), { status: 'accepted' });
+      assert.deepEqual(lastEnquiry, enquiry);
+      contactResult = { status: 'sandbox' };
+      submitted = await submit();
+      assert.deepEqual(await submitted.json(), { status: 'sandbox' });
+      for (const status of [400, 429, 503]) {
+        contactStatus = status;
+        assert.equal((await submit()).status, status);
+      }
+      contactStatus = 202;
+      contactResult = { status: 'unexpected' };
+      assert.equal((await submit()).status, 503);
+      assert.equal((await submit('not-json')).status, 400);
+      assert.equal((await submit('x'.repeat(16001))).status, 413);
+      assert.equal(
+        (await submit(undefined, { Origin: 'https://unrelated.example' }))
+          .status,
+        403,
+      );
+      assert.equal(
+        (await submit(undefined, { 'Content-Type': 'text/plain' })).status,
+        415,
+      );
       const servicesResponse = await fetch(`${baseUrl}/services`);
       assert.equal(servicesResponse.status, 200);
       const servicesHtml = await servicesResponse.text();

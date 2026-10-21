@@ -1,5 +1,22 @@
 # Forever Hotel website backend
 
+## Contact enquiries (DDP-#15)
+
+`POST /contact/enquiries` validates enquiries and dispatches plain-text mail via
+Brevo when configured. Default `CONTACT_EMAIL_MODE=off` returns 503 without
+calling a provider. Use `sandbox` to validate without delivery or `send` for real
+dispatch, with server-only `BREVO_API_KEY`, `CONTACT_EMAIL_FROM` (verified
+sender) and `CONTACT_EMAIL_TO` (confirmed hotel recipient). No values have been
+added to your real `.env` and no real email was sent during implementation.
+
+HTTP 202 `accepted` means provider acceptance, not inbox delivery. `sandbox`
+explicitly means no mail was sent. A local five-requests/connection-IP/minute
+backstop complements, but cannot replace, trusted gateway per-client rate limits.
+See [contact contract](../documents/api/contact-enquiries.md) for full setup,
+gateway mapping, timeout/retry limitations and tests.
+
+## Overview
+
 NestJS backend for the **Hotel Website (HW)** subsystem of the Forever Hotel management system: the guest-facing site for room browsing, booking, and guest self-service. See the [repository CLAUDE.md](../CLAUDE.md) for requirements, architecture, and team standards.
 
 The service currently provides the foundation: configuration, PostgreSQL connection, request validation, error handling, structured logging, a health endpoint, and a Docker image. Booking and guest APIs are planned in the project issue backlog. This foundation is also the team's backend template (see [Reusing this as a template](#reusing-this-as-a-template-for-another-subsystem)).
@@ -45,19 +62,19 @@ For Bash, use `test -f .env || cp .env.example .env`. This keeps any existing lo
 
 Edit **only** your local `.env`. Every variable is explained in `.env.example`:
 
-| Variable                                           | Required | Default         | Notes                                                                  |
-| -------------------------------------------------- | -------- | --------------- | ---------------------------------------------------------------------- |
-| `DB_HOST`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | yes      | –               | Database connection details                                            |
-| `DB_PORT`                                          | no       | `5432`          |                                                                        |
-| `DB_SSL`                                           | no       | `false`         | Set to `true` for Neon; the server certificate is verified             |
-| `DB_SYNCHRONIZE`                                   | no       | `false`         | Only on a disposable dev database; rejected when `NODE_ENV=production` |
-| `DB_LOGGING`                                       | no       | `false`         | Prints SQL queries                                                     |
-| `SERVICE_NAME`                                     | no       | `hotel-website` | Lowercase kebab-case; appears in logs and the `/health` response       |
-| `JWT_SECRET`                                       | yes      | –               | Private random signing key, at least 32 bytes; never commit or share   |
-| `JWT_ISSUER`                                       | yes      | –               | Issuer written into and checked on guest access tokens                 |
-| `NODE_ENV`                                         | no       | `development`   | `development`, `test` or `production`                                  |
-| `PORT`                                             | no       | `3000`          |                                                                        |
-| `LOG_FORMAT`                                       | no       | `text`          | `json` gives structured logs for staging and production                |
+| Variable                                           | Required | Default         | Notes                                                                                                       |
+| -------------------------------------------------- | -------- | --------------- | ----------------------------------------------------------------------------------------------------------- |
+| `DB_HOST`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | yes      | –               | Database connection details                                                                                 |
+| `DB_PORT`                                          | no       | `5432`          |                                                                                                             |
+| `DB_SSL`                                           | no       | `false`         | Set to `true` for Neon; the server certificate is verified                                                  |
+| `DB_SYNCHRONIZE`                                   | no       | `false`         | Only on a disposable dev database; rejected when `NODE_ENV=production`                                      |
+| `DB_LOGGING`                                       | no       | `false`         | Prints SQL queries                                                                                          |
+| `SERVICE_NAME`                                     | no       | `hotel-website` | Lowercase kebab-case; appears in logs and the `/health` response                                            |
+| `JWT_SECRET`                                       | yes      | –               | Private random signing key, at least 32 bytes; never commit or share                                        |
+| `JWT_ISSUER`                                       | yes      | –               | Issuer written into and checked on guest access tokens                                                      |
+| `NODE_ENV`                                         | no       | `development`   | `development`, `test` or `production`                                                                       |
+| `PORT`                                             | no       | `3000`          |                                                                                                             |
+| `LOG_FORMAT`                                       | no       | `text`          | `json` gives structured logs for staging and production                                                     |
 | `LOG_LEVEL`                                        | no       | by `NODE_ENV`   | `verbose`, `debug`, `log`, `warn` or `error`; default `debug` in development, `warn` in test and production |
 
 ### Using Neon
@@ -122,14 +139,14 @@ Put DTOs in `<feature>/dto/`, for example `bookings/dto/create-booking.dto.ts`.
 
 ## API endpoints
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/health` | Readiness check (database up or `503 DATABASE_UNAVAILABLE`) |
-| `GET` | `/room-types` | Public catalogue with images, amenities, and nightly prices, cheapest first |
-| `GET` | `/room-types/:roomTypeId` | Public room type details (`400 VALIDATION_FAILED` for an invalid UUID, `404 ROOM_TYPE_NOT_FOUND` for an unknown UUID) |
-| `POST` | `/guests/login` | Verify guest credentials and issue a 24-hour HS256 bearer token (`200`, `401 INVALID_CREDENTIALS`) |
-| `POST` | `/guests/register` | Create a guest account (HW-06): `201`, `400 VALIDATION_FAILED`, `409 EMAIL_ALREADY_REGISTERED` |
-| `GET` | `/guests/me` | Return the current guest profile; requires `Authorization: Bearer <token>` (`401 UNAUTHORIZED` when missing, invalid, or expired) |
+| Method | Path                      | Purpose                                                                                                                           |
+| ------ | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/health`                 | Readiness check (database up or `503 DATABASE_UNAVAILABLE`)                                                                       |
+| `GET`  | `/room-types`             | Public catalogue with images, amenities, and nightly prices, cheapest first                                                       |
+| `GET`  | `/room-types/:roomTypeId` | Public room type details (`400 VALIDATION_FAILED` for an invalid UUID, `404 ROOM_TYPE_NOT_FOUND` for an unknown UUID)             |
+| `POST` | `/guests/login`           | Verify guest credentials and issue a 24-hour HS256 bearer token (`200`, `401 INVALID_CREDENTIALS`)                                |
+| `POST` | `/guests/register`        | Create a guest account (HW-06): `201`, `400 VALIDATION_FAILED`, `409 EMAIL_ALREADY_REGISTERED`                                    |
+| `GET`  | `/guests/me`              | Return the current guest profile; requires `Authorization: Bearer <token>` (`401 UNAUTHORIZED` when missing, invalid, or expired) |
 
 Interactive docs (Swagger UI) are at `http://localhost:3000/docs`, and the OpenAPI JSON at `/docs-json`. They are not served when `NODE_ENV=production`. Describe every new endpoint with `@ApiOperation` and response decorators, and DTO fields with `@ApiProperty`.
 
@@ -194,13 +211,13 @@ The image never contains `.env`; configuration is passed at runtime.
 
 Use Nest's `Logger` with the class name as context (`new Logger(GuestRepository.name)`), and pick the level by meaning:
 
-| Level | Use for | Example |
-| --- | --- | --- |
-| `verbose` | Step-by-step trace | `Inserting guest account` |
-| `debug` | Developer detail, results | `Loaded 4 room types` |
-| `log` | Normal business events | `Guest account created: <uuid>` |
-| `warn` | Expected failures worth noticing | `Guest account not created: email already registered` |
-| `error` | Unexpected failures | `Loading room types failed: QueryFailedError` |
+| Level     | Use for                          | Example                                               |
+| --------- | -------------------------------- | ----------------------------------------------------- |
+| `verbose` | Step-by-step trace               | `Inserting guest account`                             |
+| `debug`   | Developer detail, results        | `Loaded 4 room types`                                 |
+| `log`     | Normal business events           | `Guest account created: <uuid>`                       |
+| `warn`    | Expected failures worth noticing | `Guest account not created: email already registered` |
+| `error`   | Unexpected failures              | `Loading room types failed: QueryFailedError`         |
 
 In repositories, wrap each query in `try/catch`: log what failed with `errorName(error)` (the class name only) and rethrow. The global exception filter logs the stack once and answers the client. Never log names, emails, phones, passwords, tokens or raw database messages; use UUIDs.
 

@@ -17,6 +17,10 @@
 
 ### Added
 
+- Issue 15: Contact route with an independent text address/map fallback, accessible
+  enquiry form, shared navigation, same-origin gateway submission, and truthful
+  acceptance/sandbox/error states. Guest-relations identities remain unfilled
+  until confirmed.
 - Issue 14: Services and Facilities route with a responsive facility catalogue,
   page-scoped CSS, missing/failed image fallback, local event-space photographs,
   and navigation links from Home/header/footer. No facility reservations

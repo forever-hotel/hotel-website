@@ -8,6 +8,11 @@ has not been assigned here. Prepared on 2026-09-29.
 
 ## Scope and evidence
 
+Contact enquiries are now implemented locally under DDP-#15; see
+[the contact contract](contact-enquiries.md) for validation, disabled/sandbox/send
+configuration, error states and proposed gateway mapping. Gateway ownership and
+management recipient settings still need confirmation; delivery defaults off.
+
 This document proposes browser-facing contracts for rooms, availability, guest
 authentication, bookings, promotions and payments. All proposed browser routes
 pass through the shared API Gateway. Internal service paths and credentials are
@@ -34,15 +39,15 @@ These are proposed responsible teams, not recorded assignments to individuals.
 Each team must supply a named reviewer and approve its contracts before dependent
 integration work starts. No approval is implied by this document.
 
-| Area                                                 | Proposed accountable team             | Required reviewers                | Named owner | Approval evidence |
-| ---------------------------------------------------- | ------------------------------------- | --------------------------------- | ----------- | ----------------- |
-| Public routes, version prefix, rate limits           | API Gateway                           | Website frontend/backend          | TBD         | Pending           |
-| Registration, login, session and logout              | Website backend (decided 2026-10-14: auth per service) | Team; guest data owner | Rashmika | Team decision; [ADR 001 proposed](../architecture/adr-001-guest-authentication.md), approval pending |
-| Room catalogue and prices                            | Website backend, ownership to confirm | Front Desk                        | TBD         | Pending           |
-| Availability, maintenance and inventory reservations | Front Desk, ownership to confirm      | Website backend                   | TBD         | Pending           |
-| Quotes, website bookings and self-service            | Website backend                       | Front Desk; website frontend      | TBD         | Pending           |
-| Promotion publication, validation and redemption     | Manager Dashboard                     | Website backend                   | TBD         | Pending           |
-| Payment creation, reconciliation and refunds         | Website backend                       | Gateway; Front Desk               | TBD         | Pending           |
+| Area                                                 | Proposed accountable team                              | Required reviewers           | Named owner | Approval evidence                                                                                    |
+| ---------------------------------------------------- | ------------------------------------------------------ | ---------------------------- | ----------- | ---------------------------------------------------------------------------------------------------- |
+| Public routes, version prefix, rate limits           | API Gateway                                            | Website frontend/backend     | TBD         | Pending                                                                                              |
+| Registration, login, session and logout              | Website backend (decided 2026-10-14: auth per service) | Team; guest data owner       | Rashmika    | Team decision; [ADR 001 proposed](../architecture/adr-001-guest-authentication.md), approval pending |
+| Room catalogue and prices                            | Website backend, ownership to confirm                  | Front Desk                   | TBD         | Pending                                                                                              |
+| Availability, maintenance and inventory reservations | Front Desk, ownership to confirm                       | Website backend              | TBD         | Pending                                                                                              |
+| Quotes, website bookings and self-service            | Website backend                                        | Front Desk; website frontend | TBD         | Pending                                                                                              |
+| Promotion publication, validation and redemption     | Manager Dashboard                                      | Website backend              | TBD         | Pending                                                                                              |
+| Payment creation, reconciliation and refunds         | Website backend                                        | Gateway; Front Desk          | TBD         | Pending                                                                                              |
 
 Approval evidence must link a PR review, issue comment or team decision and record
 the reviewer, date and approved document revision. A role label alone does not
