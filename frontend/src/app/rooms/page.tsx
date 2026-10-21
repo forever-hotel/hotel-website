@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { getRoomCatalogue } from '@/features/rooms/catalogue';
-import { RoomCard } from '@/features/rooms/components/room-card';
+import { RoomComparison } from '@/features/rooms/components/room-comparison';
 import styles from '@/features/rooms/rooms.module.css';
 
 export const metadata: Metadata = {
@@ -84,12 +84,6 @@ export default async function RoomsPage({ searchParams }: RoomsPageProps) {
             coming soon; displayed rooms are not guaranteed available.
           </p>
         </section>
-        <div className={styles.compareBar}>
-          <p>Room comparison is coming soon.</p>
-          <button className="button button-outline" disabled>
-            Compare rooms
-          </button>
-        </div>
         <section className={styles.catalogue} aria-labelledby="catalogue-title">
           <p className={styles.eyebrow}>A space prepared for your stay</p>
           <h2 id="catalogue-title">Explore Our Rooms</h2>
@@ -108,11 +102,10 @@ export default async function RoomsPage({ searchParams }: RoomsPageProps) {
               <p className={styles.resultCount}>
                 {rooms.length} room {rooms.length === 1 ? 'type' : 'types'}
               </p>
-              <div className={styles.grid}>
-                {rooms.map((room) => (
-                  <RoomCard key={room.roomTypeId} room={room} />
-                ))}
-              </div>
+              <RoomComparison
+                key={rooms.map((room) => room.roomTypeId).join(',')}
+                rooms={rooms}
+              />
             </>
           )}
         </section>

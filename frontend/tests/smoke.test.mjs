@@ -307,6 +307,10 @@ test(
       assert.match(roomsHtml, /Room photograph unavailable/);
       assert.match(roomsHtml, /Availability: check dates/);
       assert.match(roomsHtml, /Room details/);
+      assert.match(roomsHtml, /type="checkbox"/);
+      assert.match(roomsHtml, /Select two or three room types to compare/);
+      assert.match(roomsHtml, /disabled=""[^>]*aria-expanded="false"/);
+      assert.doesNotMatch(roomsHtml, /Room comparison is coming soon/);
       assert.match(roomsHtml, /Wi-Fi/);
       assert.match(roomsHtml, /Up to <!-- -->2<!-- --> guests/);
       const filtered = await (

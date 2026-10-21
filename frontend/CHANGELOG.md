@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+
+- DDP-#18: select up to three catalogue room types, remove selections and compare
+  live catalogue rates, capacity, descriptions and amenities in an accessible,
+  responsive table. Comparison opens only with two or three selections.
+
 ### Changed
 
 - Issue 13: extracted shared header/footer and navigation destinations, retained

@@ -266,3 +266,24 @@ invalid JSON, missing configuration, connection failures, and timeout handling.
 Promotion and gateway TypeScript logic achieved 100% line, branch, and function
 coverage. This figure excludes JSX; rendered UI behavior is checked over HTTP.
 Visual browser checks, live gateway verification, CI, and peer review remain pending.
+
+## Room comparison (DDP-#18)
+
+On `/rooms`, select two or three room-card checkboxes and choose Compare rooms.
+The comparison uses the loaded API catalogue for nightly rates, capacity,
+descriptions and all amenities. At three selections, remaining checkboxes are
+disabled with an explanation; remove a selected room to choose another.
+Selections reset when the room-type filter changes or the page reloads.
+
+The comparison is an inline panel with a semantic table, adapting the supplied
+Compare bar because no expanded comparison screenshot was provided. Opening
+moves focus to its heading; Close comparison or Escape returns focus to the
+Compare rooms button. The table scrolls horizontally on narrow screens without
+blocking normal keyboard navigation. Comparison does not reserve inventory.
+
+Validation: lint, type checks, production build, 14 unit tests and the HTTP smoke
+test passed. A headless Chrome check with four fixture rooms verified two/three
+selections, fourth-selection prevention, removal, table content, focus return,
+Escape and scrolling at 375px width. These are fixture checks, not a claim of
+live inventory availability. Run `node --experimental-strip-types --test
+tests/comparison.test.mjs` from this folder for the selection tests.

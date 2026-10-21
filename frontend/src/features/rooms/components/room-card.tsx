@@ -4,7 +4,13 @@ import { roomPrice } from '../catalogue';
 import { RoomImage } from './room-image';
 import styles from '../rooms.module.css';
 
-export function RoomCard({ room }: { room: RoomType }) {
+export function RoomCard({
+  room,
+  comparison,
+}: {
+  room: RoomType;
+  comparison?: { selected: boolean; disabled: boolean; onToggle: () => void };
+}) {
   return (
     <article className={styles.card}>
       <RoomImage
@@ -13,6 +19,18 @@ export function RoomCard({ room }: { room: RoomType }) {
         name={room.typeName}
       />
       <div className={styles.cardCopy}>
+        {comparison && (
+          <label className={styles.compareChoice}>
+            <input
+              type="checkbox"
+              checked={comparison.selected}
+              disabled={comparison.disabled}
+              onChange={comparison.onToggle}
+              aria-describedby="comparison-help"
+            />
+            Compare {room.typeName}
+          </label>
+        )}
         <p className={styles.availability}>Availability: check dates</p>
         <h3>{room.typeName}</h3>
         <p className={styles.description}>
