@@ -17,6 +17,10 @@
 
 ### Added
 
+- Issue 16: responsive Rooms catalogue with GET filtering, expandable details,
+  unknown-room and empty/error states, shared API-backed Home previews, LKR
+  minor-unit formatting, approved remote-image hosts and failed-image fallback.
+  Removed static sample room records; comparison/availability remain future work.
 - Issue 15: Contact route with an independent text address/map fallback, accessible
   enquiry form, shared navigation, same-origin gateway submission, and truthful
   acceptance/sandbox/error states. Guest-relations identities remain unfilled

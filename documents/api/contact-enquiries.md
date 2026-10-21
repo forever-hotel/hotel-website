@@ -11,7 +11,7 @@ provider credentials and team identities are not guessed. Delivery defaults to
 
 ```text
 Browser POST /api/contact (Next.js)
-  -> POST /api/v1/contact/enquiries (proposed API Gateway mapping)
+  -> POST /hw/contact/enquiries (API Gateway strips /hw before forwarding)
   -> POST /contact/enquiries (Website backend)
   -> Brevo (only when configured)
 ```

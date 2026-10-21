@@ -33,31 +33,6 @@
   },
 ];
 
-// Presentation content from the supplied design, not bookable inventory.
-export const rooms = [
-  {
-    title: 'Deluxe Room',
-    image: 'forever-city-room-enhanced.webp',
-    description:
-      'Spacious, well-appointed room with modern amenities and elegant decor for the discerning traveller.',
-    price: '$180',
-  },
-  {
-    title: 'Junior Suite',
-    image: 'forever-city-room-enhanced.webp',
-    description:
-      'A generous suite with a separate living area, premium linens, and panoramic city views.',
-    price: '$280',
-  },
-  {
-    title: 'Presidential Suite',
-    image: 'forever-city-room-romantic.webp',
-    description:
-      'The pinnacle of luxury — a full floor suite with a private butler, dining room, and terrace.',
-    price: '$580',
-  },
-];
-
 export const questions = [
   {
     question: 'What is the check-in and check-out time?',

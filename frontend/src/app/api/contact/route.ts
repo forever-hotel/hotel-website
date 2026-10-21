@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const response = await postGatewayJson('/api/v1/contact/enquiries', input);
+    const response = await postGatewayJson('/hw/contact/enquiries', input);
     if ([400, 429].includes(response.status))
       return Response.json(
         {

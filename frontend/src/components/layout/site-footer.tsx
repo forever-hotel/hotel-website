@@ -25,7 +25,7 @@ export function SiteFooter() {
           ))}
           <Link href="/#our-hotel">Our story</Link>
           <p>
-            Room and offer links currently open Home previews. Full pages are
+            Offers currently opens the Home preview. The full Offers page is
             coming soon.
           </p>
         </nav>

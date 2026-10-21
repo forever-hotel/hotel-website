@@ -51,18 +51,18 @@ test('gateway POST uses server config and never sends when unconfigured', async 
   try {
     delete process.env.API_GATEWAY_URL;
     await assert.rejects(() =>
-      postGatewayJson('/api/v1/contact/enquiries', enquiry),
+      postGatewayJson('/hw/contact/enquiries', enquiry),
     );
     process.env.API_GATEWAY_URL = 'https://gateway.example/';
     globalThis.fetch = async (url, options) => {
-      assert.equal(url, 'https://gateway.example/api/v1/contact/enquiries');
+      assert.equal(url, 'https://gateway.example/hw/contact/enquiries');
       assert.equal(options.cache, 'no-store');
       assert.equal(options.method, 'POST');
       assert.ok(options.signal instanceof AbortSignal);
       return Response.json({ status: 'accepted' }, { status: 202 });
     };
     assert.equal(
-      (await postGatewayJson('/api/v1/contact/enquiries', enquiry)).status,
+      (await postGatewayJson('/hw/contact/enquiries', enquiry)).status,
       202,
     );
   } finally {

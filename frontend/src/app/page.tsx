@@ -3,10 +3,11 @@ import { SiteHeader } from '@/components/layout/site-header';
 import Link from 'next/link';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { Suspense } from 'react';
+import { RoomPreview } from '@/features/rooms/components/room-preview';
 import { ActiveOffers } from '@/features/promotions/components/active-offers';
 import { CookieNotice } from '@/features/home/components/cookie-notice';
 import { StayPlanner } from '@/features/home/components/stay-planner';
-import { questions, rooms, services } from '@/features/home/content';
+import { questions, services } from '@/features/home/content';
 
 export const dynamic = 'force-dynamic';
 
@@ -159,43 +160,15 @@ export default function Home() {
             </h2>
             <span className="gold-rule" />
           </div>
-          <div className="room-grid">
-            {rooms.map((room) => (
-              <article className="room-card" key={room.title}>
-                <div className="room-image">
-                  <Image
-                    src={`/images/${room.image}`}
-                    alt={`${room.title} interior`}
-                    fill
-                    sizes="(max-width: 760px) 90vw, 30vw"
-                  />
-                </div>
-                <div className="room-copy">
-                  <h3>{room.title}</h3>
-                  <p>{room.description}</p>
-                  <div className="room-rate">
-                    <p>
-                      <span>{room.price}</span>
-                      <small>per night · sample rate</small>
-                    </p>
-                    <a
-                      className="button button-blue"
-                      href="#plan-stay"
-                      aria-label={`Plan a stay in the ${room.title}`}
-                    >
-                      Plan your stay
-                    </a>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-          <a className="button button-gold" href="#plan-stay">
-            Plan your stay
-          </a>
+          <Suspense fallback={<p role="status">Loading rooms?</p>}>
+            <RoomPreview />
+          </Suspense>
+          <Link className="button button-gold" href="/rooms">
+            View all rooms
+          </Link>
           <p className="preview-note">
-            Room previews include AI-enhanced photography. Live room details and
-            rates are not connected yet.
+            Rates are per night in LKR. Contact the hotel to confirm
+            availability for your dates.
           </p>
         </section>
         <section className="offers" id="offers" aria-labelledby="offers-title">

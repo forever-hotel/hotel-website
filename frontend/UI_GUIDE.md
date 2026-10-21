@@ -2,6 +2,14 @@
 
 ## Design source and status
 
+Issue 16: `/rooms` now provides the catalogue hero/filter/card layout from the
+Rooms screenshot. Home and Rooms share API-sourced names, photos, descriptions,
+capacity, amenities and LKR prices. Static sample room cards are removed. Details
+expand in-place; no separate detail-page design is invented. Comparison is disabled
+with an explanation; availability remains Check Dates until date APIs arrive.
+Configure approved photo hosts with `ROOM_IMAGE_HOSTS`; see `README.md`. This
+supersedes earlier room-preview notes about sample rates and hardcoded photos.
+
 Issue 15: `/contact` implements the photo hero, split map/form, guest-relations
 introduction and shared footer. The hotel's published Makola Road address is
 outside the iframe, with a separate directions link. Staff identities and direct

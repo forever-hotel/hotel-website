@@ -37,6 +37,12 @@ This file is the working context for contributors and coding assistants in this 
 
 ## Current repository state
 
+- DDP-#16 adds `/rooms` and shared API-backed Home previews under
+  `frontend/src/features/rooms/`. Source is gateway `GET /api/v1/room-types` using
+  the implemented backend DTO, not static sample room data. Prices are LKR cents;
+  exact image hosts require `ROOM_IMAGE_HOSTS`. Comparison/date availability and
+  reservations remain with later issues. No real `.env` credentials were read.
+
 - DDP-#15 adds `/contact` with text address/map fallback and an accessible enquiry
   form. Next.js `/api/contact` forwards through the proposed gateway route to
   backend `/contact/enquiries`. Brevo delivery defaults off; exact management

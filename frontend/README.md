@@ -9,10 +9,61 @@ no new dependencies are required.
 Use [UI_GUIDE.md](UI_GUIDE.md) for the team's Figma reference, design inspection
 status, and steps for building the hotel website UI. The screenshot composition
 is implemented; exact Figma assets, fonts, hotel copy, and mobile frames still need
-confirmation. Room rates remain design previews, and the stay
-planner does not check live inventory or create reservations.
+confirmation. Room cards now use catalogue API prices; the stay planner does not
+yet check live inventory or create reservations.
+
+## Rooms catalogue (DDP-#16)
+
+`/rooms` follows the saved Rooms design and loads the public catalogue through
+`GET /hw/room-types` at the configured API Gateway. Home uses the same loader
+and card component for its first three room previews. There is no static-room
+fallback and no direct frontend database access.
+
+Set these in your local frontend environment (never copy backend secrets):
+
+```dotenv
+API_GATEWAY_URL=http://localhost:8080
+ROOM_IMAGE_HOSTS=your-approved-image-host.example.com
+```
+
+The gateway must map the catalogue path to the Website backend's implemented
+`GET /room-types`. This implementation consumes the actual DTO fields:
+`roomTypeId`, `typeName`, nullable `description`, `pricePerNight` in LKR cents,
+`currency`, `maxGuests`, `imageUrls` and `amenities`. It does not invent categories,
+publication flags, discounts, badges or room inventory.
+
+Room-type filtering is a normal GET form (`/rooms?roomTypeId=<uuid>`), so it works
+without client-side filtering code. Cards expose full descriptions and amenities
+through native expandable details. Invalid/unknown selections use the Rooms
+not-found view; malformed catalogue data and network failure show an unavailable
+state. A valid empty response shows an empty state. Home remains usable if room
+requests fail. Enquire links to Contact; no room reservation is created.
+
+Image policy is shared between the loader and `next.config.ts`. Local paths under
+`/images/` are supported. External images require HTTPS and an exact approved
+hostname in `ROOM_IMAGE_HOSTS` (comma-separated; no schemes, ports or wildcards).
+Restart/rebuild after changing it. Unsafe/unapproved/missing image URLs are removed
+and failed photos retain a readable placeholder. Pick the actual storage host used
+by your database URLs. Original/AI-enhanced static imagery remains only for banners
+and hotel story; room card photos now come from the API.
+
+Comparison is explicitly unavailable until #18; date-scoped availability belongs
+to #17/#19 and booking handoff to #23. Cards therefore say Check Dates instead of
+asserting available/fully booked without a date query.
+
+Verification: build, lint, type checks and 12 frontend tests passed. Catalogue,
+image policy and other imported API logic reached 100% line/branch coverage;
+JSX is checked separately through HTTP rendering. Real gateway/database-image
+verification and browser layout/keyboard/failed-image checks remain pending.
 
 ## Contact and enquiries (DDP-#15)
+
+Hotel website requests use the gateway `/hw` prefix, which the gateway removes
+before forwarding to this backend. Guest endpoints are
+`POST /hw/guests/register`, `POST /hw/guests/login`, and `GET /hw/guests/me`.
+The profile endpoint requires the backend-issued bearer token. Frontend guest
+authentication is not implemented yet. Promotions retain their separate draft
+contract and are not served by the hotel website backend.
 
 `/contact` follows the saved Contact screen: photo hero, Google map alongside an
 accessible form, independently readable text address/directions, guest-relations
@@ -20,7 +71,7 @@ introduction and shared navigation/footer. Staff names, portraits and direct
 contacts remain unfilled until confirmed. Home's FAQ stays on Home.
 
 The browser submits to same-origin `/api/contact`, which uses server-only
-`API_GATEWAY_URL` to reach the proposed `/api/v1/contact/enquiries` gateway path.
+`API_GATEWAY_URL` to reach the `/hw/contact/enquiries` gateway path.
 It never calls a subsystem backend directly. Configure delivery only in the
 backend after the hotel confirms its exact enquiry email and provider settings.
 Missing/disabled settings return a clear failure rather than fake success.

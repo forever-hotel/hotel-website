@@ -21,8 +21,33 @@ test(
     let contactStatus = 202;
     let contactResult = { status: 'accepted' };
     let lastEnquiry;
+    const room = {
+      roomTypeId: '11111111-1111-4111-8111-111111111111',
+      typeName: 'API Deluxe Double',
+      description: 'A room from the catalogue API.',
+      pricePerNight: 250000,
+      currency: 'LKR',
+      maxGuests: 2,
+      imageUrls: ['/images/forever-city-room.jpg'],
+      amenities: ['Wi-Fi', 'Air conditioning'],
+    };
+    const secondRoom = {
+      ...room,
+      roomTypeId: '22222222-2222-4222-8222-222222222222',
+      typeName: 'API Family Room',
+      imageUrls: [],
+      description: null,
+      amenities: [],
+    };
+    let roomItems = [room, secondRoom];
+    let roomStatus = 200;
     const gateway = createHttpServer((request, response) => {
-      if (request.url === '/api/v1/contact/enquiries') {
+      if (request.url === '/hw/room-types') {
+        response.writeHead(roomStatus, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ items: roomItems, nextCursor: null }));
+        return;
+      }
+      if (request.url === '/hw/contact/enquiries') {
         assert.equal(request.method, 'POST');
         let body = '';
         request.on('data', (chunk) => {
@@ -103,7 +128,9 @@ test(
       assert.match(html, /Our <em>Finest<\/em> Rooms/);
       assert.match(html, /Frequently Asked/);
       assert.match(html, /<details open=""/);
-      assert.match(html, /Room previews include AI-enhanced photography/);
+      assert.match(html, /API Deluxe Double/);
+      assert.match(html, /2,500\.00/);
+      assert.doesNotMatch(html, /sample rate|\$180|\$280|\$580/);
       assert.match(html, /src="[^\"]*forever-city-pool/);
       assert.match(html, /id="offers"/);
       assert.match(html, /<dt>20\+<\/dt><dd>Years of experience<\/dd>/);
@@ -271,6 +298,43 @@ test(
       assert.match(servicesHtml, /id="main-content"/);
       assert.doesNotMatch(servicesHtml, /The Grand Meridian/);
       assert.equal(missing.status, 404);
+      const roomsResponse = await fetch(`${baseUrl}/rooms`);
+      assert.equal(roomsResponse.status, 200);
+      const roomsHtml = await roomsResponse.text();
+      assert.match(roomsHtml, /Rooms &amp; Suites \| Forever City Hotel/);
+      assert.match(roomsHtml, /API Deluxe Double/);
+      assert.match(roomsHtml, /API Family Room/);
+      assert.match(roomsHtml, /Room photograph unavailable/);
+      assert.match(roomsHtml, /Availability: check dates/);
+      assert.match(roomsHtml, /Room details/);
+      assert.match(roomsHtml, /Wi-Fi/);
+      assert.match(roomsHtml, /Up to <!-- -->2<!-- --> guests/);
+      const filtered = await (
+        await fetch(`${baseUrl}/rooms?roomTypeId=${room.roomTypeId}`)
+      ).text();
+      // The unselected room remains a filter option, but must not be a card heading.
+      assert.match(filtered, /<h3>API Deluxe Double<\/h3>/);
+      assert.doesNotMatch(filtered, /<h3>API Family Room<\/h3>/);
+      const unknown = await fetch(`${baseUrl}/rooms?roomTypeId=unknown`);
+      assert.match(await unknown.text(), /Room type not found/);
+      roomItems = [];
+      assert.match(
+        await (await fetch(`${baseUrl}/rooms`)).text(),
+        /There are no room types/,
+      );
+      assert.match(
+        await (await fetch(baseUrl)).text(),
+        /There are no room types/,
+      );
+      roomStatus = 503;
+      assert.match(
+        await (await fetch(`${baseUrl}/rooms`)).text(),
+        /Rooms are temporarily unavailable/,
+      );
+      assert.match(
+        await (await fetch(baseUrl)).text(),
+        /Rooms are temporarily unavailable/,
+      );
       const about = await fetch(`${baseUrl}/about`);
       assert.equal(about.status, 404);
     } finally {

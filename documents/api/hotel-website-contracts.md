@@ -8,6 +8,12 @@ has not been assigned here. Prepared on 2026-09-29.
 
 ## Scope and evidence
 
+Frontend integration DDP-#16: Rooms and Home now consume gateway
+`GET /api/v1/room-types` using the implemented `RoomTypeResponseDto` fields
+(`typeName`, `pricePerNight` in LKR cents, `maxGuests`, `imageUrls`, `amenities`).
+No catalogue API was changed by this UI work. Gateway mapping remains an external
+dependency; room availability cannot be inferred from catalogue membership.
+
 Contact enquiries are now implemented locally under DDP-#15; see
 [the contact contract](contact-enquiries.md) for validation, disabled/sandbox/send
 configuration, error states and proposed gateway mapping. Gateway ownership and
