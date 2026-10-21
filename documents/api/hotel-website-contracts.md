@@ -8,6 +8,12 @@ has not been assigned here. Prepared on 2026-09-29.
 
 ## Scope and evidence
 
+DDP-#17 availability is implemented as a read-only shared-schema API. See
+[the implemented availability contract](availability.md) for `/hw` gateway paths,
+date/occupancy rules, responses and conservative unassigned-booking handling.
+The A1/A2 examples below remain historical proposals; owner approval of inventory
+policies and atomic booking reservation remains pending.
+
 Frontend integration DDP-#16: Rooms and Home now consume gateway
 `GET /api/v1/room-types` using the implemented `RoomTypeResponseDto` fields
 (`typeName`, `pricePerNight` in LKR cents, `maxGuests`, `imageUrls`, `amenities`).

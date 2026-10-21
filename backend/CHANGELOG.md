@@ -12,6 +12,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Date-based availability and daily calendar APIs (DDP-#17), strict date and
+  occupancy validation, consistent inventory snapshots, maintenance/booking
+  exclusions and explicit inventory-outage errors. See
+  `documents/api/availability.md` for allocation limits and pending owner review.
+
 - Contact enquiry endpoint (DDP-#15): validated plain-text Brevo dispatch,
   default-off delivery, explicit sandbox/accepted responses, request timeouts,
   and a bounded per-connection-IP rate-limit backstop. No enquiry body or provider

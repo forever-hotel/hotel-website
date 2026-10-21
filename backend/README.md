@@ -257,3 +257,9 @@ The folders `config/`, `database/`, `common/`, and `health/`, plus the test setu
 3. Update `name` and `description` in `package.json`, and the first section of this README.
 4. Remove `CHANGELOG.md` entries that belong to this service.
 5. Run `npm ci`, `npm run lint`, and `npm test` to confirm everything passes.
+
+## Date-based availability
+
+The public availability API and calendar are documented in
+[the availability contract](../documents/api/availability.md), including gateway
+paths, date rules, errors, inventory policy and verification commands.

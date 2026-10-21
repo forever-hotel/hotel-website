@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AvailabilityModule } from './availability/availability.module';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -12,6 +13,7 @@ import { ContactModule } from './contact/contact.module';
 
 @Module({
   imports: [
+    AvailabilityModule,
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
