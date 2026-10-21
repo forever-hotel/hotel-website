@@ -9,8 +9,38 @@ no new dependencies are required.
 Use [UI_GUIDE.md](UI_GUIDE.md) for the team's Figma reference, design inspection
 status, and steps for building the hotel website UI. The screenshot composition
 is implemented; exact Figma assets, fonts, hotel copy, and mobile frames still need
-confirmation. Room cards now use catalogue API prices; the stay planner does not
-yet check live inventory or create reservations.
+confirmation. Room cards use catalogue API prices. The stay planner now carries
+dates and guests into live availability search; it does not create reservations.
+
+## Date search and calendar (DDP-#19)
+
+Home's planner submits `checkInDate`, `checkOutDate`, `numberOfGuests` and an
+optional catalogue `roomTypeId` to `/rooms`. Rooms shows per-type available-room
+counts and sorting by price or availability. Guest counts above room capacity
+produce no matching inventory. Editing any field invalidates old results;
+submit Search availability to refresh. The URL records the submitted search.
+
+Select a room type to open the dark availability calendar. Choose check-in and
+checkout; use arrows to move focus and Previous/Next month to navigate. Booked
+nights cannot be selected as check-in or included in a stay, but can be checkout
+boundaries. Cross-month selections are supported within the 90-night API limit.
+All dates use Asia/Colombo hotel date semantics. Errors and unknown results have
+retry controls. Daily capacity never guarantees a continuous stay: search checks
+the full-stay endpoint separately. Searches and calendar requests create no holds.
+
+The browser calls same-origin `/api/availability`; the server forwards through
+the configured gateway to `/hw/availability` or
+`/hw/room-types/:roomTypeId/availability-calendar`. Gateway URLs and credentials
+are not exposed to browser code. No environment-file changes are required.
+Booking step-1 calendar primitives are implemented on Rooms for reuse by the
+subsequent booking-selection ticket; this change does not create a reservation
+or add the remaining booking screens.
+
+Validation: 17 unit tests, production build, lint, type checks and HTTP smoke
+checks passed. Headless Chrome with fixture inventory verified counts, blocked
+ranges, month navigation, arrow-key focus, error/retry, stale-response rejection
+and 375px layout. Real inventory counts depend on physical `rooms` rows and
+active bookings, not just catalogue room types.
 
 ## Rooms catalogue (DDP-#16)
 

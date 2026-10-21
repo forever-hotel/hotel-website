@@ -7,7 +7,13 @@ import { MAX_COMPARISON_ROOMS, toggleComparisonRoom } from '../comparison';
 import { RoomCard } from './room-card';
 import styles from '../rooms.module.css';
 
-export function RoomComparison({ rooms }: { rooms: RoomType[] }) {
+export function RoomComparison({
+  rooms,
+  availability,
+}: {
+  rooms: RoomType[];
+  availability?: Record<string, string>;
+}) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const compareButton = useRef<HTMLButtonElement>(null);
@@ -166,6 +172,7 @@ export function RoomComparison({ rooms }: { rooms: RoomType[] }) {
           <RoomCard
             key={room.roomTypeId}
             room={room}
+            availability={availability?.[room.roomTypeId]}
             comparison={{
               selected: selectedIds.includes(room.roomTypeId),
               disabled: atLimit && !selectedIds.includes(room.roomTypeId),

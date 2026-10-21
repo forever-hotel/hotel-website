@@ -1,3 +1,75 @@
+.searchForm {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  flex-wrap: wrap;
+  margin: 28px 0;
+}
+.searchForm label {
+  display: grid;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+.searchForm input,
+.searchForm select {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px;
+  border: 1px solid var(--line);
+  background: white;
+  color: var(--ink);
+}
+.searchForm input[type='number'] {
+  width: 90px;
+}
+.calendar {
+  max-width: 580px;
+  padding: 24px;
+  margin: 24px 0;
+  background: var(--ink);
+  color: var(--cream);
+}
+.calendarHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.calendar p {
+  font-size: 0.85rem;
+  margin: 16px 0;
+}
+.calendar button {
+  min-height: 44px;
+  border: 1px solid #a99c83;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.calendarHeading button {
+  min-width: 44px;
+}
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+.calendarGrid button[aria-pressed='true'] {
+  background: #d4b477;
+  color: #17120c;
+}
+.calendarGrid button[data-blocked='true'] {
+  background: #483b39;
+  text-decoration: line-through;
+}
+.calendarGrid small {
+  display: block;
+  font-size: 0.55rem;
+}
+.calendarGrid button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
 .hero {
   position: relative;
   min-height: 240px;

@@ -7,8 +7,10 @@ import styles from '../rooms.module.css';
 export function RoomCard({
   room,
   comparison,
+  availability,
 }: {
   room: RoomType;
+  availability?: string;
   comparison?: { selected: boolean; disabled: boolean; onToggle: () => void };
 }) {
   return (
@@ -31,7 +33,9 @@ export function RoomCard({
             Compare {room.typeName}
           </label>
         )}
-        <p className={styles.availability}>Availability: check dates</p>
+        <p className={styles.availability}>
+          {availability || 'Availability: check dates'}
+        </p>
         <h3>{room.typeName}</h3>
         <p className={styles.description}>
           {room.description ||
@@ -60,8 +64,8 @@ export function RoomCard({
               : 'Please ask the hotel about amenities.'}
           </p>
           <p>
-            Live availability and online booking are coming soon. Please contact
-            the hotel about your dates.
+            Online booking is coming soon. Please contact the hotel about your
+            dates.
           </p>
         </details>
         <div className={styles.rate}>

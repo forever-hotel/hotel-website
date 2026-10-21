@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { getRoomCatalogue } from '@/features/rooms/catalogue';
-import { RoomComparison } from '@/features/rooms/components/room-comparison';
+import { AvailabilitySearch } from '@/features/rooms/components/availability-search';
 import styles from '@/features/rooms/rooms.module.css';
 
 export const metadata: Metadata = {
@@ -16,11 +16,12 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 type RoomsPageProps = {
-  searchParams: Promise<{ roomTypeId?: string | string[] }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function RoomsPage({ searchParams }: RoomsPageProps) {
-  const { roomTypeId } = await searchParams;
+  const params = await searchParams;
+  const { roomTypeId } = params;
   const catalogue = await getRoomCatalogue();
   const selected = typeof roomTypeId === 'string' ? roomTypeId : '';
   if (
@@ -55,35 +56,6 @@ export default async function RoomsPage({ searchParams }: RoomsPageProps) {
             <small>Banner photograph is AI-enhanced.</small>
           </div>
         </section>
-        <section className={styles.filters} aria-label="Room filters">
-          <form action="/rooms" method="get">
-            <label htmlFor="room-type">Room type</label>
-            <select
-              id="room-type"
-              name="roomTypeId"
-              defaultValue={selected}
-              disabled={catalogue.state !== 'ready'}
-            >
-              <option value="">All rooms</option>
-              {catalogue.rooms.map((room) => (
-                <option value={room.roomTypeId} key={room.roomTypeId}>
-                  {room.typeName}
-                </option>
-              ))}
-            </select>
-            <button
-              className="button button-gold"
-              disabled={catalogue.state !== 'ready'}
-            >
-              Search
-            </button>
-            {selected && <Link href="/rooms">Clear filter</Link>}
-          </form>
-          <p>
-            Availability: <strong>Check dates</strong>. Live date search is
-            coming soon; displayed rooms are not guaranteed available.
-          </p>
-        </section>
         <section className={styles.catalogue} aria-labelledby="catalogue-title">
           <p className={styles.eyebrow}>A space prepared for your stay</p>
           <h2 id="catalogue-title">Explore Our Rooms</h2>
@@ -99,12 +71,23 @@ export default async function RoomsPage({ searchParams }: RoomsPageProps) {
             </p>
           ) : (
             <>
-              <p className={styles.resultCount}>
-                {rooms.length} room {rooms.length === 1 ? 'type' : 'types'}
-              </p>
-              <RoomComparison
-                key={rooms.map((room) => room.roomTypeId).join(',')}
-                rooms={rooms}
+              <AvailabilitySearch
+                rooms={catalogue.rooms}
+                initial={{
+                  roomTypeId: selected,
+                  checkInDate:
+                    typeof params.checkInDate === 'string'
+                      ? params.checkInDate
+                      : '',
+                  checkOutDate:
+                    typeof params.checkOutDate === 'string'
+                      ? params.checkOutDate
+                      : '',
+                  numberOfGuests:
+                    typeof params.numberOfGuests === 'string'
+                      ? params.numberOfGuests
+                      : '2',
+                }}
               />
             </>
           )}

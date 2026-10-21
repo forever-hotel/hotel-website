@@ -4,6 +4,11 @@
 
 ### Added
 
+- DDP-#19: live Home-to-Rooms date search, guest capacity checks, available-room
+  counts and sorting, gateway-backed daily calendars with month navigation and
+  keyboard range selection, explicit empty/error/retry states and stale-request
+  cancellation. Searches do not create reservation holds.
+
 - DDP-#18: select up to three catalogue room types, remove selections and compare
   live catalogue rates, capacity, descriptions and amenities in an accessible,
   responsive table. Comparison opens only with two or three selections.

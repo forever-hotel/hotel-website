@@ -42,6 +42,18 @@ test(
     let roomItems = [room, secondRoom];
     let roomStatus = 200;
     const gateway = createHttpServer((request, response) => {
+      if (request.url.startsWith('/hw/availability?')) {
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ availableCount: 2 }));
+        return;
+      }
+      if (request.url.includes('/availability-calendar?')) {
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(
+          JSON.stringify({ days: [{ date: '2026-12-10', availableCount: 2 }] }),
+        );
+        return;
+      }
       if (request.url === '/hw/room-types') {
         response.writeHead(roomStatus, { 'Content-Type': 'application/json' });
         response.end(JSON.stringify({ items: roomItems, nextCursor: null }));
@@ -299,6 +311,20 @@ test(
       assert.doesNotMatch(servicesHtml, /The Grand Meridian/);
       assert.equal(missing.status, 404);
       const roomsResponse = await fetch(`${baseUrl}/rooms`);
+      const availability = await fetch(
+        `${baseUrl}/api/availability?roomTypeId=${room.roomTypeId}&checkInDate=2026-12-10&checkOutDate=2026-12-12&numberOfGuests=2`,
+      );
+      assert.equal(availability.status, 200);
+      assert.deepEqual(await availability.json(), { availableCount: 2 });
+      const calendar = await fetch(
+        `${baseUrl}/api/availability?calendar=1&roomTypeId=${room.roomTypeId}&from=2026-12-10&to=2026-12-11`,
+      );
+      assert.equal(calendar.status, 200);
+      assert.equal((await calendar.json()).days[0].availableCount, 2);
+      assert.equal(
+        (await fetch(`${baseUrl}/api/availability?roomTypeId=invalid`)).status,
+        400,
+      );
       assert.equal(roomsResponse.status, 200);
       const roomsHtml = await roomsResponse.text();
       assert.match(roomsHtml, /Rooms &amp; Suites \| Forever City Hotel/);
