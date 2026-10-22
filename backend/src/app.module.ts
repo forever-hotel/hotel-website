@@ -10,6 +10,7 @@ import { GuestsModule } from './guests/guests.module';
 import { HealthModule } from './health/health.module';
 import { RoomTypesModule } from './room-types/room-types.module';
 import { ContactModule } from './contact/contact.module';
+import { BookingsModule } from './bookings/bookings.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ContactModule } from './contact/contact.module';
     GuestsModule,
     RoomTypesModule,
     ContactModule,
+    BookingsModule,
     // Further feature modules (bookings, payments, ...) are added here.
   ],
   providers: [

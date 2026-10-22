@@ -258,6 +258,14 @@ The folders `config/`, `database/`, `common/`, and `health/`, plus the test setu
 4. Remove `CHANGELOG.md` entries that belong to this service.
 5. Run `npm ci`, `npm run lint`, and `npm test` to confirm everything passes.
 
+## Booking and payment persistence (DDP-#21)
+
+The application registers booking and payment entity mappings against the
+existing Infra tables, without migrations or schema synchronization. See
+[booking/payment mappings](../documents/api/booking-payment-mappings.md) for
+relations, statuses, booking-screen field support, limitations and integration
+commands. Quote/reservation and payment endpoints are not part of this ticket.
+
 ## Date-based availability
 
 The public availability API and calendar are documented in

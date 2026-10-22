@@ -18,6 +18,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- DDP-#21: booking/payment entity mappings, shared-schema enums and relationships,
+  explicit disabled entity synchronization, and isolated PostgreSQL integration
+  checks. Booking-screen field support and missing Infra decisions are recorded
+  in `documents/api/booking-payment-mappings.md`. No reservation/payment API added.
+
 - Date-based availability and daily calendar APIs (DDP-#17), strict date and
   occupancy validation, consistent inventory snapshots, maintenance/booking
   exclusions and explicit inventory-outage errors. See
