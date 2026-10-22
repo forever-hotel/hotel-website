@@ -31,6 +31,27 @@ const room = {
 };
 let quoteStatus = 201;
 let expired = false;
+let offerStatus = 200;
+const promotion = {
+  promoId: 'ui-offer',
+  code: 'UISTAY10',
+  discountType: 'PERCENTAGE',
+  discountValue: 10,
+  currency: 'LKR',
+  validFrom: '2026-01-01T00:00:00Z',
+  validUntil: '2099-01-01T00:00:00Z',
+  roomTypeIds: [],
+};
+let offers = [
+  promotion,
+  {
+    ...promotion,
+    promoId: 'ui-fixed',
+    code: 'UISAVE500',
+    discountType: 'FIXED',
+    discountValue: 50000,
+  },
+];
 const calls = [];
 const gateway = createServer(async (req, res) => {
   let raw = '';
@@ -39,7 +60,10 @@ const gateway = createServer(async (req, res) => {
   let body;
   let status = 200;
   if (req.url === '/hw/room-types') body = { items: [room] };
-  else if (req.url === '/hw/guests/me')
+  else if (req.url === '/hw/promotions?limit=20') {
+    status = offerStatus;
+    body = { items: offers };
+  } else if (req.url === '/hw/guests/me')
     body = { fullName: 'UI Test Guest', email: 'ui@example.com' };
   else if (req.url.startsWith('/hw/availability?'))
     body = { availableCount: 1 };
@@ -204,6 +228,14 @@ try {
     }
   }
   async function click(label) {
+    // Wait for React to hydrate this server-rendered control before clicking.
+    await until(
+      () =>
+        evaluate(
+          `(() => { const button = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === ${JSON.stringify(label)}); return Boolean(button && !button.disabled && Object.keys(button).some(key => key.startsWith('__reactProps$'))); })()`,
+        ),
+      `interactive ${label}`,
+    );
     await evaluate(
       `(() => { const button = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === ${JSON.stringify(label)}); if (!button || button.disabled) throw new Error('Button unavailable'); button.click(); })()`,
     );
@@ -235,6 +267,11 @@ try {
       `document.querySelectorAll('[aria-label="Booking progress"] li').length`,
     ),
     5,
+  );
+  await until(
+    () =>
+      evaluate(`Boolean(document.querySelector('a[href*="step=details"]'))`),
+    'available selection after search',
   );
   await evaluate(`document.querySelector('a[href*="step=details"]').click()`);
   await text('Check price and continue');
@@ -326,8 +363,47 @@ try {
   await click('Check price and continue');
   await text('This room accommodates up to 2 guests.');
   assert.equal(calls.filter((url) => url === '/hw/bookings').length, 0);
+  await command('Page.navigate', { url: `${origin}/offers` });
+  await text('Exclusive Offers');
+  await text('UISTAY10');
+  await text('UISAVE500');
+  await click('Percentage discounts');
+  await until(
+    () =>
+      evaluate(
+        `!document.querySelector('main').textContent.includes('UISAVE500')`,
+      ),
+    'percentage filter',
+  );
+  await click('Fixed discounts');
+  await text('UISAVE500');
+  assert.equal(
+    await evaluate(
+      `document.querySelector('main').textContent.includes('UISTAY10')`,
+    ),
+    false,
+  );
+  await click('All offers');
+  await fill('#promo-code', 'bad code!');
+  await click('Check next steps');
+  await text('Enter 1–50 letters, numbers, hyphens or underscores.');
+  await fill('#promo-code', ' uistay10 ');
+  await click('Check next steps');
+  await text('Code UISTAY10 has not been validated or applied.');
+  await text('Newsletter subscriptions are not available yet.');
+  assert.equal(
+    await evaluate('document.documentElement.scrollWidth <= window.innerWidth'),
+    true,
+  );
+  offers = [];
+  await command('Page.reload');
+  await text('No active offers match this filter.');
+  offerStatus = 503;
+  await command('Page.reload');
+  await text('Offers are temporarily unavailable.');
+  assert.equal(calls.filter((url) => url === '/hw/bookings').length, 0);
   console.log(
-    'PASS: browser booking selection, quote, email errors, handoff, refresh recovery, sold-out/session/outage/expiry and edited-date invalidation. No holds created.',
+    'PASS: booking recovery and validation; Offers filters, unvalidated-code guidance, newsletter, empty/error states and mobile layout. No holds or promo redemption created.',
   );
 } finally {
   socket?.close();

@@ -79,7 +79,7 @@ test('gateway integration handles success, HTTP errors, invalid JSON and outages
       validUntil: new Date(Date.now() + 60000).toISOString(),
     };
     globalThis.fetch = async (url, options) => {
-      assert.equal(url, 'https://gateway.example/api/v1/promotions?limit=20');
+      assert.equal(url, 'https://gateway.example/hw/promotions?limit=20');
       assert.equal(options.cache, 'no-store');
       assert.ok(options.signal instanceof AbortSignal);
       return Response.json({ items: [currentOffer] });

@@ -44,7 +44,7 @@ export default async function Home() {
               <a className="button button-champagne" href="#rooms">
                 Explore rooms
               </a>
-              <a className="button button-outline" href="#offers">
+              <a className="button button-outline" href="/offers">
                 View offers
               </a>
             </div>

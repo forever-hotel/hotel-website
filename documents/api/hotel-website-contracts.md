@@ -359,6 +359,12 @@ remains a separate feature.
 
 ### Promotions and quotes (P1, Q1)
 
+Runtime update: the interim public listing is now `GET /hw/promotions?limit=20`
+(backend `/promotions`), reading existing Manager tables directly as requested.
+See `offers-contract-readiness.md` for active/valid/non-exhausted filtering and
+limits. The older `/api/v1/promotions` path and promo-enabled Q1 examples below
+are draft contracts, not the implemented promo-application API.
+
 P1: `GET /api/v1/promotions?limit=20` → 200:
 
 ```json

@@ -37,6 +37,14 @@ This file is the working context for contributors and coding assistants in this 
 
 ## Current repository state
 
+- DDP-#24 partially adds `/offers`, shared Home cards/feed, supported discount-type
+  filters, code syntax/recovery guidance and honest newsletter unavailability.
+  Promo application remains blocked: the current quote DTO rejects `promoCode`,
+  and Manager Dashboard validation/redemption/marketing contracts are not
+  supplied. The interim `/hw/promotions` backend reads existing Manager tables
+  directly (ACTIVE, valid, non-exhausted only), without writes. Do not claim browser code syntax checks
+  apply discounts. See `documents/api/offers-contract-readiness.md`.
+
 - DDP-#23 / GitHub #171 adds `/booking` selection/configuration/guest information
   and a quote-backed payment handoff. Uses `/hw/booking-quotes` through a server
   action and the existing HttpOnly guest session. Safe selections persist in the

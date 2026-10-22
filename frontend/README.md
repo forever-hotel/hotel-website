@@ -12,6 +12,18 @@ is implemented; exact Figma assets, fonts, hotel copy, and mobile frames still n
 confirmation. Room cards use catalogue API prices. The stay planner now carries
 dates and guests into live availability search; it does not create reservations.
 
+## Offers (DDP-#24, partial pending service contracts)
+
+`/offers` uses the same active promotion data as Home via `/hw/promotions`, with percentage/fixed filters,
+code cards, empty/error recovery and explicit code/newsletter availability
+messages. Navigation now links directly to this page. Code entry checks syntax
+only; online discount application is not enabled because the current quote API
+rejects promo codes and Manager Dashboard eligibility/redemption is unagreed.
+No sample featured packages or unapproved marketing fields are rendered. See
+[remaining contracts and checks](../documents/api/offers-contract-readiness.md).
+The interim backend reads the existing Manager-owned promotion tables directly;
+no Manager API, new environment variables or database changes are required.
+
 ## Guided booking (DDP-#23 / GitHub #171)
 
 Select a room after searching dates on `/rooms` to open `/booking`. Signed-in

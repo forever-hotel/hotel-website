@@ -18,14 +18,14 @@ function isPromotion(value: unknown): value is Promotion {
     typeof item.promoId === 'string' &&
     item.promoId.length > 0 &&
     typeof item.code === 'string' &&
-    item.code.length > 0 &&
+    /^[A-Za-z0-9_-]{1,50}$/.test(item.code) &&
     (item.discountType === 'PERCENTAGE' || item.discountType === 'FIXED') &&
     typeof item.discountValue === 'number' &&
     Number.isFinite(item.discountValue) &&
     item.discountValue > 0 &&
     (item.discountType === 'PERCENTAGE'
       ? item.discountValue <= 100
-      : Number.isInteger(item.discountValue)) &&
+      : Number.isSafeInteger(item.discountValue)) &&
     item.currency === 'LKR' &&
     typeof item.validFrom === 'string' &&
     typeof item.validUntil === 'string' &&
@@ -42,23 +42,59 @@ export function activePromotions(data: unknown, now = Date.now()): Promotion[] {
     !Array.isArray(data.items)
   )
     return [];
-  // The public P1 endpoint supplies published offers only; validity is [from, until).
+  // The backend supplies active, non-exhausted codes; validity is [from, until).
   return data.items
     .filter(isPromotion)
     .filter(
       (item) =>
         Date.parse(item.validFrom) <= now && now < Date.parse(item.validUntil),
+    )
+    .map(
+      ({
+        promoId,
+        code,
+        discountType,
+        discountValue,
+        currency,
+        validFrom,
+        validUntil,
+        roomTypeIds,
+      }) => ({
+        promoId,
+        code,
+        discountType,
+        discountValue,
+        currency,
+        validFrom,
+        validUntil,
+        roomTypeIds,
+      }),
     );
 }
 
 export async function getActivePromotions(): Promise<Promotion[]> {
+  return (await getPromotionFeed()).promotions;
+}
+
+export type PromotionFeed = {
+  state: 'ready' | 'unavailable';
+  promotions: Promotion[];
+};
+
+export async function getPromotionFeed(): Promise<PromotionFeed> {
   try {
-    return activePromotions(
-      await getGatewayJson('/api/v1/promotions?limit=20'),
-    );
+    const data = await getGatewayJson('/hw/promotions?limit=20');
+    if (
+      !data ||
+      typeof data !== 'object' ||
+      !('items' in data) ||
+      !Array.isArray(data.items) ||
+      (data.items.length > 0 && !data.items.some(isPromotion))
+    )
+      throw new Error('Invalid public promotion feed');
+    return { state: 'ready', promotions: activePromotions(data) };
   } catch {
-    // Optional offers must not prevent visitors from viewing hotel content.
-    return [];
+    return { state: 'unavailable', promotions: [] };
   }
 }
 

@@ -1,4 +1,5 @@
 import type { RoomType } from '../rooms/catalogue';
+import Link from 'next/link';
 import { RoomImage } from '../rooms/components/room-image';
 import styles from './booking.module.css';
 export function RoomConfiguration({
@@ -44,6 +45,12 @@ export function RoomConfiguration({
       <p>
         Room quantity: 1. Multiple rooms, child-specific pricing, meal plans and
         arrival options are not available online yet.
+      </p>
+      <p>
+        Promotion codes cannot be applied online yet.{' '}
+        <Link href="/offers">View current offers</Link> or contact the hotel
+        about eligibility. No discount is included unless shown in your backend
+        quote.
       </p>
       <button
         type="button"

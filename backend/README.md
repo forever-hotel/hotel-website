@@ -1,5 +1,16 @@
 # Forever Hotel website backend
 
+## Active promotion listing (DDP-#24, interim database reads)
+
+`GET /promotions?limit=20` is exposed through the gateway as `/hw/promotions`.
+It reads existing `mad_promotion_codes` / `mad_promotion_room_types` with no writes.
+Only ACTIVE, currently valid and non-exhausted codes are returned. Limit is 1–100;
+the default is 20. Amounts are LKR cents for FIXED, whole percentages for PERCENTAGE.
+Inactive/expired/future/exhausted codes and administrative counters are excluded.
+An empty room-type list means unrestricted room types under the existing public
+contract. Listing does not apply a code to a quote or reserve a redemption.
+See [the endpoint and remaining contracts](../documents/api/offers-contract-readiness.md).
+
 ## Contact enquiries (DDP-#15)
 
 `POST /contact/enquiries` validates enquiries and dispatches plain-text mail via
