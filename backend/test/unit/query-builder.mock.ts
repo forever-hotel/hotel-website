@@ -10,6 +10,7 @@ const CHAIN_METHODS = [
   'leftJoinAndSelect',
   'orderBy',
   'addOrderBy',
+  'limit',
 ] as const;
 const RESULT_METHODS = ['execute', 'getOne', 'getMany', 'getCount'] as const;
 

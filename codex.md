@@ -17,7 +17,7 @@ This file is the working context for contributors and coding assistants in this 
   [frontend/UI_GUIDE.md](frontend/UI_GUIDE.md) for its link, inspection status,
   and implementation steps. Six supplied screenshots now guide the single-page
   Grand Meridian layout; original Figma assets and exact measurements remain
-  unavailable. Sample room rates and the testimonial are labelled; live booking
+  unavailable. Static room rates remain labelled as samples; live booking
   is not connected.
 
 - `SDS_Forever_Hotel_Management_System.pdf` (provided separately) is the **Software Design Specification**, not the SRS. Its architecture and design sections are summarized below.
@@ -27,6 +27,8 @@ This file is the working context for contributors and coding assistants in this 
 
 ## Purpose and boundaries
 
+- The user-confirmed public hotel name is **Forever City Hotel**. Screenshot
+  branding “The Grand Meridian” is superseded for all rendered UI and metadata.
 - Build the guest-facing Forever Hotel website and its supporting backend.
 - The frontend is a Next.js App Router and TypeScript application in `frontend/`, with a placeholder welcome page, ESLint, Prettier, and smoke checks.
 - The existing backend is a NestJS 11 and TypeScript application in `backend/`. It uses `@nestjs/config`, TypeORM, and PostgreSQL.
@@ -34,6 +36,30 @@ This file is the working context for contributors and coding assistants in this 
 - The intended guest journey covers browsing rooms, checking availability, registering and signing in, booking, paying, and managing bookings. The issue plan also covers content pages, promotions, email, accessibility, security, and release work. These are planned features, not a claim that they are implemented.
 
 ## Current repository state
+
+- DDP-#16 adds `/rooms` and shared API-backed Home previews under
+  `frontend/src/features/rooms/`. Source is gateway `GET /api/v1/room-types` using
+  the implemented backend DTO, not static sample room data. Prices are LKR cents;
+  exact image hosts require `ROOM_IMAGE_HOSTS`. Comparison/date availability and
+  reservations remain with later issues. No real `.env` credentials were read.
+
+- DDP-#15 adds `/contact` with text address/map fallback and an accessible enquiry
+  form. Next.js `/api/contact` forwards through the proposed gateway route to
+  backend `/contact/enquiries`. Brevo delivery defaults off; exact management
+  recipient/provider configuration, gateway per-client limits and team identities
+  remain pending. See `documents/api/contact-enquiries.md`. No live email was sent.
+
+- DDP-#14 adds `/services`, with content and scoped styles in
+  `frontend/src/features/services/` and a small missing/failed-photo component.
+  Shared navigation and Home link to the route. Hours and facility booking are
+  not invented; restaurant spelling and approved imagery need confirmation.
+
+- DDP-#13 extracts shared public header/footer/navigation under
+  `frontend/src/components/layout/`. The user confirmed the supplied hotel details
+  as real on 20 October 2026; sample notices for those details are removed.
+  `/#hotel-policies` is linked from the footer with confirmed check-in/out times.
+  Full-page destinations temporarily use existing Home sections; no About Us
+  route is added. Full contact details and browser checks remain pending.
 
 - DDP-#12 replaces the frontend welcome scaffold with a responsive home page,
   introduction, highlights, and streamed active offers. The optional server-only
@@ -62,6 +88,10 @@ This file is the working context for contributors and coding assistants in this 
 - `backend/.env` is local and must remain untracked. `backend/package-lock.json` is tracked.
 
 ## Development workflow
+
+Implementation preference: keep code simple, readable and easy to understand in
+every change. Prefer small focused components, clear names and direct control
+flow; avoid unnecessary abstractions, dependencies and clever coding patterns.
 
 1. Read the relevant ticket in [issue.md](issue.md), including its acceptance criteria, dependencies, tests, and Definition of Done. Check the actual GitHub issue and current branch state before using any draft ticket ID.
 2. Use one `feature/<GitHub-issue-number>-<slug>` branch per issue and target `develop` with the PR, as described in the issue plan. Confirm project-board details with the team rather than inventing labels, assignees, milestones, or issue numbers.

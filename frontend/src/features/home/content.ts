@@ -1,52 +1,35 @@
-﻿export const services = [
+﻿export const services: {
+  title: string;
+  subtitle: string;
+  image?: string;
+  illustrative?: boolean;
+  alt: string;
+}[] = [
   {
     title: 'Spa & Wellness',
+    image: 'illustrative-spa.webp',
+    illustrative: true,
     subtitle: 'Rejuvenate your senses',
-    image: 'spa.jpg',
     alt: 'A tranquil spa treatment space',
   },
   {
     title: 'WON Restaurant',
     subtitle: 'Exquisite dining experiences',
-    image: 'restaurant.jpg',
+    image: 'forever-city-dining.webp',
     alt: 'An elegantly arranged restaurant',
   },
   {
     title: 'Fitness Centre',
+    image: 'illustrative-gym.webp',
+    illustrative: true,
     subtitle: 'Stay fit, stay you',
-    image: 'fitness.jpg',
     alt: 'A fully equipped fitness centre',
   },
   {
     title: 'Swimming Pool',
     subtitle: 'Escape. Refresh. Repeat.',
-    image: 'hotel-pool.jpg',
+    image: 'forever-city-pool.webp',
     alt: 'An outdoor swimming pool beside a hotel',
-  },
-];
-
-// Presentation content from the supplied design, not bookable inventory.
-export const rooms = [
-  {
-    title: 'Deluxe Room',
-    image: 'deluxe-room.jpg',
-    description:
-      'Spacious, well-appointed room with modern amenities and elegant decor for the discerning traveller.',
-    price: '$180',
-  },
-  {
-    title: 'Junior Suite',
-    image: 'junior-suite.jpg',
-    description:
-      'A generous suite with a separate living area, premium linens, and panoramic city views.',
-    price: '$280',
-  },
-  {
-    title: 'Presidential Suite',
-    image: 'presidential-suite.jpg',
-    description:
-      'The pinnacle of luxury — a full floor suite with a private butler, dining room, and terrace.',
-    price: '$580',
   },
 ];
 

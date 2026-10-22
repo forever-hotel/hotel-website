@@ -7,11 +7,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Guest registration now checks normalized email under a transaction-scoped
+  PostgreSQL advisory lock, preventing duplicate registrations through this
+  service when the deployed schema lacks its email uniqueness constraint.
+  Authentication rejects ambiguous existing duplicates. Existing accounts are
+  not modified; Infra must review duplicates and add the missing unique index.
+
 - Guest authentication build and lint errors, Swagger test guard setup, and typed integration-test response handling (DDP-#10). Formatting checks now use the same line-ending policy as ESLint. Backend CI enforces formatting and the existing 80% unit coverage threshold.
 - Documented the proposed per-service authentication architecture in ADR 001; team and gateway approval remain pending.
 
 ### Added
 
+- DDP-#21: booking/payment entity mappings, shared-schema enums and relationships,
+  explicit disabled entity synchronization, and isolated PostgreSQL integration
+  checks. Booking-screen field support and missing Infra decisions are recorded
+  in `documents/api/booking-payment-mappings.md`. No reservation/payment API added.
+
+- Date-based availability and daily calendar APIs (DDP-#17), strict date and
+  occupancy validation, consistent inventory snapshots, maintenance/booking
+  exclusions and explicit inventory-outage errors. See
+  `documents/api/availability.md` for allocation limits and pending owner review.
+
+- Contact enquiry endpoint (DDP-#15): validated plain-text Brevo dispatch,
+  default-off delivery, explicit sandbox/accepted responses, request timeouts,
+  and a bounded per-connection-IP rate-limit backstop. No enquiry body or provider
+  secret is logged; production ingress per-client limits remain with the gateway.
 - Public room catalogue endpoints (HW-03, DDP-#11): `GET /room-types` and `GET /room-types/:roomTypeId` return names, descriptions, images, amenities, capacity, and prices in LKR cents. Invalid UUIDs return `400 VALIDATION_FAILED`; unknown UUIDs return `404 ROOM_TYPE_NOT_FOUND`. Includes Swagger documentation, service/HTTP checks, and database-backed API integration checks.
 - `POST /guests/login` (HW-07, DDP-#10): verifies a submitted password against the stored bcrypt hash and issues a signed HS256 JWT with `iss`, `sub`, `iat`, `exp`, and `role=GUEST` claims and a 24-hour expiry. Adds `GET /guests/me`, protected by a bearer-token guard, plus validated `JWT_SECRET` and `JWT_ISSUER` configuration.
 - `POST /guests/register` (HW-06, DDP-#09): validates name, email, password (8–72 characters) and optional phone (SDS Table 14), stores the password as a bcrypt hash (cost 12, `bcryptjs`), returns `201` with `{ guestId, fullName, email, createdAt }`, `409 EMAIL_ALREADY_REGISTERED` for a used email and `400 VALIDATION_FAILED` for invalid input.

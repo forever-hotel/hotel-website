@@ -1,52 +1,28 @@
-﻿import Image from 'next/image';
+import Image from 'next/image';
+import { SiteHeader } from '@/components/layout/site-header';
 import Link from 'next/link';
+import { SiteFooter } from '@/components/layout/site-footer';
 import { Suspense } from 'react';
+import { RoomPreview } from '@/features/rooms/components/room-preview';
 import { ActiveOffers } from '@/features/promotions/components/active-offers';
 import { CookieNotice } from '@/features/home/components/cookie-notice';
 import { StayPlanner } from '@/features/home/components/stay-planner';
-import { questions, rooms, services } from '@/features/home/content';
+import { getRoomCatalogue } from '@/features/rooms/catalogue';
+import { questions, services } from '@/features/home/content';
 
 export const dynamic = 'force-dynamic';
 
-export default function Home() {
+export default async function Home() {
+  const catalogue = await getRoomCatalogue();
   return (
     <>
-      <a className="skip-link" href="#main-content">
-        Skip to content
-      </a>
-      <header className="site-header">
-        <Link className="wordmark" href="/">
-          The Grand Meridian
-        </Link>
-        <nav aria-label="Main navigation">
-          <a href="#rooms">Rooms</a>
-          <a href="#services">Services</a>
-          <a href="#offers">Offers</a>
-          <a href="#contact">Contact</a>
-        </nav>
-        <a href="#contact" className="guest-icon" aria-label="Guest services">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
-            <circle cx="12" cy="8" r="3" fill="currentColor" />
-            <path d="M5 19v-2a7 5 0 0 1 14 0v2" fill="currentColor" />
-          </svg>
-        </a>
-        <a className="button button-gold header-book" href="#plan-stay">
-          Book now
-        </a>
-      </header>
-      <main id="main-content">
+      <SiteHeader />
+      <main id="main-content" tabIndex={-1}>
         <section className="hero" aria-labelledby="hero-title">
           <Image
             className="hero-image"
-            src="/images/hotel-pool.jpg"
-            alt="A resort swimming pool surrounded by tropical greenery"
+            src="/images/forever-city-pool.webp"
+            alt="Forever City Hotel and its swimming pool in Kiribathgoda"
             fill
             preload
             sizes="100vw"
@@ -77,7 +53,12 @@ export default function Home() {
             Scroll to discover<span aria-hidden="true">↓</span>
           </a>
         </section>
-        <StayPlanner />
+        <StayPlanner
+          rooms={catalogue.rooms.map(({ roomTypeId, typeName }) => ({
+            roomTypeId,
+            typeName,
+          }))}
+        />
         <section
           className="story section-light"
           id="our-hotel"
@@ -86,11 +67,12 @@ export default function Home() {
           <div className="story-inner">
             <div className="story-image">
               <Image
-                src="/images/junior-suite.jpg"
-                alt="A bright guest room with a neatly made bed and large windows"
+                src="/images/forever-city-room-enhanced.webp"
+                alt="AI-enhanced view of a guest room at Forever City Hotel in Kiribathgoda"
                 fill
                 sizes="(max-width: 760px) 90vw, 38vw"
               />
+              <span className="image-caption">AI-enhanced photograph</span>
             </div>
             <div className="story-copy">
               <p className="eyebrow">Our story</p>
@@ -101,7 +83,7 @@ export default function Home() {
               </h2>
               <span className="gold-rule" />
               <p>
-                Since our founding, The Grand Meridian has set the benchmark for
+                Since our founding, Forever City Hotel has set the benchmark for
                 luxury hospitality — where timeless elegance meets contemporary
                 comfort. Every corner of our hotel tells a story of meticulous
                 craftsmanship and heartfelt service.
@@ -113,11 +95,11 @@ export default function Home() {
               </p>
               <dl className="story-stats">
                 <div>
-                  <dt>45+</dt>
-                  <dd>Years of excellence</dd>
+                  <dt>20+</dt>
+                  <dd>Years of experience</dd>
                 </div>
                 <div>
-                  <dt>120</dt>
+                  <dt>30+</dt>
                   <dd>Luxury rooms & suites</dd>
                 </div>
                 <div>
@@ -125,7 +107,7 @@ export default function Home() {
                   <dd>Guest satisfaction</dd>
                 </div>
                 <div>
-                  <dt>15+</dt>
+                  <dt>5+</dt>
                   <dd>Awards & recognitions</dd>
                 </div>
               </dl>
@@ -147,12 +129,21 @@ export default function Home() {
           <div className="service-grid">
             {services.map((service) => (
               <article className="service-card" key={service.title}>
-                <Image
-                  src={`/images/${service.image}`}
-                  alt={service.alt}
-                  fill
-                  sizes="(max-width: 580px) 90vw, (max-width: 900px) 45vw, 25vw"
-                />
+                {service.image ? (
+                  <Image
+                    src={`/images/${service.image}`}
+                    alt={service.alt}
+                    fill
+                    sizes="(max-width: 580px) 90vw, (max-width: 900px) 45vw, 25vw"
+                  />
+                ) : (
+                  <span className="service-photo-missing">
+                    Photograph coming soon
+                  </span>
+                )}
+                {service.illustrative && (
+                  <span className="image-caption">Illustrative image</span>
+                )}
                 <div>
                   <h3>{service.title}</h3>
                   <p className="eyebrow">{service.subtitle}</p>
@@ -160,9 +151,9 @@ export default function Home() {
               </article>
             ))}
           </div>
-          <a href="#contact" className="button button-outline">
+          <Link href="/services" className="button button-outline">
             View all services
-          </a>
+          </Link>
         </section>
         <section
           className="rooms section-light"
@@ -176,43 +167,15 @@ export default function Home() {
             </h2>
             <span className="gold-rule" />
           </div>
-          <div className="room-grid">
-            {rooms.map((room) => (
-              <article className="room-card" key={room.title}>
-                <div className="room-image">
-                  <Image
-                    src={`/images/${room.image}`}
-                    alt={`${room.title} interior`}
-                    fill
-                    sizes="(max-width: 760px) 90vw, 30vw"
-                  />
-                </div>
-                <div className="room-copy">
-                  <h3>{room.title}</h3>
-                  <p>{room.description}</p>
-                  <div className="room-rate">
-                    <p>
-                      <span>{room.price}</span>
-                      <small>per night · sample rate</small>
-                    </p>
-                    <a
-                      className="button button-blue"
-                      href="#plan-stay"
-                      aria-label={`Plan a stay in the ${room.title}`}
-                    >
-                      Book now
-                    </a>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-          <a className="button button-gold" href="#plan-stay">
+          <Suspense fallback={<p role="status">Loading rooms?</p>}>
+            <RoomPreview />
+          </Suspense>
+          <Link className="button button-gold" href="/rooms">
             View all rooms
-          </a>
+          </Link>
           <p className="preview-note">
-            Illustrative room previews from the design. Live room details and
-            rates are not connected yet.
+            Rates are per night in LKR. Contact the hotel to confirm
+            availability for your dates.
           </p>
         </section>
         <section className="offers" id="offers" aria-labelledby="offers-title">
@@ -242,12 +205,10 @@ export default function Home() {
           <figure>
             <blockquote>
               “Every detail was flawlessly considered. From the welcome
-              champagne to the parting gift, The Grand Meridian redefines what
+              champagne to the parting gift, Forever City Hotel redefines what
               luxury hospitality truly means.”
             </blockquote>
-            <figcaption>
-              — Sarah Mitchell, London <span>· Design sample</span>
-            </figcaption>
+            <figcaption>— Sarah Mitchell, London</figcaption>
           </figure>
         </section>
         <section
@@ -260,6 +221,19 @@ export default function Home() {
             Frequently Asked <em>Questions</em>
           </h2>
           <span className="gold-rule" />
+          <aside
+            className="policy-notice"
+            id="hotel-policies"
+            aria-labelledby="policies-title"
+          >
+            <h3 id="policies-title">Hotel policies</h3>
+            <p>
+              Check-in is from 2:00 PM and check-out is by 12:00 PM noon. Early
+              check-in and late check-out are subject to availability. Review
+              your selected rate for cancellation terms and breakfast
+              inclusions, and ask guest services about transfer arrangements.
+            </p>
+          </aside>
           <div className="faq-grid">
             {questions.map((item, index) => (
               <details key={item.question} open={index === 0}>
@@ -273,47 +247,7 @@ export default function Home() {
           </div>
         </section>
       </main>
-      <footer className="site-footer" id="contact">
-        <div className="footer-grid">
-          <div className="footer-brand">
-            <Link href="/" className="wordmark">
-              The Grand Meridian
-            </Link>
-            <p>
-              A sanctuary of luxury and refined hospitality, crafted for those
-              who appreciate the finer things in life.
-            </p>
-          </div>
-          <div>
-            <h2>Explore</h2>
-            <a href="#main-content">Home</a>
-            <a href="#rooms">Rooms & Suites</a>
-            <a href="#services">Services</a>
-            <a href="#offers">Offers</a>
-            <a href="#our-hotel">About Us</a>
-          </div>
-          <div>
-            <h2>Guest services</h2>
-            <a href="#plan-stay">Plan your stay</a>
-            <a href="#faq">FAQ</a>
-            <a href="#contact">Contact Us</a>
-            <p>Reservation services coming soon.</p>
-          </div>
-          <div>
-            <h2>Contact</h2>
-            <p>Colombo, Sri Lanka</p>
-            <p>Contact details will be available soon.</p>
-            <a href="#faq">Guest information</a>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>
-            © {new Date().getFullYear()} The Grand Meridian. All rights
-            reserved.
-          </p>
-          <a href="#main-content">Back to top ↑</a>
-        </div>
-      </footer>
+      <SiteFooter />
       <CookieNotice />
     </>
   );

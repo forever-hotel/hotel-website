@@ -37,7 +37,9 @@ jobs:
       - name: Verify frontend and private backend
         shell: bash
         run: |
-          curl --fail --silent http://127.0.0.1:3001/ | grep -q 'Forever Hotel'
+          curl --fail --show-error --silent --max-time 30 \
+            --output "$RUNNER_TEMP/frontend-smoke.html" http://127.0.0.1:3001/
+          grep -Fq 'Forever City Hotel' "$RUNNER_TEMP/frontend-smoke.html"
           docker compose exec -T backend node -e "fetch('http://127.0.0.1:3000/health').then(async r => { const b = await r.json(); if (!r.ok || b.database !== 'up') process.exit(1); }).catch(() => process.exit(1))"
           for service in frontend backend; do
             docker compose exec -T "$service" node -e "if (process.getuid() === 0) process.exit(1)"
