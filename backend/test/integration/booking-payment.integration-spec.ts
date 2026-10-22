@@ -1,6 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomUUID } from 'crypto';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { DataSource, QueryRunner } from 'typeorm';
 import { AppModule } from '../../src/app.module';
 import { Booking } from '../../src/bookings/entities/booking.entity';
@@ -70,6 +72,16 @@ describe('Booking/payment infra mappings', () => {
         );
       }
     }
+    // Apply the proposed additions to the temporary copy, never public.bookings.
+    await runner.query(
+      readFileSync(
+        resolve(
+          __dirname,
+          '../../../documents/api/booking-storage-proposal.sql',
+        ),
+        'utf8',
+      ),
+    );
     const type = await runner.manager.getRepository(RoomType).save({
       typeName: `Fixture ${randomUUID()}`,
       pricePerNight: 1000000,

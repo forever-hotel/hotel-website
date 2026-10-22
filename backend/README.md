@@ -260,6 +260,11 @@ The folders `config/`, `database/`, `common/`, and `health/`, plus the test setu
 
 ## Booking and payment persistence (DDP-#21)
 
+Issue 22 adds protected quote/reservation endpoints; see
+[booking reservation API](../documents/api/booking-reservation-api.md) for request
+examples, deployment prerequisites, errors and verification. Storage and pricing
+must be configured before use; no live schema changes are performed here.
+
 The application registers booking and payment entity mappings against the
 existing Infra tables, without migrations or schema synchronization. See
 [booking/payment mappings](../documents/api/booking-payment-mappings.md) for

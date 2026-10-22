@@ -18,6 +18,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Checkout persistence refactor: replace quote/idempotency tables with five
+  proposed nullable bookings fields. Quotes are signed previews; starting payment
+  saves a frozen price and hold. Catalogue/policy changes do not reprice active
+  checkout attempts. Reservation requests now require quoteToken, not quoteId.
+  No live schema changes applied; verified payment confirmation remains separate.
+
+- Issue 22 / #171: protected booking quotes and pending reservations, authoritative
+  pricing, persistent idempotency, transactional inventory rechecks and quote/hold
+  expiry handling. Requires approved Infra storage, explicit hotel pricing policy
+  and shared Front Desk inventory locking before activation. Proposed SQL is not
+  automatically applied. See `documents/api/booking-reservation-api.md`.
+
 - DDP-#21: booking/payment entity mappings, shared-schema enums and relationships,
   explicit disabled entity synchronization, and isolated PostgreSQL integration
   checks. Booking-screen field support and missing Infra decisions are recorded

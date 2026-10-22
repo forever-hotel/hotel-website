@@ -80,6 +80,31 @@ export class Booking {
   @Column({ name: 'special_requests', type: 'text', nullable: true })
   specialRequests: string | null;
 
+  @Column({ name: 'hold_expires_at', type: 'timestamptz', nullable: true })
+  holdExpiresAt: Date | null;
+
+  @Column({
+    name: 'checkout_key',
+    type: 'varchar',
+    length: 128,
+    nullable: true,
+  })
+  checkoutKey: string | null;
+
+  @Column({
+    name: 'checkout_request_hash',
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+  })
+  checkoutRequestHash: string | null;
+
+  @Column({ name: 'price_snapshot', type: 'jsonb', nullable: true })
+  priceSnapshot: Record<string, unknown> | null;
+
+  @Column({ type: 'varchar', length: 3, nullable: true })
+  currency: string | null;
+
   @Column({ name: 'num_guests', type: 'integer', default: 1 })
   numGuests: number;
 
