@@ -12,6 +12,17 @@ is implemented; exact Figma assets, fonts, hotel copy, and mobile frames still n
 confirmation. Room cards use catalogue API prices. The stay planner now carries
 dates and guests into live availability search; it does not create reservations.
 
+## Guided booking (DDP-#23 / GitHub #171)
+
+Select a room after searching dates on `/rooms` to open `/booking`. Signed-in
+guests can configure a supported one-room stay, request a real backend quote,
+confirm their account email and enter requests before reviewing the payment
+handoff. The sidebar uses the quote's LKR totals and charge lines. URL parameters
+preserve safe selections through navigation; refreshing requires a fresh review.
+Online payment and final confirmation remain with #25; this flow creates no holds.
+See [booking flow and testing](../documents/api/frontend-booking-flow.md).
+`npm run test:booking-ui` runs isolated Chrome/Edge acceptance checks after build.
+
 ## Guest authentication (DDP-#20)
 
 Visit `/sign-up` to create a development account, then `/sign-in` to sign in.

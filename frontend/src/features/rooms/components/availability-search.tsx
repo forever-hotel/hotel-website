@@ -9,6 +9,7 @@ import {
   validStay,
 } from '../availability';
 import { RoomComparison } from './room-comparison';
+import { bookingUrl } from '../../booking/booking';
 import styles from '../rooms.module.css';
 
 type Search = {
@@ -21,9 +22,11 @@ type Search = {
 export function AvailabilitySearch({
   rooms,
   initial,
+  booking = false,
 }: {
   rooms: RoomType[];
   initial: Search;
+  booking?: boolean;
 }) {
   const [search, setSearch] = useState(initial);
   const [submitted, setSubmitted] = useState<Search | null>(
@@ -135,7 +138,9 @@ export function AvailabilitySearch({
           window.history.replaceState(
             null,
             '',
-            `/rooms?${new URLSearchParams(search)}`,
+            booking
+              ? `/booking?${new URLSearchParams({ ...search, step: 'select' })}`
+              : `/rooms?${new URLSearchParams(search)}`,
           );
         }}
       >
@@ -262,6 +267,22 @@ export function AvailabilitySearch({
           .join(',')}
         rooms={display}
         availability={labels}
+        bookingLinks={
+          submitted && counts
+            ? Object.fromEntries(
+                display
+                  .filter((room) => (counts[room.roomTypeId] ?? 0) > 0)
+                  .map((room) => [
+                    room.roomTypeId,
+                    bookingUrl({
+                      ...submitted,
+                      roomTypeId: room.roomTypeId,
+                      numberOfGuests: Number(submitted.numberOfGuests),
+                    }),
+                  ]),
+              )
+            : undefined
+        }
       />
     </>
   );

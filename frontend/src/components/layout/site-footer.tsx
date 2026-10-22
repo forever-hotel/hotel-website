@@ -34,7 +34,8 @@ export function SiteFooter() {
           <Link href="/#plan-stay">Plan your stay</Link>
           <Link href="/#faq">FAQ</Link>
           <Link href="/#hotel-policies">Hotel policies</Link>
-          <p>Live reservations and guest accounts are coming soon.</p>
+          <Link href="/profile">Guest account</Link>
+          <p>Online payment is not available yet.</p>
         </nav>
         <div>
           <h2>Contact</h2>

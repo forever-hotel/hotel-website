@@ -8,9 +8,11 @@ export function RoomCard({
   room,
   comparison,
   availability,
+  bookingHref,
 }: {
   room: RoomType;
   availability?: string;
+  bookingHref?: string;
   comparison?: { selected: boolean; disabled: boolean; onToggle: () => void };
 }) {
   return (
@@ -63,22 +65,22 @@ export function RoomCard({
               ? room.amenities.join(', ')
               : 'Please ask the hotel about amenities.'}
           </p>
-          <p>
-            Online booking is coming soon. Please contact the hotel about your
-            dates.
-          </p>
+          <p>Choose your stay dates to check availability and begin booking.</p>
         </details>
         <div className={styles.rate}>
           <p>
             <span>{roomPrice(room)}</span>
-            <small>per night � LKR</small>
+            <small>per night · LKR</small>
           </p>
           <Link
             className="button button-blue"
-            href="/contact"
-            aria-label={`Contact the hotel about ${room.typeName}`}
+            href={
+              bookingHref ||
+              `/booking?roomTypeId=${room.roomTypeId}&step=select`
+            }
+            aria-label={`Select ${room.typeName} for your stay`}
           >
-            Enquire
+            {bookingHref ? 'Select room' : 'Check dates'}
           </Link>
         </div>
       </div>
