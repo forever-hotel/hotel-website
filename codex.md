@@ -37,6 +37,15 @@ This file is the working context for contributors and coding assistants in this 
 
 ## Current repository state
 
+- DDP-#25 / GitHub #178 adds hosted Stripe **test** checkout, raw-body signature
+  verification, idempotent settlement, owned recovery/status and a printable final
+  reservation view. User approved full payment only for now and a 35-minute
+  provider hold (the initial pre-payment hold remains 20 minutes). Price snapshots
+  stay frozen; existing bookings/payments store payment identity and late-refund
+  recovery, without new schema. Test secrets must be configured manually; no env
+  files/live records are modified. See `documents/api/stripe-checkout.md`. PDF
+  endpoint, email and confirmed-stay modification remain separate follow-ups.
+
 - DDP-#24 partially adds `/offers`, shared Home cards/feed, supported discount-type
   filters, code syntax/recovery guidance and honest newsletter unavailability.
   Promo application remains blocked: the current quote DTO rejects `promoCode`,

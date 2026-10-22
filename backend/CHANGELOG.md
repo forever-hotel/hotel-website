@@ -18,6 +18,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Stripe test checkout and verified payment confirmation (#178): full-payment
+  flow, approved 35-minute payment holds, stable provider idempotency, owned
+  status/recovery, cancellation and late-payment refund recovery using existing
+  tables. Frontend adds a secure handoff and printable confirmation/status view.
+
 - Checkout persistence refactor: replace quote/idempotency tables with five
   proposed nullable bookings fields. Quotes are signed previews; starting payment
   saves a frozen price and hold. Catalogue/policy changes do not reprice active

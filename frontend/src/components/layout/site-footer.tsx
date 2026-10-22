@@ -31,7 +31,7 @@ export function SiteFooter() {
           <Link href="/#faq">FAQ</Link>
           <Link href="/#hotel-policies">Hotel policies</Link>
           <Link href="/profile">Guest account</Link>
-          <p>Online payment is not available yet.</p>
+          <p>Payment availability is shown during checkout.</p>
         </nav>
         <div>
           <h2>Contact</h2>

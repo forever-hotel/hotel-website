@@ -145,6 +145,40 @@
 .page a {
   text-underline-offset: 0.2em;
 }
+.page input[type='radio'] {
+  width: 20px;
+  min-height: 20px;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+@media print {
+  .confirmation {
+    background: white;
+    color: black;
+    padding: 0;
+  }
+  .confirmation .summary {
+    background: white;
+    color: black;
+    border: 1px solid black;
+  }
+  .confirmation .columns {
+    display: block;
+  }
+  .confirmation .controls,
+  .confirmation .progress {
+    display: none;
+  }
+  :global(.site-header),
+  :global(.site-footer),
+  :global(.skip-link) {
+    display: none;
+  }
+}
 @media (max-width: 800px) {
   .columns {
     grid-template-columns: 1fr;

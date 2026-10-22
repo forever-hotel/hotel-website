@@ -5,6 +5,8 @@ import { resolve } from 'path';
 import { DataSource } from 'typeorm';
 import { BookingRepository } from '../../src/database/repositories/booking.repository';
 import { BookingsService } from '../../src/bookings/bookings.service';
+import { PaymentRepository } from '../../src/database/repositories/payment.repository';
+import type Stripe from 'stripe';
 
 // Explicitly enabled only for the disposable localhost PostgreSQL CI service.
 const raceTests =
@@ -42,7 +44,13 @@ raceTests(
         ...options,
         extra: { options: `-c search_path=${schema},public`, max: 5 },
       }).initialize();
-      for (const table of ['guests', 'room_types', 'rooms', 'bookings'])
+      for (const table of [
+        'guests',
+        'room_types',
+        'rooms',
+        'bookings',
+        'payments',
+      ])
         await source.query(
           `CREATE TABLE "${schema}".${table} (LIKE public.${table} INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)`,
         );
@@ -74,7 +82,7 @@ raceTests(
     });
     beforeEach(async () => {
       await source.query(
-        `TRUNCATE ${['bookings', 'rooms', 'room_types', 'guests'].map((table) => `"${schema}".${table}`).join(',')}`,
+        `TRUNCATE ${['payments', 'bookings', 'rooms', 'room_types', 'guests'].map((table) => `"${schema}".${table}`).join(',')}`,
       );
       guestId = randomUUID();
       roomTypeId = randomUUID();
@@ -148,6 +156,45 @@ raceTests(
       expect(
         await source.query('SELECT count(*)::int AS count FROM bookings'),
       ).toEqual([{ count: 1 }]);
+    });
+    it('prepares and confirms exactly one payment under simultaneous retries', async () => {
+      const quote = await service.createQuote(guestId, quoteInput());
+      const booking = await service.createReservation(
+        guestId,
+        { quoteToken: quote.quoteToken },
+        'ci-stripe-attempt',
+      );
+      const payments = new PaymentRepository(source);
+      const prepared = await Promise.all([
+        payments.prepare(booking.bookingId, guestId, 'FULL', null, 35),
+        payments.prepare(booking.bookingId, guestId, 'FULL', null, 35),
+      ]);
+      expect(prepared[0]).toEqual(prepared[1]);
+      const session = {
+        id: 'cs_test_ci_fixture',
+        livemode: false,
+        mode: 'payment',
+        status: 'complete',
+        payment_status: 'paid',
+        amount_total: 2000000,
+        currency: 'lkr',
+        client_reference_id: booking.bookingId,
+        metadata: {
+          bookingId: booking.bookingId,
+          paymentId: prepared[0].paymentId,
+        },
+        payment_intent: 'pi_ci_fixture',
+        url: null,
+      } as Stripe.Checkout.Session;
+      await Promise.all([payments.settle(session), payments.settle(session)]);
+      expect(
+        await source.query('SELECT count(*)::int AS count FROM payments'),
+      ).toEqual([{ count: 1 }]);
+      expect(await payments.status(booking.bookingId, guestId)).toMatchObject({
+        status: 'CONFIRMED',
+        paidAmount: 2000000,
+        balanceAmount: 0,
+      });
     });
   },
 );

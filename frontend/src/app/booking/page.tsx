@@ -5,6 +5,8 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { getRoomCatalogue } from '@/features/rooms/catalogue';
 import { BookingFlow } from '@/features/booking/booking-flow';
+import { paymentRequest } from '@/features/booking/payments-api';
+import { validBookingId } from '@/features/booking/payment';
 import styles from '@/features/booking/booking.module.css';
 
 export const metadata = {
@@ -33,6 +35,31 @@ export default async function BookingPage({
   const login = `/sign-in?returnTo=${encodeURIComponent(returnTo)}`;
   const token = (await cookies()).get('hw_guest_session')?.value;
   if (!token) redirect(login);
+  const recoveryQuote = (await cookies()).get('hw_checkout_preview')?.value;
+  let recoverTo = '';
+  let recoveryUnavailable = false;
+  let recoveryExpired = false;
+  if (recoveryQuote && validBookingId(recoveryQuote)) {
+    try {
+      const response = await paymentRequest(
+        process.env.API_GATEWAY_URL,
+        token,
+        `/recovery/${recoveryQuote}`,
+      );
+      recoveryExpired = response.status === 401;
+      if (!response.ok) throw new Error('Recovery unavailable');
+      const result = await response.json();
+      if (
+        typeof result?.bookingId === 'string' &&
+        validBookingId(result.bookingId)
+      )
+        recoverTo = `/booking/confirmation?bookingId=${result.bookingId}`;
+    } catch {
+      recoveryUnavailable = true;
+    }
+  }
+  if (recoveryExpired) redirect(login);
+  if (recoverTo) redirect(recoverTo);
   let guest: { fullName: string; email: string } | null = null;
   let expired = false;
   const catalogue = await getRoomCatalogue();
@@ -58,13 +85,18 @@ export default async function BookingPage({
     <>
       <SiteHeader />
       <main id="main-content" tabIndex={-1} className={styles.page}>
-        {guest && catalogue.state === 'ready' && catalogue.rooms.length ? (
+        {!recoveryUnavailable &&
+        guest &&
+        catalogue.state === 'ready' &&
+        catalogue.rooms.length ? (
           <BookingFlow rooms={catalogue.rooms} guest={guest} />
         ) : (
           <section className={styles.panel}>
             <h1>Book your stay</h1>
             <p role="alert" className={styles.error}>
-              Your account or rooms could not be loaded.
+              {recoveryUnavailable
+                ? 'An earlier checkout could not be checked. Retry recovery before starting another payment.'
+                : 'Your account or rooms could not be loaded.'}
             </p>
             <Link href={returnTo}>Try again</Link>
           </section>

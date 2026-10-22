@@ -1,5 +1,14 @@
 # Forever Hotel website backend
 
+## Stripe test checkout (DDP-#25 / GitHub #178)
+
+Hosted checkout uses the existing booking/payment tables, frozen server prices,
+an approved 35-minute payment hold and verified, idempotent settlement. Full
+payment is enabled when configured; deposits remain disabled by default.
+Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and `PAYMENT_RETURN_ORIGIN` manually
+in your backend development environment. Live Stripe keys/events are rejected.
+See [checkout setup, endpoints and testing](../documents/api/stripe-checkout.md).
+
 ## Active promotion listing (DDP-#24, interim database reads)
 
 `GET /promotions?limit=20` is exposed through the gateway as `/hw/promotions`.

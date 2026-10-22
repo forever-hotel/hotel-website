@@ -12,6 +12,7 @@ import styles from './booking.module.css';
 import { BookingSummary } from './booking-summary';
 import { RoomConfiguration } from './room-configuration';
 import { GuestInformation } from './guest-information';
+import { PaymentStep } from './payment-step';
 
 const milestones = [
   'Select Room',
@@ -294,16 +295,15 @@ export function BookingFlow({
                         <p>Email: {guest.email}</p>
                         {requests && <p>Special requests: {requests}</p>}
                         <p>Quote reference: {quote.quoteId}</p>
-                        <p role="status">
-                          Online payment is not available yet. No payment has
-                          been taken and no room has been reserved. Your price
-                          preview expires at{' '}
+                        <p>
+                          Your price preview expires at{' '}
                           {new Date(quote.expiresAt).toLocaleTimeString(
                             'en-LK',
                             { timeZone: 'Asia/Colombo' },
                           )}{' '}
                           (Asia/Colombo).
                         </p>
+                        <PaymentStep quote={quote} requests={requests} />
                         <Link href="/contact">
                           Contact the hotel for assistance
                         </Link>

@@ -31,7 +31,11 @@ guests can configure a supported one-room stay, request a real backend quote,
 confirm their account email and enter requests before reviewing the payment
 handoff. The sidebar uses the quote's LKR totals and charge lines. URL parameters
 preserve safe selections through navigation; refreshing requires a fresh review.
-Online payment and final confirmation remain with #25; this flow creates no holds.
+Selection/quote refresh creates no holds. #25 / GitHub #178 now adds Stripe test
+checkout and authenticated final status/confirmation: full payment only by
+default, with the approved 35-minute payment hold. See
+[payment setup and testing](../documents/api/stripe-checkout.md). Actual Stripe
+testing needs backend test credentials and webhook forwarding; no frontend keys.
 See [booking flow and testing](../documents/api/frontend-booking-flow.md).
 `npm run test:booking-ui` runs isolated Chrome/Edge acceptance checks after build.
 

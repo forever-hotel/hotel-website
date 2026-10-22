@@ -14,6 +14,7 @@ async function bootstrap(): Promise<void> {
     (level) => level === process.env.LOG_LEVEL,
   );
   const app = await NestFactory.create(AppModule, {
+    rawBody: true,
     logger: new AppLogger(
       process.env.LOG_FORMAT === 'json' ? 'json' : 'text',
       process.env.SERVICE_NAME ?? DEFAULT_SERVICE_NAME,

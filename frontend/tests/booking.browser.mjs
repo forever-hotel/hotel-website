@@ -32,6 +32,11 @@ const room = {
 let quoteStatus = 201;
 let expired = false;
 let offerStatus = 200;
+const paymentBookingId = '33333333-3333-4333-8333-333333333333';
+const paymentQuoteId = '44444444-4444-4444-8444-444444444444';
+let checkoutCreated = false;
+let paid = false;
+let paymentCancelled = false;
 const promotion = {
   promoId: 'ui-offer',
   code: 'UISTAY10',
@@ -60,6 +65,52 @@ const gateway = createServer(async (req, res) => {
   let body;
   let status = 200;
   if (req.url === '/hw/room-types') body = { items: [room] };
+  else if (req.url === '/hw/payments/options')
+    body = { available: true, depositPercent: null, checkoutMinutes: 35 };
+  else if (req.url.startsWith('/hw/payments/recovery/'))
+    body = {
+      bookingId:
+        checkoutCreated && !paid && !paymentCancelled ? paymentBookingId : null,
+    };
+  else if (
+    req.url === '/hw/payments/checkout' ||
+    req.url === `/hw/payments/${paymentBookingId}/resume`
+  ) {
+    checkoutCreated = true;
+    body = {
+      bookingId: paymentBookingId,
+      checkoutUrl: null,
+      state: 'CHECK_STATUS',
+    };
+  } else if (req.url === `/hw/payments/${paymentBookingId}/cancel`) {
+    paymentCancelled = true;
+    body = {};
+  } else if (req.url === `/hw/payments/${paymentBookingId}`)
+    body = {
+      bookingId: paymentBookingId,
+      status: paid ? 'CONFIRMED' : paymentCancelled ? 'CANCELLED' : 'PENDING',
+      roomType: room.typeName,
+      checkInDate: '2099-12-10',
+      checkOutDate: '2099-12-12',
+      numberOfGuests: 2,
+      totalAmount: 4000000,
+      paidAmount: paid ? 4000000 : 0,
+      balanceAmount: paid || paymentCancelled ? 0 : 4000000,
+      currency: 'LKR',
+      paymentOption: 'FULL',
+      amountDue: 4000000,
+      paymentReference: 'cs_test_fixture',
+      holdExpiresAt: '2099-12-01T12:35:00Z',
+      paymentState: paid ? 'PAID' : paymentCancelled ? 'CANCELLED' : 'PENDING',
+      refundStatus: null,
+      verificationDelayed: false,
+      priceSnapshot: {
+        nights: 2,
+        nightlyRate: 2000000,
+        subtotal: 4000000,
+        lineItems: [],
+      },
+    };
   else if (req.url === '/hw/promotions?limit=20') {
     status = offerStatus;
     body = { items: offers };
@@ -87,7 +138,7 @@ const gateway = createServer(async (req, res) => {
       (Date.parse(stay.checkOutDate) - Date.parse(stay.checkInDate)) / 86400000;
     body = {
       ...stay,
-      quoteId: 'ui-preview',
+      quoteId: paymentQuoteId,
       quoteToken: 'signed.preview',
       currency: 'LKR',
       nightlyRate: 2000000,
@@ -291,7 +342,7 @@ try {
   await fill('input[type=email]:not([readonly])', 'ui@example.com');
   await click('Review payment handoff');
   await text('Ready for payment');
-  await text('No payment has been taken and no room has been reserved.');
+  await text('No payment has been taken and no room has been reserved yet.');
   await evaluate('history.back()');
   await text('Confirm email');
   assert.equal(
@@ -402,8 +453,61 @@ try {
   await command('Page.reload');
   await text('Offers are temporarily unavailable.');
   assert.equal(calls.filter((url) => url === '/hw/bookings').length, 0);
+  // A forged return URL cannot turn a pending provider/booking record into success.
+  await command('Page.navigate', {
+    url: `${origin}/booking/confirmation?bookingId=${paymentBookingId}&success=true`,
+  });
+  await text('Payment confirmation pending');
+  assert.equal(
+    await evaluate(
+      `document.querySelector('h1').textContent.includes('Your stay is confirmed')`,
+    ),
+    false,
+  );
+  await command('Page.navigate', { url: `${origin}/booking?${stayQuery}` });
+  await text('Check price and continue');
+  await click('Check price and continue');
+  await text('Confirm email');
+  await fill('input[type=email]:not([readonly])', 'ui@example.com');
+  await click('Review payment handoff');
+  await text('Full payment only. Advance deposits are not enabled.');
+  await click('Continue to Stripe test checkout');
+  await text('Payment confirmation pending');
+  assert.equal(
+    calls.filter((url) => url === '/hw/payments/checkout').length,
+    1,
+  );
+  await command('Page.navigate', { url: `${origin}/booking?${stayQuery}` });
+  await text('Payment confirmation pending');
+  assert.ok(
+    (await evaluate('location.href')).includes('/booking/confirmation'),
+  );
+  paid = true;
+  await click('Refresh payment status');
+  await text('Your stay is confirmed');
+  await text('Your reservation is confirmed from verified payment data.');
+  await text('PDF download is not available yet.');
+  await text('Confirmation email delivery is not implemented yet');
+  await command('Emulation.setEmulatedMedia', { media: 'print' });
+  assert.equal(
+    await evaluate(
+      `getComputedStyle(document.querySelector('[aria-label="Verified payment summary"]')).display !== 'none'`,
+    ),
+    true,
+  );
+  assert.equal(
+    await evaluate(
+      `getComputedStyle(document.querySelector('button').parentElement).display === 'none'`,
+    ),
+    true,
+  );
+  await command('Emulation.setEmulatedMedia', { media: '' });
+  assert.equal(
+    calls.filter((url) => url === '/hw/payments/checkout').length,
+    1,
+  );
   console.log(
-    'PASS: booking recovery and validation; Offers filters, unvalidated-code guidance, newsletter, empty/error states and mobile layout. No holds or promo redemption created.',
+    'PASS: booking/Offers recovery; full payment handoff, forged-return protection, recovery without another checkout, verified confirmation and printable summary (isolated fixtures only).',
   );
 } finally {
   socket?.close();
