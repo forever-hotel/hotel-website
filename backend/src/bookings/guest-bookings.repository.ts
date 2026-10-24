@@ -14,6 +14,11 @@ export interface GuestBooking {
   category: BookingCategory;
   totalAmount: number;
   currency: string | null;
+  paidAmount: number;
+  balanceAmount: number;
+  refundAmount: number;
+  refundStatus: string | null;
+  managementRevision: number;
 }
 export const GUEST_BOOKINGS_PAGE_SIZE = 20;
 
@@ -26,16 +31,23 @@ const OWNED = `WITH owned AS (
     b.check_in_date::text AS "checkInDate",b.check_out_date::text AS "checkOutDate",
     b.num_guests AS "numberOfGuests",b.status,b.total_amount AS "totalAmount",b.currency,
     b.special_requests AS "specialRequests",
+    COALESCE((SELECT sum(p.amount) FROM payments p WHERE p.booking_id=b.booking_id AND p.payment_status='COMPLETED'),0)::int AS "paidAmount",
+    COALESCE((SELECT sum(p.amount) FROM payments p WHERE p.booking_id=b.booking_id AND p.payment_status='REFUNDED'),0)::int AS "refundedAmount",
+    COALESCE((b.price_snapshot->'management'->>'revision')::int,0) AS "managementRevision",
     COALESCE(b.status='PENDING' AND b.source='WEBSITE' AND b.checkout_key IS NOT NULL
       AND b.hold_expires_at<=CURRENT_TIMESTAMP,false) AS "holdExpired"
   FROM bookings b LEFT JOIN room_types t ON t.room_type_id=b.room_type_id WHERE b.guest_id=$1
 ), categorized AS (
   SELECT *, CASE WHEN status='CANCELLED' THEN 'cancelled'
     WHEN status='CHECKED_OUT' OR "checkOutDate"<=(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Colombo')::date::text
-      OR "holdExpired" THEN 'past' ELSE 'upcoming' END AS category FROM owned
+      OR "holdExpired" THEN 'past' ELSE 'upcoming' END AS category,
+    CASE WHEN status='CANCELLED' OR "holdExpired" THEN 0 ELSE GREATEST(0,"totalAmount"-"paidAmount") END AS "balanceAmount",
+    CASE WHEN "managementRevision">0 THEN GREATEST(0,"paidAmount"-CASE WHEN status='CANCELLED' THEN 0 ELSE "totalAmount" END) ELSE 0 END AS "refundAmount"
+    FROM owned
 )`;
 const PUBLIC_COLUMNS = `"bookingId","roomType","roomImage","checkInDate","checkOutDate",
-  "numberOfGuests",status,"totalAmount",currency,"holdExpired",category`;
+  "numberOfGuests",status,"totalAmount",currency,"holdExpired",category,"paidAmount","balanceAmount","refundAmount","managementRevision",
+  CASE WHEN "refundAmount">0 THEN 'PENDING' WHEN "managementRevision">0 AND "refundedAmount">0 THEN 'REFUNDED' ELSE NULL END AS "refundStatus"`;
 
 @Injectable()
 export class GuestBookingsRepository {

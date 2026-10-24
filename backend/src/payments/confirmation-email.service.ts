@@ -1,9 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { isEmail } from 'class-validator';
+import { deliverBookingEmail } from './booking-email-transport';
 import {
   ConfirmationEmailRepository,
-  EmailState,
   Receipt,
 } from './confirmation-email.repository';
 
@@ -34,57 +33,12 @@ export class ConfirmationEmailService {
     try {
       const receipt = await this.repository.claim(id);
       if (!receipt) return;
-      let state: EmailState = 'FAILED';
-      const mode = this.config.get<string>('BOOKING_EMAIL_MODE', 'off');
-      const key = this.config.get<string>('BREVO_API_KEY');
-      const from =
-        this.config.get<string>('BOOKING_EMAIL_FROM') ||
-        this.config.get<string>('CONTACT_EMAIL_FROM');
-      if (
-        ['sandbox', 'send'].includes(mode) &&
-        key &&
-        from &&
-        isEmail(from) &&
-        isEmail(receipt.email) &&
-        (mode !== 'send' ||
-          this.config.get<string>('NODE_ENV') === 'production')
-      ) {
-        // A timeout or 5xx may occur after acceptance. Do not automatically resend.
-        state = 'UNKNOWN';
-        try {
-          const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-            method: 'POST',
-            headers: {
-              'api-key': key,
-              'Content-Type': 'application/json',
-            },
-            signal: AbortSignal.timeout(8000),
-            body: JSON.stringify({
-              to: [{ email: receipt.email }],
-              sender: { email: from },
-              subject: `Booking confirmation ${receipt.bookingId}`,
-              textContent: receiptText(receipt),
-              ...(mode === 'sandbox'
-                ? { headers: { 'X-Sib-Sandbox': 'drop' } }
-                : {}),
-            }),
-          });
-          if (response.status === 201) {
-            const result: unknown = await response.json();
-            if (
-              result &&
-              typeof result === 'object' &&
-              'messageId' in result &&
-              typeof result.messageId === 'string' &&
-              result.messageId.trim()
-            )
-              state = mode === 'sandbox' ? 'SANDBOX' : 'ACCEPTED';
-          } else if (response.status >= 400 && response.status < 500)
-            state = 'FAILED';
-        } catch {
-          /* Ambiguous acceptance requires operator review. */
-        }
-      }
+      const state = await deliverBookingEmail(
+        this.config,
+        receipt.email,
+        `Booking confirmation ${receipt.bookingId}`,
+        receiptText(receipt),
+      );
       await this.repository.finish(id, state);
       if (state === 'FAILED' || state === 'UNKNOWN')
         this.logger.warn({

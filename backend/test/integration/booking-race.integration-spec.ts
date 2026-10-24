@@ -9,6 +9,10 @@ import { PaymentRepository } from '../../src/database/repositories/payment.repos
 import type Stripe from 'stripe';
 import { ConfirmationEmailRepository } from '../../src/payments/confirmation-email.repository';
 import { PayHereRepository } from '../../src/payments/payhere.repository';
+import { BookingManagementRepository } from '../../src/bookings/booking-management.repository';
+import { BookingManagementService } from '../../src/bookings/booking-management.service';
+import { BookingChangeEmailService } from '../../src/bookings/booking-change-email.service';
+import { PROJECT_MANAGEMENT_POLICY } from '../../src/bookings/management-policy';
 
 // Explicitly enabled only for the disposable localhost PostgreSQL CI service.
 const raceTests =
@@ -117,6 +121,72 @@ raceTests(
       checkInDate: '2099-12-10',
       checkOutDate: '2099-12-12',
       numberOfGuests: 2,
+    });
+    it('serializes a confirmed-booking date change against a competing last-room reservation', async () => {
+      const originalQuote = await service.createQuote(guestId, quoteInput());
+      const original = await service.createReservation(
+        guestId,
+        { quoteToken: originalQuote.quoteToken },
+        'management-original-key',
+      );
+      await source.query(
+        "UPDATE bookings SET status='CONFIRMED' WHERE booking_id=$1",
+        [original.bookingId],
+      );
+      await source.query(
+        "INSERT INTO payments (booking_id,payment_method,amount,payment_status) VALUES ($1,'CASH',$2,'COMPLETED')",
+        [original.bookingId, original.totalAmount],
+      );
+      const settings: Record<string, string> = {
+        NODE_ENV: 'test',
+        'jwt.secret': 'ci-management-test-signing-secret-over-32-chars',
+        BOOKING_MANAGEMENT_POLICY: JSON.stringify(PROJECT_MANAGEMENT_POLICY),
+        BOOKING_PRICING_POLICY: JSON.stringify({
+          version: 'ci-fixture-only',
+          rateBasis: 'INCLUSIVE',
+          charges: [],
+        }),
+      };
+      const management = new BookingManagementService(
+        new BookingManagementRepository(source),
+        new BookingRepository(source),
+        { get: (key: string) => settings[key] } as ConfigService,
+        {
+          send: () => Promise.resolve('SANDBOX'),
+        } as unknown as BookingChangeEmailService,
+      );
+      const target = {
+        ...quoteInput(),
+        checkInDate: '2099-12-14',
+        checkOutDate: '2099-12-16',
+      };
+      const change = await management.quote(
+        guestId,
+        original.bookingId,
+        target,
+      );
+      const competing = await service.createQuote(guestId, target);
+      const results = await Promise.allSettled([
+        management.modify(
+          guestId,
+          original.bookingId,
+          change.quoteToken,
+          'management-change-key',
+        ),
+        service.createReservation(
+          guestId,
+          { quoteToken: competing.quoteToken },
+          'management-competitor-key',
+        ),
+      ]);
+      expect(
+        results.filter((result) => result.status === 'fulfilled'),
+      ).toHaveLength(1);
+      const [overlap] = await source.query<{ count: number }[]>(
+        "SELECT count(*)::int AS count FROM bookings WHERE room_type_id=$1 AND status IN ('CONFIRMED','PENDING') AND check_in_date<'2099-12-16' AND check_out_date>'2099-12-14'",
+        [roomTypeId],
+      );
+      expect(overlap.count).toBe(1);
     });
     it('allows only one last-room reservation across simultaneous transactions', async () => {
       const quotes = await Promise.all([

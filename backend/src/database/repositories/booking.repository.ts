@@ -79,6 +79,7 @@ export class BookingRepository {
   async available(
     manager: EntityManager,
     input: CreateBookingQuoteDto,
+    excludeBookingId?: string,
   ): Promise<number> {
     const rows = await manager.query<{ count: number }[]>(
       `
@@ -86,19 +87,26 @@ export class BookingRepository {
         (SELECT count(*) FROM rooms r WHERE r.room_type_id=$1
          AND r.status IN ('VACANT','OCCUPIED','REQUIRES_CLEANING')
          AND NOT EXISTS (SELECT 1 FROM bookings b WHERE b.room_number=r.room_number
+           AND b.booking_id IS DISTINCT FROM $4::uuid
            AND b.status IN ('PENDING','CONFIRMED','CHECKED_IN')
            AND b.check_in_date<$3::date AND b.check_out_date>$2::date
            AND NOT (b.status='PENDING' AND b.source='WEBSITE'
              AND COALESCE(to_jsonb(b)->>'checkout_key','')<>''
              AND COALESCE((to_jsonb(b)->>'hold_expires_at')::timestamptz<=clock_timestamp(),false))))
         - (SELECT count(*) FROM bookings b WHERE b.room_type_id=$1 AND b.room_number IS NULL
+          AND b.booking_id IS DISTINCT FROM $4::uuid
           AND b.status IN ('PENDING','CONFIRMED','CHECKED_IN')
           AND b.check_in_date<$3::date AND b.check_out_date>$2::date
           AND NOT (b.status='PENDING' AND b.source='WEBSITE'
             AND COALESCE(to_jsonb(b)->>'checkout_key','')<>''
             AND COALESCE((to_jsonb(b)->>'hold_expires_at')::timestamptz<=clock_timestamp(),false)))
       )::int AS count`,
-      [input.roomTypeId, input.checkInDate, input.checkOutDate],
+      [
+        input.roomTypeId,
+        input.checkInDate,
+        input.checkOutDate,
+        excludeBookingId || null,
+      ],
     );
     return rows[0].count;
   }

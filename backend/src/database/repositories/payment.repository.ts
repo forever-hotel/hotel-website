@@ -284,6 +284,7 @@ export class PaymentRepository {
         holdExpiresAt: Date | null;
         priceSnapshot: Record<string, unknown> & { payment?: CheckoutPayment };
         paidAmount: number;
+        refundedAmount: number;
         expired: boolean;
       }[]
     >(
@@ -293,13 +294,29 @@ export class PaymentRepository {
       b.check_in_date::text AS "checkInDate",b.check_out_date::text AS "checkOutDate",b.num_guests AS "numberOfGuests",
       b.total_amount AS "totalAmount",b.currency,b.hold_expires_at AS "holdExpiresAt",b.price_snapshot AS "priceSnapshot",
       COALESCE(b.hold_expires_at<=clock_timestamp(),true) AS expired,
-      COALESCE((SELECT sum(p.amount) FROM payments p WHERE p.booking_id=b.booking_id AND p.payment_status='COMPLETED'),0)::int AS "paidAmount"
+      COALESCE((SELECT sum(p.amount) FROM payments p WHERE p.booking_id=b.booking_id AND p.payment_status='COMPLETED'),0)::int AS "paidAmount",
+      COALESCE((SELECT sum(p.amount) FROM payments p WHERE p.booking_id=b.booking_id AND p.payment_status='REFUNDED'),0)::int AS "refundedAmount"
       FROM bookings b JOIN room_types t ON t.room_type_id=b.room_type_id JOIN guests g ON g.guest_id=b.guest_id WHERE b.booking_id=$1 AND b.guest_id=$2`,
       [id, guestId],
     );
     if (!rows[0]) throw new NotFoundException('Booking not found.');
     const row = rows[0];
-    const { payment, confirmationEmail, ...pricing } = row.priceSnapshot || {};
+    const { payment, confirmationEmail, management, ...pricing } =
+      row.priceSnapshot || {};
+    const managementState = management as
+      | { revision?: number; events?: { email?: { state?: string } }[] }
+      | undefined;
+    const managed = !!managementState?.revision;
+    const refundAmount = managed
+      ? Math.max(
+          0,
+          row.paidAmount - (row.status === 'CANCELLED' ? 0 : row.totalAmount),
+        )
+      : 0;
+    const managementReview =
+      managed &&
+      (refundAmount > 0 ||
+        (row.status !== 'CANCELLED' && row.paidAmount < row.totalAmount));
     return {
       ...row,
       priceSnapshot: pricing,
@@ -314,8 +331,18 @@ export class PaymentRepository {
           ?.providerReference ||
         payment?.sessionId ||
         null,
-      refundStatus: payment?.refundStatus || null,
+      refundStatus:
+        refundAmount > 0
+          ? 'PENDING'
+          : managed && row.refundedAmount > 0
+            ? 'REFUNDED'
+            : payment?.refundStatus || null,
+      refundAmount,
+      managementRevision: managementState?.revision || 0,
+      changeEmailStatus: managementState?.events?.at(-1)?.email?.state || null,
+      settlementReviewRequired: managementReview,
       paymentState:
+        (managementReview ? 'REVIEW_REQUIRED' : null) ||
         payment?.refundStatus ||
         (['CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT'].includes(row.status)
           ? 'PAID'

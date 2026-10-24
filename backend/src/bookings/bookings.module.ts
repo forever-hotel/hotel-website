@@ -10,6 +10,10 @@ import { BookingsService } from './bookings.service';
 import { BookingRepository } from '../database/repositories/booking.repository';
 import { GuestBookingsController } from './guest-bookings.controller';
 import { GuestBookingsRepository } from './guest-bookings.repository';
+import { BookingManagementController } from './booking-management.controller';
+import { BookingManagementRepository } from './booking-management.repository';
+import { BookingManagementService } from './booking-management.service';
+import { BookingChangeEmailService } from './booking-change-email.service';
 
 @Module({
   imports: [
@@ -18,7 +22,18 @@ import { GuestBookingsRepository } from './guest-bookings.repository';
     TypeOrmModule.forFeature([Booking, PromotionReference, Payment]),
   ],
   exports: [TypeOrmModule, BookingsService],
-  controllers: [BookingsController, GuestBookingsController],
-  providers: [BookingsService, BookingRepository, GuestBookingsRepository],
+  controllers: [
+    BookingsController,
+    GuestBookingsController,
+    BookingManagementController,
+  ],
+  providers: [
+    BookingsService,
+    BookingRepository,
+    GuestBookingsRepository,
+    BookingManagementRepository,
+    BookingManagementService,
+    BookingChangeEmailService,
+  ],
 })
 export class BookingsModule {}

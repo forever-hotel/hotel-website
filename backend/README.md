@@ -294,6 +294,12 @@ The folders `config/`, `database/`, `common/`, and `health/`, plus the test setu
 
 ## Booking and payment persistence (DDP-#21)
 
+Booking modification/cancellation APIs (DDP-#28), policy settings, signed change
+quotes, idempotency and staff refund review are documented in
+[booking management](../documents/api/booking-management.md). Local check-in
+defaults to a provisional 14:00 in Sri Lanka; production requires an explicit
+hotel-confirmed policy. Change emails use the existing booking email mode.
+
 Guest-scoped booking list/detail reads and the Profile dashboard (DDP-#27) are
 documented in [guest bookings](../documents/api/guest-bookings.md), including
 category rules, pagination, ownership checks and verification commands.
