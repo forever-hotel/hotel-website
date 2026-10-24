@@ -76,13 +76,68 @@ let offers = [
   },
 ];
 const calls = [];
+let dashboardStatus = 200;
+let dashboardEmpty = false;
+const dashboardBookings = Array.from({ length: 23 }, (_, index) => ({
+  bookingId: `55555555-5555-4555-8555-${String(index).padStart(12, '0')}`,
+  roomType:
+    index === 21
+      ? 'Past Test Suite'
+      : index === 22
+        ? 'Cancelled Test Suite'
+        : 'Dashboard Test Suite',
+  roomImage: index === 0 ? 'javascript:alert(1)' : null,
+  checkInDate: index === 21 ? '2000-01-01' : '2099-12-10',
+  checkOutDate: index === 21 ? '2000-01-03' : '2099-12-12',
+  numberOfGuests: 2,
+  status:
+    index === 21 ? 'CHECKED_OUT' : index === 22 ? 'CANCELLED' : 'CONFIRMED',
+  holdExpired: false,
+  category: index === 21 ? 'past' : index === 22 ? 'cancelled' : 'upcoming',
+  totalAmount: 2000000,
+  currency: 'LKR',
+}));
 const gateway = createServer(async (req, res) => {
   let raw = '';
   for await (const chunk of req) raw += chunk;
   calls.push(req.url);
   let body;
   let status = 200;
-  if (req.url === '/hw/room-types') body = { items: [room, cheaperRoom] };
+  if (req.url.startsWith('/hw/bookings?')) {
+    assert.equal(req.headers.authorization, 'Bearer fixture-session');
+    const query = new URL(req.url, 'http://fixture.invalid').searchParams;
+    const category = query.get('category');
+    const page = Number(query.get('page'));
+    status = dashboardStatus;
+    const records = dashboardEmpty ? [] : dashboardBookings;
+    body = {
+      items: records
+        .filter((booking) => booking.category === category)
+        .slice((page - 1) * 20, page * 20),
+      counts: {
+        total: records.length,
+        upcoming: dashboardEmpty ? 0 : 21,
+        past: dashboardEmpty ? 0 : 1,
+        cancelled: dashboardEmpty ? 0 : 1,
+      },
+      category,
+      page,
+      pageSize: 20,
+    };
+  } else if (req.url.startsWith('/hw/bookings/')) {
+    assert.equal(req.headers.authorization, 'Bearer fixture-session');
+    const found = dashboardBookings.find(
+      (booking) => req.url === `/hw/bookings/${booking.bookingId}`,
+    );
+    status = found ? dashboardStatus : 404;
+    body = found
+      ? {
+          ...found,
+          specialRequests: '<script>window.dashboardInjected=true</script>',
+        }
+      : { message: 'Booking not found.' };
+  } else if (req.url === '/hw/room-types')
+    body = { items: [room, cheaperRoom] };
   else if (req.url === '/hw/payments/options')
     body = {
       available: true,
@@ -354,6 +409,9 @@ try {
   await command('Page.navigate', { url: `${origin}/booking?${stayQuery}` });
   await text('Sign in');
   assert.ok((await evaluate('location.href')).includes('returnTo='));
+  await command('Page.navigate', { url: `${origin}/profile` });
+  await text('Sign in');
+  assert.ok((await evaluate('location.href')).includes('returnTo='));
   await command('Network.setCookie', {
     name: 'hw_guest_session',
     value: 'fixture-session',
@@ -361,6 +419,99 @@ try {
     httpOnly: true,
     sameSite: 'Lax',
   });
+  await command('Page.navigate', { url: `${origin}/profile` });
+  await text('Upcoming (21)');
+  await text('UI Test Guest');
+  await text('Room photograph unavailable');
+  assert.equal(
+    await evaluate(`document.querySelectorAll('article').length`),
+    20,
+  );
+  assert.equal(
+    await evaluate(`document.querySelector('img[src^="javascript:"]')`),
+    null,
+  );
+  await evaluate(
+    `document.querySelector('[aria-label="Booking pages"] a').click()`,
+  );
+  await text('Page 2');
+  assert.equal(
+    await evaluate(`document.querySelectorAll('article').length`),
+    1,
+  );
+  await evaluate(
+    `document.querySelector('[aria-label="Booking status"] a[href*="category=past"]').click()`,
+  );
+  await text('Past Test Suite');
+  await text('Checked out');
+  assert.equal(
+    await evaluate(`document.querySelectorAll('article').length`),
+    1,
+  );
+  await evaluate(
+    `document.querySelector('[aria-label="Booking status"] a[href*="category=cancelled"]').click()`,
+  );
+  await text('Cancelled Test Suite');
+  await command('Page.navigate', {
+    url: `${origin}/profile/bookings/${dashboardBookings[0].bookingId}`,
+  });
+  await text('Booking details');
+  await text('<script>window.dashboardInjected=true</script>');
+  assert.equal(await evaluate('window.dashboardInjected === undefined'), true);
+  await command('Page.navigate', {
+    url: `${origin}/profile/bookings/66666666-6666-4666-8666-666666666666`,
+  });
+  await text('Booking not found');
+  dashboardEmpty = true;
+  await command('Page.navigate', { url: `${origin}/profile` });
+  await text('No upcoming bookings');
+  dashboardEmpty = false;
+  dashboardStatus = 503;
+  await command('Page.reload');
+  await text('Bookings could not be loaded');
+  assert.equal(
+    await evaluate(`document.body.innerText.includes('No upcoming bookings')`),
+    false,
+  );
+  dashboardStatus = 200;
+  await command('Page.reload');
+  await text('Upcoming (21)');
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 390,
+    height: 844,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
+  assert.equal(
+    await evaluate('document.documentElement.scrollWidth <= window.innerWidth'),
+    true,
+  );
+  await command('Emulation.clearDeviceMetricsOverride');
+  dashboardStatus = 401;
+  await command('Page.reload');
+  await text('Sign in');
+  assert.ok((await evaluate('location.href')).includes('expired=1'));
+  dashboardStatus = 200;
+  await command('Page.navigate', { url: `${origin}/profile` });
+  await text('Upcoming (21)');
+  await click('Sign out');
+  await text('Sign in');
+  assert.equal(
+    (await command('Network.getCookies', { urls: [origin] })).cookies.some(
+      (cookie) => cookie.name === 'hw_guest_session',
+    ),
+    false,
+  );
+  await command('Network.setCookie', {
+    name: 'hw_guest_session',
+    value: 'fixture-session',
+    url: origin,
+    httpOnly: true,
+    sameSite: 'Lax',
+  });
+  console.log(
+    'PASS: guest dashboard categories/counts, pagination, detail, escaped requests, missing booking, empty/error/expired states, mobile layout and sign-out.',
+  );
   await command('Page.navigate', {
     url: `${origin}/booking?${stayQuery}&step=select`,
   });

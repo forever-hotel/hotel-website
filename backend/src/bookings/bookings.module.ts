@@ -8,6 +8,8 @@ import { RoomTypesModule } from '../room-types/room-types.module';
 import { BookingsController } from './bookings.controller';
 import { BookingsService } from './bookings.service';
 import { BookingRepository } from '../database/repositories/booking.repository';
+import { GuestBookingsController } from './guest-bookings.controller';
+import { GuestBookingsRepository } from './guest-bookings.repository';
 
 @Module({
   imports: [
@@ -16,7 +18,7 @@ import { BookingRepository } from '../database/repositories/booking.repository';
     TypeOrmModule.forFeature([Booking, PromotionReference, Payment]),
   ],
   exports: [TypeOrmModule, BookingsService],
-  controllers: [BookingsController],
-  providers: [BookingsService, BookingRepository],
+  controllers: [BookingsController, GuestBookingsController],
+  providers: [BookingsService, BookingRepository, GuestBookingsRepository],
 })
 export class BookingsModule {}

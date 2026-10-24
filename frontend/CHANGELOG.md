@@ -17,6 +17,11 @@
 
 ### Added
 
+- DDP-#27: guest booking dashboard with category counts, Upcoming/Past/Cancelled
+  navigation, pagination and protected reservation details. Includes hotel-date
+  classification, expired-hold labels, image fallbacks, loading/empty/error
+  states, session-expiry handling and isolated browser acceptance checks.
+
 - DDP-#20: registration and sign-in forms, safe return navigation, server-side
   gateway authentication, an HttpOnly guest cookie, verified account page and
   sign-out. Includes validation, expiry/outage feedback and authentication tests.

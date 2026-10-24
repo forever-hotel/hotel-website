@@ -294,6 +294,10 @@ The folders `config/`, `database/`, `common/`, and `health/`, plus the test setu
 
 ## Booking and payment persistence (DDP-#21)
 
+Guest-scoped booking list/detail reads and the Profile dashboard (DDP-#27) are
+documented in [guest bookings](../documents/api/guest-bookings.md), including
+category rules, pagination, ownership checks and verification commands.
+
 Issue 22 adds protected quote/reservation endpoints; see
 [booking reservation API](../documents/api/booking-reservation-api.md) for request
 examples, deployment prerequisites, errors and verification. Storage and pricing
