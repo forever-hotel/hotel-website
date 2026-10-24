@@ -4,7 +4,61 @@ export type PaymentOptions = {
   available: boolean;
   depositPercent: number | null;
   checkoutMinutes: number | null;
+  sandbox?: boolean;
 };
+export type BillingDetails = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  address: string;
+  city: string;
+  country: string;
+};
+export type PayHereCheckout = {
+  action: string;
+  fields: Record<string, string>;
+};
+export function parsePayHereCheckout(value: unknown): PayHereCheckout {
+  const checkout = value as PayHereCheckout | null;
+  const required = [
+    'merchant_id',
+    'order_id',
+    'amount',
+    'currency',
+    'hash',
+    'return_url',
+    'cancel_url',
+    'notify_url',
+    'first_name',
+    'last_name',
+    'email',
+    'phone',
+    'address',
+    'city',
+    'country',
+    'items',
+  ];
+  if (
+    !checkout ||
+    ![
+      'https://sandbox.payhere.lk/pay/checkout',
+      'https://www.payhere.lk/pay/checkout',
+    ].includes(checkout.action) ||
+    !checkout.fields ||
+    typeof checkout.fields !== 'object' ||
+    Object.keys(checkout.fields).length !== required.length ||
+    !required.every(
+      (key) =>
+        typeof checkout.fields[key] === 'string' && checkout.fields[key].trim(),
+    ) ||
+    checkout.fields.currency !== 'LKR' ||
+    !/^\d+\.\d{2}$/.test(checkout.fields.amount) ||
+    !/^[A-F0-9]{32}$/.test(checkout.fields.hash) ||
+    !validBookingId(checkout.fields.order_id)
+  )
+    throw new Error('Invalid PayHere checkout');
+  return checkout;
+}
 export type PaymentStatus = {
   bookingId: string;
   status: string;
@@ -27,6 +81,7 @@ export type PaymentStatus = {
   paymentState: string;
   refundStatus: string | null;
   verificationDelayed: boolean;
+  emailStatus?: string;
   priceSnapshot: {
     nights: number;
     nightlyRate: number;
@@ -108,6 +163,8 @@ export function parsePaymentStatus(value: unknown, id: string): PaymentStatus {
   return row;
 }
 export function paymentHeading(status: PaymentStatus): string {
+  if (status.paymentState === 'REVIEW_REQUIRED')
+    return 'Payment requires hotel review';
   if (status.refundStatus === 'REFUNDED') return 'Payment refunded';
   if (status.refundStatus === 'PENDING')
     return 'Payment received — refund pending';
@@ -119,4 +176,20 @@ export function paymentHeading(status: PaymentStatus): string {
   if (status.status === 'CANCELLED' || status.paymentState === 'EXPIRED')
     return 'Checkout cancelled or expired';
   return 'Payment confirmation pending';
+}
+
+export function confirmationEmailMessage(state: string | undefined): string {
+  switch (state) {
+    case 'ACCEPTED':
+      return 'Confirmation email accepted by the email provider. Inbox delivery is not verified.';
+    case 'SANDBOX':
+      return 'Confirmation email validated in sandbox. No email was delivered.';
+    case 'FAILED':
+      return 'Confirmation email could not be sent. Your paid reservation remains valid; retry payment status later.';
+    case 'SENDING':
+    case 'UNKNOWN':
+      return 'Confirmation email processing is unverified. Keep your booking reference; your paid reservation remains valid.';
+    default:
+      return 'No confirmation email has been recorded. Keep your booking reference.';
+  }
 }

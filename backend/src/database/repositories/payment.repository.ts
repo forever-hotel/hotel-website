@@ -18,7 +18,7 @@ export interface CheckoutPayment {
   refundRequired?: boolean;
   refundStatus?: 'PENDING' | 'REFUNDED';
 }
-interface PaymentBooking {
+export interface PaymentBooking {
   bookingId: string;
   guestId: string;
   roomTypeId: string;
@@ -34,7 +34,7 @@ const bookingColumns = `booking_id AS "bookingId",guest_id AS "guestId",room_typ
 
 @Injectable()
 export class PaymentRepository {
-  constructor(private readonly source: DataSource) {}
+  constructor(protected readonly source: DataSource) {}
 
   async recover(guestId: string, quoteId: string) {
     const rows = await this.source.query<{ bookingId: string }[]>(
@@ -44,7 +44,7 @@ export class PaymentRepository {
     return { bookingId: rows[0]?.bookingId || null };
   }
 
-  private async locked<T>(
+  protected async locked<T>(
     id: string,
     guestId: string | null,
     work: (
@@ -255,7 +255,7 @@ export class PaymentRepository {
     });
   }
 
-  private saveMeta(
+  protected saveMeta(
     manager: EntityManager,
     id: string,
     payment: CheckoutPayment,
@@ -299,7 +299,7 @@ export class PaymentRepository {
     );
     if (!rows[0]) throw new NotFoundException('Booking not found.');
     const row = rows[0];
-    const { payment, ...pricing } = row.priceSnapshot || {};
+    const { payment, confirmationEmail, ...pricing } = row.priceSnapshot || {};
     return {
       ...row,
       priceSnapshot: pricing,
@@ -309,7 +309,11 @@ export class PaymentRepository {
           : Math.max(0, row.totalAmount - row.paidAmount),
       paymentOption: payment?.option || null,
       amountDue: payment?.amount || null,
-      paymentReference: payment?.sessionId || null,
+      paymentReference:
+        (payment as CheckoutPayment & { providerReference?: string })
+          ?.providerReference ||
+        payment?.sessionId ||
+        null,
       refundStatus: payment?.refundStatus || null,
       paymentState:
         payment?.refundStatus ||
@@ -320,7 +324,9 @@ export class PaymentRepository {
             : row.expired
               ? 'EXPIRED'
               : 'PENDING'),
-      emailStatus: 'NOT_IMPLEMENTED',
+      emailStatus:
+        (confirmationEmail as { state?: string } | undefined)?.state ||
+        'NOT_REQUESTED',
     };
   }
 }

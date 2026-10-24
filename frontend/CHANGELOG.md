@@ -4,6 +4,12 @@
 
 ### Fixed
 
+- Changing rooms or dates no longer silently redirects to an older pending
+  checkout with its frozen total. Recovery now offers an explicit review or
+  verified unpaid-cancellation choice, preserves the new selection, and clears
+  the recovery cookie only after cancellation is confirmed. Regression checks
+  cover replacing a three-night LKR 90,000 stay with a one-night LKR 10,000 stay.
+
 - Authentication errors now appear in a red alert with focus and scroll handling.
   Required/invalid fields use the same inline feedback rather than relying only
   on browser validation tooltips; general paragraph styling no longer overrides

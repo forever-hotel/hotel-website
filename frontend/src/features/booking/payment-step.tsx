@@ -1,8 +1,10 @@
 'use client';
 import { useEffect, useRef, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Quote } from './booking';
 import { money } from './booking';
-import { getPaymentOptions, startStripePayment } from './payment-actions';
+import { getPaymentOptions, startPayment } from './payment-actions';
+import { submitPayHere } from './payhere-checkout';
 import type { PaymentOption, PaymentOptions } from './payment';
 import styles from './booking.module.css';
 
@@ -13,11 +15,13 @@ export function PaymentStep({
   quote: Quote;
   requests: string;
 }) {
+  const router = useRouter();
   const [options, setOptions] = useState<PaymentOptions | null>(null);
   const [option, setOption] = useState<PaymentOption>('FULL');
   const [error, setError] = useState('');
   const [pending, startTransition] = useTransition();
   const busy = useRef(false);
+  const billingForm = useRef<HTMLFormElement>(null);
   useEffect(() => {
     startTransition(async () => {
       setOptions(await getPaymentOptions());
@@ -26,7 +30,7 @@ export function PaymentStep({
   return (
     <section aria-label="Secure payment">
       <p>
-        You will enter card details on Stripe&apos;s secure test checkout. No
+        You will enter payment details on PayHere&apos;s secure checkout. No
         payment has been taken and no room has been reserved yet.
       </p>
       {options === null ? (
@@ -38,9 +42,16 @@ export function PaymentStep({
         </p>
       ) : (
         <>
+          {options.sandbox && (
+            <p role="status">
+              Sandbox checkout: payments are simulated. No real money is
+              collected.
+            </p>
+          )}
           <p>
             Starting checkout holds the room for {options.checkoutMinutes}{' '}
-            minutes. Availability is checked again before taking the hold.
+            minutes. Complete payment before the hold expires. A late payment
+            requires hotel review and does not reserve the room.
           </p>
           <label>
             <input
@@ -68,27 +79,69 @@ export function PaymentStep({
           {!options.depositPercent && (
             <p>Full payment only. Advance deposits are not enabled.</p>
           )}
+          <form
+            ref={billingForm}
+            aria-label="Billing details"
+            onSubmit={(event) => event.preventDefault()}
+          >
+            <h3>Billing details</h3>
+            <p>PayHere requires these details to process your payment.</p>
+            {(
+              [
+                ['firstName', 'First name', 'given-name', 100],
+                ['lastName', 'Last name', 'family-name', 100],
+                ['phone', 'Phone', 'tel', 20],
+                ['address', 'Billing address', 'street-address', 200],
+                ['city', 'City', 'address-level2', 100],
+                ['country', 'Country', 'country-name', 100],
+              ] as const
+            ).map(([name, label, autoComplete, maxLength]) => (
+              <label key={name}>
+                {label}
+                <input
+                  name={name}
+                  autoComplete={autoComplete}
+                  maxLength={maxLength}
+                  required
+                  type={name === 'phone' ? 'tel' : 'text'}
+                  disabled={pending}
+                />
+              </label>
+            ))}
+          </form>
           <button
             type="button"
             className="button button-gold"
             disabled={pending}
             onClick={() => {
+              if (!billingForm.current?.reportValidity()) return;
+              const values = new FormData(billingForm.current);
+              const billing = {
+                firstName: String(values.get('firstName')).trim(),
+                lastName: String(values.get('lastName')).trim(),
+                phone: String(values.get('phone')).trim(),
+                address: String(values.get('address')).trim(),
+                city: String(values.get('city')).trim(),
+                country: String(values.get('country')).trim(),
+              };
               if (busy.current) return;
               busy.current = true;
               setError('');
               startTransition(async () => {
                 try {
-                  const result = await startStripePayment(
+                  const result = await startPayment(
                     quote.quoteId,
                     quote.quoteToken,
                     requests,
                     option,
+                    billing,
                   );
                   if (result.bookingId) {
                     const recovery = `/booking/confirmation?bookingId=${result.bookingId}`;
-                    // Back from Stripe returns to the same durable checkout, never a fresh hold.
+                    // Browser Back recovers the same durable checkout.
                     window.history.replaceState(null, '', recovery);
-                    window.location.assign(result.checkoutUrl || recovery);
+                    if (result.checkout) submitPayHere(result.checkout);
+                    else router.push(recovery);
                   } else setError(result.error || 'Checkout could not start.');
                 } catch {
                   setError(
@@ -102,7 +155,7 @@ export function PaymentStep({
           >
             {pending
               ? 'Preparing secure checkout…'
-              : 'Continue to Stripe test checkout'}
+              : 'Continue to PayHere checkout'}
           </button>
         </>
       )}

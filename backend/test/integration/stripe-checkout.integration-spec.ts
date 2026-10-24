@@ -6,6 +6,16 @@ import type Stripe from 'stripe';
 import { AppModule } from '../../src/app.module';
 import { PaymentRepository } from '../../src/database/repositories/payment.repository';
 import { ensureTemporaryCheckoutSchema } from '../support/checkout-fixture';
+import { ConfirmationEmailRepository } from '../../src/payments/confirmation-email.repository';
+import { ConfirmationEmailService } from '../../src/payments/confirmation-email.service';
+import { ConfigService } from '@nestjs/config';
+
+const brevoAccepted = () =>
+  Promise.resolve(
+    new Response(JSON.stringify({ messageId: 'brevo-fixture' }), {
+      status: 201,
+    }),
+  );
 
 describe('Stripe settlement persistence (temporary PostgreSQL copies)', () => {
   let app: INestApplication;
@@ -68,8 +78,118 @@ describe('Stripe settlement persistence (temporary PostgreSQL copies)', () => {
     } as unknown as DataSource);
   });
   afterEach(async () => {
+    jest.restoreAllMocks();
     if (runner?.isTransactionActive) await runner.rollbackTransaction();
     await runner?.release();
+  });
+
+  it('sends one receipt after settlement, persists sandbox state and isolates ownership', async () => {
+    const emailRepo = new ConfirmationEmailRepository({
+      query: (sql: string, params: unknown[]) => runner.query(sql, params),
+    } as unknown as DataSource);
+    const config = {
+      get: (key: string) =>
+        ({
+          BOOKING_EMAIL_MODE: 'sandbox',
+          BREVO_API_KEY: 'fixture',
+          BOOKING_EMAIL_FROM: 'hotel@example.invalid',
+          NODE_ENV: 'test',
+        })[key],
+    } as ConfigService;
+    const mail = new ConfirmationEmailService(emailRepo, config);
+    const send = jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(brevoAccepted);
+    await mail.send(bookingId);
+    expect(send).not.toHaveBeenCalled();
+    const payment = await repository.prepare(
+      bookingId,
+      guestId,
+      'FULL',
+      null,
+      35,
+    );
+    const paidSession = session(payment.paymentId);
+    await repository.settle(paidSession);
+    await mail.send(bookingId);
+    await repository.settle(paidSession);
+    await mail.send(bookingId);
+    expect(send).toHaveBeenCalledTimes(1);
+    const status = await repository.status(bookingId, guestId);
+    expect(status).toMatchObject({
+      status: 'CONFIRMED',
+      paidAmount: 2000000,
+      balanceAmount: 0,
+      emailStatus: 'SANDBOX',
+    });
+    expect(status.priceSnapshot).not.toHaveProperty('confirmationEmail');
+    const body = JSON.parse(send.mock.calls[0][1]?.body as string) as {
+      textContent: string;
+    };
+    for (const value of [
+      status.bookingId,
+      status.roomType,
+      status.checkInDate,
+      status.checkOutDate,
+      'Paid: LKR 20000.00',
+      'Balance: LKR 0.00',
+    ])
+      expect(body.textContent).toContain(value);
+    await expect(repository.status(bookingId, randomUUID())).rejects.toThrow(
+      'Booking not found',
+    );
+  });
+
+  it('retains confirmation after rejection, retries after cooldown and never reclaims ambiguous sends', async () => {
+    const emailRepo = new ConfirmationEmailRepository({
+      query: (sql: string, params: unknown[]) => runner.query(sql, params),
+    } as unknown as DataSource);
+    const config = {
+      get: (key: string) =>
+        ({
+          BOOKING_EMAIL_MODE: 'sandbox',
+          BREVO_API_KEY: 'fixture',
+          BOOKING_EMAIL_FROM: 'hotel@example.invalid',
+          NODE_ENV: 'test',
+        })[key],
+    } as ConfigService;
+    const mail = new ConfirmationEmailService(emailRepo, config);
+    const send = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(null, { status: 429 }))
+      .mockImplementation(brevoAccepted);
+    const payment = await repository.prepare(
+      bookingId,
+      guestId,
+      'FULL',
+      null,
+      35,
+    );
+    await repository.settle(session(payment.paymentId));
+    await mail.send(bookingId);
+    expect(await repository.status(bookingId, guestId)).toMatchObject({
+      status: 'CONFIRMED',
+      paidAmount: 2000000,
+      emailStatus: 'FAILED',
+    });
+    await mail.send(bookingId);
+    expect(send).toHaveBeenCalledTimes(1);
+    await runner.query(
+      `UPDATE bookings SET price_snapshot=jsonb_set(price_snapshot,'{confirmationEmail,attemptedAt}',to_jsonb((clock_timestamp()-interval '2 minutes')::text)) WHERE booking_id=$1`,
+      [bookingId],
+    );
+    await mail.send(bookingId);
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(await repository.status(bookingId, guestId)).toMatchObject({
+      emailStatus: 'SANDBOX',
+    });
+    for (const state of ['UNKNOWN', 'SENDING', 'ACCEPTED']) {
+      await runner.query(
+        `UPDATE bookings SET price_snapshot=jsonb_set(price_snapshot,'{confirmationEmail,state}',to_jsonb($2::text)) WHERE booking_id=$1`,
+        [bookingId, state],
+      );
+      expect(await emailRepo.claim(bookingId)).toBeNull();
+    }
   });
 
   function session(

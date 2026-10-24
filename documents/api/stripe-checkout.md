@@ -1,5 +1,8 @@
 # Stripe test checkout — GitHub #178 / DDP-#25
 
+Legacy reference: new checkout now uses [PayHere](payhere-checkout.md).
+Only the Stripe webhook remains registered for pre-existing Stripe attempts.
+
 ## Approved behavior
 
 The user approved **full payment only for now** and a **35-minute payment hold**.
@@ -130,8 +133,9 @@ Provider verification failure preserves the last recorded status with a warning.
 Print has a readable white summary and hides navigation/actions. An authorized
 PDF-generation/download contract is not implemented; the UI explains Print/Save
 as PDF as the available alternative. Record that document endpoint follow-up
-under #06. Confirmed-stay modification/cancellation remains #29. Email is #26;
-this page never claims that an email was delivered. Promo application remains
+under #06. Confirmed-stay modification/cancellation remains #29. Email #26 is
+implemented in [the confirmation email flow](booking-confirmation-email.md);
+provider acceptance and sandbox validation never claim delivery. Promo application remains
 the documented incomplete part of #24 and is not advertised in payment totals.
 
 ## Manual Stripe test
@@ -158,7 +162,8 @@ the documented incomplete part of #24 and is not advertised in payment totals.
 9. Open a pending booking URL with `&success=true`: it must remain pending until
    verified. Stop webhook forwarding, complete another test payment and refresh
    status to exercise authoritative API recovery rather than redirect trust.
-10. Check Print. PDF download and email must remain honestly unavailable.
+10. Check Print and the email status. PDF download remains unavailable;
+    sandbox email must report validation without delivery.
 
 ## Automated evidence
 

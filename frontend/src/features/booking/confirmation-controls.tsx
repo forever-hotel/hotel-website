@@ -1,7 +1,8 @@
 'use client';
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { cancelStripePayment, resumeStripePayment } from './payment-actions';
+import { cancelPayment, resumePayment } from './payment-actions';
+import { submitPayHere } from './payhere-checkout';
 import type { PaymentStatus } from './payment';
 import styles from './booking.module.css';
 
@@ -11,7 +12,7 @@ export function ConfirmationControls({ status }: { status: PaymentStatus }) {
   const [error, setError] = useState('');
   const busy = useRef(false);
   const payable =
-    status.status === 'PENDING' && status.paymentState !== 'EXPIRED';
+    status.status === 'PENDING' && status.paymentState === 'PENDING';
   return (
     <div className={styles.controls}>
       <button
@@ -36,12 +37,11 @@ export function ConfirmationControls({ status }: { status: PaymentStatus }) {
               setError('');
               startTransition(async () => {
                 try {
-                  const result = await resumeStripePayment(
+                  const result = await resumePayment(
                     status.bookingId,
                     status.paymentOption || 'FULL',
                   );
-                  if (result.checkoutUrl)
-                    window.location.assign(result.checkoutUrl);
+                  if (result.checkout) submitPayHere(result.checkout);
                   else {
                     setError(
                       result.error || 'Please refresh to check payment status.',
@@ -70,7 +70,7 @@ export function ConfirmationControls({ status }: { status: PaymentStatus }) {
               setError('');
               startTransition(async () => {
                 try {
-                  const result = await cancelStripePayment(status.bookingId);
+                  const result = await cancelPayment(status.bookingId);
                   if (result.error) setError(result.error);
                   router.refresh();
                 } catch {

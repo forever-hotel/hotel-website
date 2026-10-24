@@ -1,5 +1,19 @@
 # Forever Hotel website backend
 
+## Active checkout: PayHere
+
+New bookings use PayHere hosted checkout in sandbox or live mode. See
+[PayHere setup, database prerequisite and testing](../documents/api/payhere-checkout.md)
+and [ADR 002](../documents/architecture/adr-002-payhere-checkout.md).
+The Stripe guide below is retained for legacy attempts only.
+
+## Booking confirmation email (#179 / DDP-#26)
+
+Verified payment settlement now attempts one Brevo confirmation receipt.
+Use `BOOKING_EMAIL_MODE=sandbox`, `BREVO_API_KEY` and `BOOKING_EMAIL_FROM`
+outside production; the default is off. Email failures preserve paid bookings.
+See [configuration, retry states and checks](../documents/api/booking-confirmation-email.md).
+
 ## Stripe test checkout (DDP-#25 / GitHub #178)
 
 Hosted checkout uses the existing booking/payment tables, frozen server prices,

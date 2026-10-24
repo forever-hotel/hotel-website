@@ -9,6 +9,7 @@ import { CreateReservationDto } from '../bookings/dto/create-reservation.dto';
 import { PaymentRepository } from '../database/repositories/payment.repository';
 import { amountDue, PaymentOption } from './payment-policy';
 import { StripeProvider } from './stripe-provider';
+import { ConfirmationEmailService } from './confirmation-email.service';
 
 @Injectable()
 export class PaymentsService {
@@ -16,6 +17,7 @@ export class PaymentsService {
     private readonly bookings: BookingsService,
     private readonly repository: PaymentRepository,
     private readonly stripe: StripeProvider,
+    private readonly confirmationEmail: ConfirmationEmailService,
   ) {}
 
   options() {
@@ -123,6 +125,8 @@ export class PaymentsService {
             'Payment refund is pending. Please retry verification.',
           );
       }
+      if (session.metadata?.bookingId)
+        await this.confirmationEmail.send(session.metadata.bookingId);
     });
   }
 

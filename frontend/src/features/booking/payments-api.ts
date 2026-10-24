@@ -36,6 +36,35 @@ export async function readPaymentStatus(
     );
   return parsePaymentStatus(await response.json(), id);
 }
+
+export async function cancelPendingPayment(
+  base: string | undefined,
+  token: string | undefined,
+  id: string,
+): Promise<{ error?: string }> {
+  try {
+    const response = await paymentRequest(base, token, `/${id}/cancel`, {});
+    if (!response.ok) throw new Error('Cancellation not verified');
+    const value: unknown = await response.json();
+    if (
+      !value ||
+      typeof value !== 'object' ||
+      !('bookingId' in value) ||
+      value.bookingId !== id ||
+      !('status' in value) ||
+      value.status !== 'CANCELLED' ||
+      !('paidAmount' in value) ||
+      value.paidAmount !== 0
+    )
+      throw new Error('Unpaid cancellation not verified');
+    return {};
+  } catch {
+    return {
+      error:
+        'Cancellation could not be verified. Review the previous booking before making another payment.',
+    };
+  }
+}
 export async function readPaymentOptions(
   base: string | undefined,
   token: string | undefined,
@@ -61,6 +90,7 @@ export async function readPaymentOptions(
       throw new Error('Invalid checkout duration');
     return {
       available: row.available,
+      ...(typeof row.sandbox === 'boolean' ? { sandbox: row.sandbox } : {}),
       depositPercent:
         Number.isInteger(row.depositPercent) &&
         row.depositPercent! > 0 &&

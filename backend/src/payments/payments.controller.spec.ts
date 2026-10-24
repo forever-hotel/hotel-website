@@ -14,6 +14,7 @@ import {
 } from './payments.controller';
 import { PaymentsService } from './payments.service';
 import { StripeProvider } from './stripe-provider';
+import { ConfirmationEmailService } from './confirmation-email.service';
 
 describe('Stripe checkout HTTP and signature boundary', () => {
   let app: INestApplication<App>;
@@ -29,6 +30,7 @@ describe('Stripe checkout HTTP and signature boundary', () => {
       })[key],
   };
   const bookings = { createReservation: jest.fn() };
+  const confirmationEmail = { send: jest.fn().mockResolvedValue(undefined) };
   const repo = {
     prepare: jest.fn(),
     attach: jest.fn(),
@@ -73,6 +75,10 @@ describe('Stripe checkout HTTP and signature boundary', () => {
       providers: [
         PaymentsService,
         StripeProvider,
+        {
+          provide: ConfirmationEmailService,
+          useValue: confirmationEmail,
+        },
         { provide: ConfigService, useValue: config },
         { provide: BookingsService, useValue: bookings },
         { provide: PaymentRepository, useValue: repo },
@@ -264,6 +270,7 @@ describe('Stripe checkout HTTP and signature boundary', () => {
     expect(repo.settle).toHaveBeenCalledWith(
       expect.objectContaining({ payment_status: 'unpaid' }),
     );
+    expect(confirmationEmail.send).toHaveBeenCalledWith(id);
   });
   it('records refund result for a late payment and retries pending refunds', async () => {
     repo.settle.mockResolvedValue({

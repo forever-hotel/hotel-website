@@ -1,9 +1,13 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { paymentRequest, readPaymentOptions } from './payments-api';
-import { safeStripeUrl, validBookingId } from './payment';
-import type { PaymentOption } from './payment';
+import {
+  cancelPendingPayment,
+  paymentRequest,
+  readPaymentOptions,
+} from './payments-api';
+import { parsePayHereCheckout, validBookingId } from './payment';
+import type { BillingDetails, PayHereCheckout, PaymentOption } from './payment';
 
 async function credentials() {
   return {
@@ -18,7 +22,7 @@ export async function getPaymentOptions() {
 
 async function paymentResult(response: Response): Promise<{
   bookingId?: string;
-  checkoutUrl?: string | null;
+  checkout?: PayHereCheckout;
   error?: string;
 }> {
   if (!response.ok)
@@ -35,17 +39,18 @@ async function paymentResult(response: Response): Promise<{
     throw new Error('Invalid checkout response');
   return {
     bookingId: data.bookingId,
-    checkoutUrl: safeStripeUrl(data.checkoutUrl),
+    ...(data.checkout ? { checkout: parsePayHereCheckout(data.checkout) } : {}),
   };
 }
-export async function startStripePayment(
+export async function startPayment(
   quoteId: string,
   quoteToken: string,
   specialRequests: string,
   paymentOption: PaymentOption,
+  billing: BillingDetails,
 ): Promise<{
   bookingId?: string;
-  checkoutUrl?: string | null;
+  checkout?: PayHereCheckout;
   error?: string;
 }> {
   if (!validBookingId(quoteId)) return { error: 'Request a fresh quote.' };
@@ -67,8 +72,13 @@ export async function startStripePayment(
       if (
         typeof existing?.bookingId === 'string' &&
         validBookingId(existing.bookingId)
-      )
-        return { bookingId: existing.bookingId, checkoutUrl: null };
+      ) {
+        if (previous === quoteId) return { bookingId: existing.bookingId };
+        return {
+          error:
+            'An earlier checkout is still active. Reload this page to review or cancel it before paying for your new selection.',
+        };
+      }
     } catch {
       return {
         error: 'An earlier checkout may exist. Reload this page to recover it.',
@@ -88,7 +98,7 @@ export async function startStripePayment(
         base,
         token,
         '/checkout',
-        { quoteToken, specialRequests, paymentOption },
+        { quoteToken, specialRequests, paymentOption, billing },
         `hw-payment-${quoteId}`,
       ),
     );
@@ -99,10 +109,7 @@ export async function startStripePayment(
     };
   }
 }
-export async function resumeStripePayment(
-  id: string,
-  paymentOption: PaymentOption,
-) {
+export async function resumePayment(id: string, paymentOption: PaymentOption) {
   if (!validBookingId(id)) return { error: 'Invalid booking reference.' };
   const { base, token } = await credentials();
   try {
@@ -116,21 +123,10 @@ export async function resumeStripePayment(
     };
   }
 }
-export async function cancelStripePayment(id: string) {
+export async function cancelPayment(id: string) {
   if (!validBookingId(id)) return { error: 'Invalid booking reference.' };
   const { base, token } = await credentials();
-  try {
-    const response = await paymentRequest(base, token, `/${id}/cancel`, {});
-    return response.ok
-      ? {}
-      : {
-          error:
-            'Cancellation could not be verified. Refresh status before trying again.',
-        };
-  } catch {
-    return {
-      error:
-        'Payment service is unavailable. Please retry status verification.',
-    };
-  }
+  const result = await cancelPendingPayment(base, token, id);
+  if (!result.error) (await cookies()).delete('hw_checkout_preview');
+  return result;
 }

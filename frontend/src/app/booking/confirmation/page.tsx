@@ -4,7 +4,11 @@ import { redirect } from 'next/navigation';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { readPaymentStatus } from '@/features/booking/payments-api';
-import { paymentHeading, validBookingId } from '@/features/booking/payment';
+import {
+  confirmationEmailMessage,
+  paymentHeading,
+  validBookingId,
+} from '@/features/booking/payment';
 import type { PaymentStatus } from '@/features/booking/payment';
 import { money } from '@/features/booking/booking';
 import { ConfirmationControls } from '@/features/booking/confirmation-controls';
@@ -37,6 +41,7 @@ export default async function ConfirmationPage({
   }
   const confirmed =
     status &&
+    status.paymentState !== 'REVIEW_REQUIRED' &&
     ['CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT'].includes(status.status) &&
     status.paidAmount > 0;
   return (
@@ -106,7 +111,12 @@ export default async function ConfirmationPage({
                   {status.priceSnapshot.nights} nights · {status.numberOfGuests}{' '}
                   guests · 1 room
                 </p>
-                {confirmed ? (
+                {status.paymentState === 'REVIEW_REQUIRED' ? (
+                  <p role="alert">
+                    Your payment requires hotel review. Contact the hotel with
+                    your booking reference before making another payment.
+                  </p>
+                ) : confirmed ? (
                   <p role="status">
                     Your reservation is confirmed from verified payment data.
                   </p>
@@ -118,7 +128,7 @@ export default async function ConfirmationPage({
                 )}
                 {status.verificationDelayed && (
                   <p role="alert">
-                    Stripe verification is delayed. These are the last recorded
+                    Payment verification is delayed. These are the last recorded
                     details; keep your reference and retry.
                   </p>
                 )}
@@ -146,10 +156,7 @@ export default async function ConfirmationPage({
                   available through booking management.{' '}
                   <Link href="/contact">Contact the hotel</Link> for assistance.
                 </p>
-                <p>
-                  Confirmation email delivery is not implemented yet; this page
-                  does not claim that an email was sent.
-                </p>
+                <p>{confirmationEmailMessage(status.emailStatus)}</p>
                 <ConfirmationControls status={status} />
               </section>
               <aside
@@ -175,7 +182,11 @@ export default async function ConfirmationPage({
                   <dt>Paid</dt>
                   <dd>{money(status.paidAmount)}</dd>
                   <dt>Balance</dt>
-                  <dd>{money(status.balanceAmount)}</dd>
+                  <dd>
+                    {status.paymentState === 'REVIEW_REQUIRED'
+                      ? 'Under hotel review'
+                      : money(status.balanceAmount)}
+                  </dd>
                 </dl>
                 <p>Currency: {status.currency}</p>
                 <p>
@@ -183,7 +194,8 @@ export default async function ConfirmationPage({
                   {status.paymentReference || 'Awaiting provider session'}
                 </p>
                 <p>
-                  Card details are handled by Stripe and are not stored here.
+                  Card details are handled by the payment provider and are not
+                  stored here.
                 </p>
               </aside>
             </div>

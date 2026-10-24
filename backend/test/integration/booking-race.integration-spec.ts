@@ -7,6 +7,8 @@ import { BookingRepository } from '../../src/database/repositories/booking.repos
 import { BookingsService } from '../../src/bookings/bookings.service';
 import { PaymentRepository } from '../../src/database/repositories/payment.repository';
 import type Stripe from 'stripe';
+import { ConfirmationEmailRepository } from '../../src/payments/confirmation-email.repository';
+import { PayHereRepository } from '../../src/payments/payhere.repository';
 
 // Explicitly enabled only for the disposable localhost PostgreSQL CI service.
 const raceTests =
@@ -62,6 +64,12 @@ raceTests(
           ),
           'utf8',
         ),
+      );
+      await source.query(
+        `CREATE TYPE "${schema}".payment_method AS ENUM ('STRIPE','CASH','CARD_ON_SITE','PAYHERE')`,
+      );
+      await source.query(
+        `ALTER TABLE "${schema}".payments ALTER COLUMN payment_method TYPE "${schema}".payment_method USING payment_method::text::"${schema}".payment_method`,
       );
       service = new BookingsService(new BookingRepository(source), {
         get: () =>
@@ -195,6 +203,77 @@ raceTests(
         paidAmount: 2000000,
         balanceAmount: 0,
       });
+      const mail = new ConfirmationEmailRepository(source);
+      const claims = await Promise.all([
+        mail.claim(booking.bookingId),
+        mail.claim(booking.bookingId),
+        mail.claim(booking.bookingId),
+      ]);
+      expect(claims.filter(Boolean)).toHaveLength(1);
+      await mail.finish(booking.bookingId, 'ACCEPTED');
+      expect(await mail.claim(booking.bookingId)).toBeNull();
+    });
+    it('creates and settles one PayHere payment across concurrent requests and claims one receipt', async () => {
+      const quote = await service.createQuote(guestId, quoteInput());
+      const booking = await service.createReservation(
+        guestId,
+        { quoteToken: quote.quoteToken },
+        'ci-payhere-attempt',
+      );
+      const payments = new PayHereRepository(source);
+      const billing = {
+        firstName: 'Test',
+        lastName: 'Guest',
+        phone: '0771234567',
+        address: 'Test street',
+        city: 'Colombo',
+        country: 'Sri Lanka',
+      };
+      const prepared = await Promise.all([
+        payments.prepareCheckout(
+          booking.bookingId,
+          guestId,
+          'sandbox',
+          billing,
+        ),
+        payments.prepareCheckout(
+          booking.bookingId,
+          guestId,
+          'sandbox',
+          billing,
+        ),
+      ]);
+      expect(prepared[0]).toEqual(prepared[1]);
+      const receipt = {
+        orderId: prepared[0].paymentId,
+        paymentId: '12345',
+        amount: 2000000,
+        status: 'RECEIVED',
+      };
+      await Promise.all([
+        payments.settleReceipts(booking.bookingId, receipt.orderId, 'sandbox', [
+          receipt,
+        ]),
+        payments.settleReceipts(booking.bookingId, receipt.orderId, 'sandbox', [
+          receipt,
+        ]),
+      ]);
+      expect(
+        await source.query('SELECT count(*)::int AS count FROM payments'),
+      ).toEqual([{ count: 1 }]);
+      expect(await payments.status(booking.bookingId, guestId)).toMatchObject({
+        status: 'CONFIRMED',
+        paidAmount: 2000000,
+      });
+      const email = new ConfirmationEmailRepository(source);
+      expect(
+        (
+          await Promise.all([
+            email.claim(booking.bookingId),
+            email.claim(booking.bookingId),
+          ])
+        ).filter(Boolean),
+      ).toHaveLength(1);
     });
   },
 );

@@ -8,6 +8,7 @@ import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 
 const browserPath =
   process.env.CHROME_BIN ||
@@ -23,17 +24,34 @@ const room = {
   roomTypeId: '11111111-1111-4111-8111-111111111111',
   typeName: 'UI Test Room',
   description: 'Isolated test fixture',
-  pricePerNight: 2000000,
+  pricePerNight: 3000000,
   currency: 'LKR',
   maxGuests: 2,
   imageUrls: [],
   amenities: ['Wi-Fi'],
 };
+const cheaperRoom = {
+  ...room,
+  roomTypeId: '22222222-2222-4222-8222-222222222222',
+  typeName: 'UI Budget Room',
+  pricePerNight: 1000000,
+};
+const quotes = new Map();
+let checkoutQuote = {
+  roomTypeId: room.roomTypeId,
+  checkInDate: '2099-12-10',
+  checkOutDate: '2099-12-13',
+  numberOfGuests: 2,
+  nights: 3,
+  nightlyRate: 3000000,
+  totalAmount: 9000000,
+};
+let checkoutQuoteId = '';
+let cancelStatus = 200;
 let quoteStatus = 201;
 let expired = false;
 let offerStatus = 200;
-const paymentBookingId = '33333333-3333-4333-8333-333333333333';
-const paymentQuoteId = '44444444-4444-4444-8444-444444444444';
+let paymentBookingId = '33333333-3333-4333-8333-333333333333';
 let checkoutCreated = false;
 let paid = false;
 let paymentCancelled = false;
@@ -64,18 +82,40 @@ const gateway = createServer(async (req, res) => {
   calls.push(req.url);
   let body;
   let status = 200;
-  if (req.url === '/hw/room-types') body = { items: [room] };
+  if (req.url === '/hw/room-types') body = { items: [room, cheaperRoom] };
   else if (req.url === '/hw/payments/options')
-    body = { available: true, depositPercent: null, checkoutMinutes: 35 };
+    body = {
+      available: true,
+      depositPercent: null,
+      checkoutMinutes: 35,
+      sandbox: true,
+    };
   else if (req.url.startsWith('/hw/payments/recovery/'))
     body = {
       bookingId:
-        checkoutCreated && !paid && !paymentCancelled ? paymentBookingId : null,
+        checkoutCreated &&
+        !paid &&
+        !paymentCancelled &&
+        req.url.endsWith(checkoutQuoteId)
+          ? paymentBookingId
+          : null,
     };
   else if (
     req.url === '/hw/payments/checkout' ||
     req.url === `/hw/payments/${paymentBookingId}/resume`
   ) {
+    if (req.url === '/hw/payments/checkout') {
+      const input = JSON.parse(raw);
+      const selectedQuote = quotes.get(input.quoteToken);
+      assert.ok(
+        selectedQuote,
+        'checkout must use a quote for the selected stay',
+      );
+      if (checkoutCreated) paymentBookingId = randomUUID();
+      checkoutQuote = selectedQuote;
+      checkoutQuoteId = selectedQuote.quoteId;
+      paymentCancelled = false;
+    }
     checkoutCreated = true;
     body = {
       bookingId: paymentBookingId,
@@ -83,31 +123,39 @@ const gateway = createServer(async (req, res) => {
       state: 'CHECK_STATUS',
     };
   } else if (req.url === `/hw/payments/${paymentBookingId}/cancel`) {
-    paymentCancelled = true;
-    body = {};
+    status = cancelStatus;
+    if (status === 200) paymentCancelled = true;
+    body =
+      status === 200
+        ? { bookingId: paymentBookingId, status: 'CANCELLED', paidAmount: 0 }
+        : {};
   } else if (req.url === `/hw/payments/${paymentBookingId}`)
     body = {
       bookingId: paymentBookingId,
       status: paid ? 'CONFIRMED' : paymentCancelled ? 'CANCELLED' : 'PENDING',
-      roomType: room.typeName,
-      checkInDate: '2099-12-10',
-      checkOutDate: '2099-12-12',
-      numberOfGuests: 2,
-      totalAmount: 4000000,
-      paidAmount: paid ? 4000000 : 0,
-      balanceAmount: paid || paymentCancelled ? 0 : 4000000,
+      roomType:
+        checkoutQuote.roomTypeId === cheaperRoom.roomTypeId
+          ? cheaperRoom.typeName
+          : room.typeName,
+      checkInDate: checkoutQuote.checkInDate,
+      checkOutDate: checkoutQuote.checkOutDate,
+      numberOfGuests: checkoutQuote.numberOfGuests,
+      totalAmount: checkoutQuote.totalAmount,
+      paidAmount: paid ? checkoutQuote.totalAmount : 0,
+      balanceAmount: paid || paymentCancelled ? 0 : checkoutQuote.totalAmount,
       currency: 'LKR',
       paymentOption: 'FULL',
-      amountDue: 4000000,
+      amountDue: checkoutQuote.totalAmount,
       paymentReference: 'cs_test_fixture',
       holdExpiresAt: '2099-12-01T12:35:00Z',
       paymentState: paid ? 'PAID' : paymentCancelled ? 'CANCELLED' : 'PENDING',
       refundStatus: null,
       verificationDelayed: false,
+      emailStatus: paid ? 'SANDBOX' : 'NOT_REQUESTED',
       priceSnapshot: {
-        nights: 2,
-        nightlyRate: 2000000,
-        subtotal: 4000000,
+        nights: checkoutQuote.nights,
+        nightlyRate: checkoutQuote.nightlyRate,
+        subtotal: checkoutQuote.totalAmount,
         lineItems: [],
       },
     };
@@ -136,22 +184,28 @@ const gateway = createServer(async (req, res) => {
     const stay = JSON.parse(raw);
     const nights =
       (Date.parse(stay.checkOutDate) - Date.parse(stay.checkInDate)) / 86400000;
+    const nightlyRate =
+      stay.roomTypeId === cheaperRoom.roomTypeId
+        ? cheaperRoom.pricePerNight
+        : room.pricePerNight;
+    const quoteId = randomUUID();
     body = {
       ...stay,
-      quoteId: paymentQuoteId,
-      quoteToken: 'signed.preview',
+      quoteId,
+      quoteToken: `signed.${quoteId}`,
       currency: 'LKR',
-      nightlyRate: 2000000,
+      nightlyRate,
       nights,
-      subtotal: nights * 2000000,
+      subtotal: nights * nightlyRate,
       additionalCharges: 0,
-      totalAmount: nights * 2000000,
+      totalAmount: nights * nightlyRate,
       lineItems: [],
       rateBasis: 'INCLUSIVE',
       expiresAt: new Date(
         Date.now() + (expired ? -1000 : 600000),
       ).toISOString(),
     };
+    quotes.set(body.quoteToken, body);
   } else {
     status = 404;
     body = {};
@@ -464,30 +518,94 @@ try {
     ),
     false,
   );
-  await command('Page.navigate', { url: `${origin}/booking?${stayQuery}` });
+  const originalPaymentStay = stayQuery.replace(
+    'checkOutDate=2099-12-12',
+    'checkOutDate=2099-12-13',
+  );
+  await command('Page.navigate', {
+    url: `${origin}/booking?${originalPaymentStay}`,
+  });
   await text('Check price and continue');
   await click('Check price and continue');
   await text('Confirm email');
   await fill('input[type=email]:not([readonly])', 'ui@example.com');
   await click('Review payment handoff');
   await text('Full payment only. Advance deposits are not enabled.');
-  await click('Continue to Stripe test checkout');
+  await fill('input[name=firstName]', 'UI');
+  await fill('input[name=lastName]', 'Guest');
+  await fill('input[name=phone]', '0771234567');
+  await fill('input[name=address]', 'Test street');
+  await fill('input[name=city]', 'Colombo');
+  await fill('input[name=country]', 'Sri Lanka');
+  await click('Continue to PayHere checkout');
   await text('Payment confirmation pending');
+  assert.equal(checkoutQuote.nights, 3);
+  assert.equal(checkoutQuote.totalAmount, 9000000);
+  assert.match(await evaluate('document.body.innerText'), /90,000\.00/);
   assert.equal(
     calls.filter((url) => url === '/hw/payments/checkout').length,
     1,
   );
-  await command('Page.navigate', { url: `${origin}/booking?${stayQuery}` });
-  await text('Payment confirmation pending');
-  assert.ok(
-    (await evaluate('location.href')).includes('/booking/confirmation'),
+  const changedStay = `roomTypeId=${cheaperRoom.roomTypeId}&checkInDate=2099-12-10&checkOutDate=2099-12-11&numberOfGuests=2`;
+  await command('Page.navigate', { url: `${origin}/booking?${changedStay}` });
+  await text('An earlier checkout is still open');
+  assert.equal(await evaluate('location.pathname'), '/booking');
+  assert.equal(
+    calls.filter((url) => url === '/hw/payments/checkout').length,
+    1,
   );
+  cancelStatus = 503;
+  await click('Cancel unpaid checkout and use new selection');
+  await text('Cancellation could not be verified.');
+  assert.equal(paymentCancelled, false);
+  assert.equal(
+    calls.filter((url) => url === '/hw/payments/checkout').length,
+    1,
+  );
+  cancelStatus = 200;
+  await click('Cancel unpaid checkout and use new selection');
+  await text('Check price and continue');
+  assert.ok((await evaluate('location.href')).includes(cheaperRoom.roomTypeId));
+  assert.ok(
+    (await evaluate('location.href')).includes('checkOutDate=2099-12-11'),
+  );
+  await click('Check price and continue');
+  await text('Confirm email');
+  assert.match(
+    await evaluate(
+      `document.querySelector('[aria-label="Room and price summary"]').innerText`,
+    ),
+    /10,000\.00/,
+  );
+  assert.doesNotMatch(
+    await evaluate(
+      `document.querySelector('[aria-label="Room and price summary"]').innerText`,
+    ),
+    /90,000\.00/,
+  );
+  await fill('input[type=email]:not([readonly])', 'ui@example.com');
+  await click('Review payment handoff');
+  await text('Full payment only. Advance deposits are not enabled.');
+  await fill('input[name=firstName]', 'UI');
+  await fill('input[name=lastName]', 'Guest');
+  await fill('input[name=phone]', '0771234567');
+  await fill('input[name=address]', 'Test street');
+  await fill('input[name=city]', 'Colombo');
+  await fill('input[name=country]', 'Sri Lanka');
+  await click('Continue to PayHere checkout');
+  await text('Payment confirmation pending');
+  assert.equal(checkoutQuote.roomTypeId, cheaperRoom.roomTypeId);
+  assert.equal(checkoutQuote.nights, 1);
+  assert.equal(checkoutQuote.totalAmount, 1000000);
+  assert.match(await evaluate('document.body.innerText'), /10,000\.00/);
   paid = true;
   await click('Refresh payment status');
   await text('Your stay is confirmed');
   await text('Your reservation is confirmed from verified payment data.');
   await text('PDF download is not available yet.');
-  await text('Confirmation email delivery is not implemented yet');
+  await text(
+    'Confirmation email validated in sandbox. No email was delivered.',
+  );
   await command('Emulation.setEmulatedMedia', { media: 'print' });
   assert.equal(
     await evaluate(
@@ -504,10 +622,10 @@ try {
   await command('Emulation.setEmulatedMedia', { media: '' });
   assert.equal(
     calls.filter((url) => url === '/hw/payments/checkout').length,
-    1,
+    2,
   );
   console.log(
-    'PASS: booking/Offers recovery; full payment handoff, forged-return protection, recovery without another checkout, verified confirmation and printable summary (isolated fixtures only).',
+    'PASS: booking/Offers recovery; explicit unpaid checkout cancellation; changed room and dates replace the previous 3-night LKR 90000 checkout with a 1-night LKR 10000 checkout; failed cancellation blocks a new payment; verified confirmation and print (isolated fixtures only).',
   );
 } finally {
   socket?.close();

@@ -8,6 +8,7 @@ import { BookingFlow } from '@/features/booking/booking-flow';
 import { paymentRequest } from '@/features/booking/payments-api';
 import { validBookingId } from '@/features/booking/payment';
 import styles from '@/features/booking/booking.module.css';
+import { PendingCheckoutChoice } from '@/features/booking/pending-checkout-choice';
 
 export const metadata = {
   title: 'Book your stay | Forever City Hotel',
@@ -36,7 +37,7 @@ export default async function BookingPage({
   const token = (await cookies()).get('hw_guest_session')?.value;
   if (!token) redirect(login);
   const recoveryQuote = (await cookies()).get('hw_checkout_preview')?.value;
-  let recoverTo = '';
+  let recoveryBookingId = '';
   let recoveryUnavailable = false;
   let recoveryExpired = false;
   if (recoveryQuote && validBookingId(recoveryQuote)) {
@@ -53,13 +54,17 @@ export default async function BookingPage({
         typeof result?.bookingId === 'string' &&
         validBookingId(result.bookingId)
       )
-        recoverTo = `/booking/confirmation?bookingId=${result.bookingId}`;
+        recoveryBookingId = result.bookingId;
     } catch {
       recoveryUnavailable = true;
     }
   }
   if (recoveryExpired) redirect(login);
-  if (recoverTo) redirect(recoverTo);
+  const nextSelection = new URLSearchParams(safeParams);
+  nextSelection.set(
+    'step',
+    nextSelection.get('roomTypeId') ? 'details' : 'select',
+  );
   let guest: { fullName: string; email: string } | null = null;
   let expired = false;
   const catalogue = await getRoomCatalogue();
@@ -85,10 +90,27 @@ export default async function BookingPage({
     <>
       <SiteHeader />
       <main id="main-content" tabIndex={-1} className={styles.page}>
-        {!recoveryUnavailable &&
-        guest &&
-        catalogue.state === 'ready' &&
-        catalogue.rooms.length ? (
+        {recoveryBookingId ? (
+          <section className={styles.panel}>
+            <h1>An earlier checkout is still open</h1>
+            <p>
+              Your new selection has not replaced that booking. Its room, dates
+              and price are still the ones from the earlier checkout.
+            </p>
+            <p>
+              Review the previous booking, or cancel its unpaid checkout to
+              continue with your newly selected room and dates. Cancellation
+              checks payment status first.
+            </p>
+            <PendingCheckoutChoice
+              bookingId={recoveryBookingId}
+              returnTo={`/booking?${nextSelection}`}
+            />
+          </section>
+        ) : !recoveryUnavailable &&
+          guest &&
+          catalogue.state === 'ready' &&
+          catalogue.rooms.length ? (
           <BookingFlow rooms={catalogue.rooms} guest={guest} />
         ) : (
           <section className={styles.panel}>

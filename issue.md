@@ -1418,7 +1418,7 @@ Blocked by: DDP-#06, DDP-#12, DDP-#13, DDP-#22, DDP-#23; Manager Dashboard marke
 
 ---
 
-## [DDP-#25] feat(payments): integrate Stripe checkout and reservation confirmation
+## [DDP-#25] feat(payments): integrate PayHere checkout and reservation confirmation
 
 **Assignee:** TBD  
 **Labels:** `epic:integration`, `High`, `feat`  
@@ -1446,7 +1446,7 @@ As a guest, I want to pay in full or pay an advance deposit so that my booking c
 
 ### Technical Notes
 
-Build the frontend payment step and server payment flow using Stripe test mode, server-side verification and idempotency. Do not store card details or trust a browser success redirect alone.
+Provider update authorized on 23 October 2026: new checkout uses PayHere sandbox/live, signed callbacks and Retrieval API corroboration; Stripe settlement is legacy-only. See [ADR 002](documents/architecture/adr-002-payhere-checkout.md) and [setup and operational limits](documents/api/payhere-checkout.md). Full payment only is currently enabled. Deposit support and automated refunds remain follow-ups. PayHere permits duplicate order IDs: repeated real charges are recorded separately for refund review, so the original no-duplicate-charge criterion is not claimed complete. Do not store card details or trust a browser success redirect alone.
 
 Owns Payment milestone and final supplied booking screen. Preserve full-payment/deposit support despite the screenshot showing one total. Card-brand artwork is not raw-card processing. Use authenticated status reads, webhook verification and idempotency. Coordinate PDF/status with #06 and email state with #26; do not promise actual email delivery from a browser redirect.
 
@@ -1507,7 +1507,7 @@ As a guest, I want an email receipt so that I have my booking details.
 
 ### Technical Notes
 
-Use SendGrid sandbox outside production. Avoid duplicate emails from repeated payment events.
+Use Brevo sandbox outside production (provider selected for GitHub #179). Avoid duplicate emails from repeated payment events.
 
 Use confirmed reservation data; payment failure must not generate success email. Repeated callbacks cannot generate duplicate mail.
 
