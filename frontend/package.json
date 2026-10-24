@@ -15,7 +15,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "test:booking-ui": "node tests/booking.browser.mjs",
-    "test:coverage": "node --experimental-strip-types --experimental-test-coverage --test-coverage-include=src/**/*.ts --test tests/promotions.test.mjs tests/contact.test.mjs tests/rooms.test.mjs tests/comparison.test.mjs tests/availability.test.mjs tests/auth.test.mjs tests/booking.test.mjs tests/offers.test.mjs tests/payment.test.mjs tests/dashboard.test.mjs"
+    "test:coverage": "node --experimental-strip-types --experimental-test-coverage --test-coverage-include=src/**/*.ts --test tests/promotions.test.mjs tests/contact.test.mjs tests/rooms.test.mjs tests/comparison.test.mjs tests/availability.test.mjs tests/auth.test.mjs tests/booking.test.mjs tests/offers.test.mjs tests/payment.test.mjs tests/dashboard.test.mjs tests/management.test.mjs"
   },
   "dependencies": {
     "next": "16.3.6",

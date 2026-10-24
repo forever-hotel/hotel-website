@@ -202,6 +202,16 @@ export default async function ConfirmationPage({
           </>
         )}
         <div className={styles.heading}>
+          {status && (
+            <Link
+              className="button button-outline"
+              href={`/profile/bookings/${id}#manage-booking`}
+            >
+              {status.status === 'CONFIRMED'
+                ? 'Change or cancel booking'
+                : 'View booking details'}
+            </Link>
+          )}
           <Link href="/rooms">Browse rooms</Link>
         </div>
       </main>

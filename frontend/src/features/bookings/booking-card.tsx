@@ -60,12 +60,23 @@ export function BookingCard({
         <strong>{bookingPrice(booking)}</strong>
         <span>Total stay price</span>
         {!detail && (
-          <Link
-            className="button button-blue"
-            href={`/profile/bookings/${booking.bookingId}`}
-          >
-            View details
-          </Link>
+          <>
+            <Link
+              className="button button-blue"
+              href={`/profile/bookings/${booking.bookingId}`}
+            >
+              View details
+            </Link>
+            {booking.status === 'CONFIRMED' &&
+              booking.category === 'upcoming' && (
+                <Link
+                  className={styles.back}
+                  href={`/profile/bookings/${booking.bookingId}#manage-booking`}
+                >
+                  Change or cancel
+                </Link>
+              )}
+          </>
         )}
       </div>
     </article>

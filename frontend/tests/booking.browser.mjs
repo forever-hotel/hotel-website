@@ -97,6 +97,52 @@ const dashboardBookings = Array.from({ length: 23 }, (_, index) => ({
   totalAmount: 2000000,
   currency: 'LKR',
 }));
+const managementRevisions = new Map();
+const managementRooms = new Map();
+const changeQuotes = new Map();
+const managementAttempts = new Map();
+let managementLate = false;
+let managementReject = 0;
+let managementUncertainOnce = false;
+let savedManagementOperations = 0;
+function managementState(booking) {
+  const paidAmount = 2000000;
+  const balanceAmount =
+    booking.status === 'CANCELLED'
+      ? 0
+      : Math.max(0, booking.totalAmount - paidAmount);
+  const refundAmount = Math.max(
+    0,
+    paidAmount - (booking.status === 'CANCELLED' ? 0 : booking.totalAmount),
+  );
+  return {
+    ...booking,
+    roomTypeId: managementRooms.get(booking.bookingId) || room.roomTypeId,
+    specialRequests:
+      booking.specialRequests ??
+      '<script>window.dashboardInjected=true</script>',
+    paidAmount,
+    balanceAmount,
+    refundAmount,
+    refundStatus: refundAmount > 0 ? 'PENDING' : null,
+    revision: managementRevisions.get(booking.bookingId) || 0,
+    eligible:
+      !managementLate &&
+      booking.status === 'CONFIRMED' &&
+      balanceAmount === 0 &&
+      refundAmount === 0,
+    reason: {
+      error: managementLate
+        ? 'CHANGE_CUTOFF_PASSED'
+        : 'SETTLEMENT_REVIEW_REQUIRED',
+    },
+    cutoff: '2099-12-09T08:30:00Z',
+    timeZone: 'Asia/Colombo',
+    checkInTime: '14:00',
+    modificationSettlement: 'MANUAL_REVIEW',
+    cancellationRefund: 'FULL_MANUAL_REVIEW',
+  };
+}
 const gateway = createServer(async (req, res) => {
   let raw = '';
   for await (const chunk of req) raw += chunk;
@@ -116,9 +162,11 @@ const gateway = createServer(async (req, res) => {
         .slice((page - 1) * 20, page * 20),
       counts: {
         total: records.length,
-        upcoming: dashboardEmpty ? 0 : 21,
-        past: dashboardEmpty ? 0 : 1,
-        cancelled: dashboardEmpty ? 0 : 1,
+        upcoming: records.filter((record) => record.category === 'upcoming')
+          .length,
+        past: records.filter((record) => record.category === 'past').length,
+        cancelled: records.filter((record) => record.category === 'cancelled')
+          .length,
       },
       category,
       page,
@@ -126,16 +174,112 @@ const gateway = createServer(async (req, res) => {
     };
   } else if (req.url.startsWith('/hw/bookings/')) {
     assert.equal(req.headers.authorization, 'Bearer fixture-session');
-    const found = dashboardBookings.find(
-      (booking) => req.url === `/hw/bookings/${booking.bookingId}`,
+    const match =
+      /^\/hw\/bookings\/([^/]+)\/(management|change-quote|changes|cancellations)$/.exec(
+        req.url,
+      );
+    const found = dashboardBookings.find((booking) =>
+      match
+        ? match[1] === booking.bookingId
+        : req.url === `/hw/bookings/${booking.bookingId}`,
     );
     status = found ? dashboardStatus : 404;
-    body = found
-      ? {
-          ...found,
-          specialRequests: '<script>window.dashboardInjected=true</script>',
+    if (found && match) {
+      const action = match[2];
+      if (action === 'management') body = managementState(found);
+      else if (action === 'change-quote') {
+        const input = JSON.parse(raw);
+        const selected = [room, cheaperRoom].find(
+          (item) => item.roomTypeId === input.roomTypeId,
+        );
+        const nights =
+          (Date.parse(input.checkOutDate) - Date.parse(input.checkInDate)) /
+          86400000;
+        const totalAmount = nights * selected.pricePerNight;
+        body = {
+          ...input,
+          bookingId: found.bookingId,
+          quoteId: randomUUID(),
+          quoteToken: `${randomUUID()}.fixture`,
+          currency: 'LKR',
+          totalAmount,
+          subtotal: totalAmount,
+          additionalCharges: 0,
+          nights,
+          paidAmount: 2000000,
+          balanceAmount: Math.max(0, totalAmount - 2000000),
+          refundAmount: Math.max(0, 2000000 - totalAmount),
+          revision: managementState(found).revision,
+          expiresAt: '2099-12-01T12:10:00Z',
+          settlementMode: 'MANUAL_REVIEW',
+        };
+        changeQuotes.set(body.quoteToken, body);
+      } else if (managementReject) {
+        status = managementReject;
+        body = {
+          error:
+            managementReject === 409 ? 'CHANGE_CUTOFF_PASSED' : 'UNAUTHORIZED',
+        };
+      } else {
+        const key = req.headers['idempotency-key'];
+        assert.ok(key);
+        const old = managementAttempts.get(key);
+        if (old) {
+          assert.equal(old.body, raw);
+          body = {
+            ...managementState(found),
+            operation: old.operation,
+            replayed: true,
+          };
+        } else {
+          const input = JSON.parse(raw);
+          if (action === 'changes') {
+            const quote = changeQuotes.get(input.quoteToken);
+            assert.ok(quote);
+            Object.assign(found, {
+              checkInDate: quote.checkInDate,
+              checkOutDate: quote.checkOutDate,
+              numberOfGuests: quote.numberOfGuests,
+              specialRequests: quote.specialRequests,
+              totalAmount: quote.totalAmount,
+              roomType: [room, cheaperRoom].find(
+                (item) => item.roomTypeId === quote.roomTypeId,
+              ).typeName,
+            });
+            managementRooms.set(found.bookingId, quote.roomTypeId);
+          } else {
+            assert.equal(input.revision, managementState(found).revision);
+            found.status = 'CANCELLED';
+            found.category = 'cancelled';
+          }
+          managementRevisions.set(
+            found.bookingId,
+            managementState(found).revision + 1,
+          );
+          savedManagementOperations++;
+          const operation = {
+            id: randomUUID(),
+            kind: action === 'changes' ? 'MODIFIED' : 'CANCELLED',
+            emailStatus: 'SANDBOX',
+          };
+          managementAttempts.set(key, { body: raw, operation });
+          body = { ...managementState(found), operation, replayed: false };
+          if (managementUncertainOnce) {
+            managementUncertainOnce = false;
+            status = 503;
+            body = { message: 'Fixture gateway response lost after commit' };
+          }
         }
-      : { message: 'Booking not found.' };
+      }
+    } else
+      body = found
+        ? {
+            ...found,
+            specialRequests:
+              found.specialRequests ??
+              '<script>window.dashboardInjected=true</script>',
+          }
+        : { message: 'Booking not found.' };
   } else if (req.url === '/hw/room-types')
     body = { items: [room, cheaperRoom] };
   else if (req.url === '/hw/payments/options')
@@ -214,7 +358,38 @@ const gateway = createServer(async (req, res) => {
         lineItems: [],
       },
     };
-  else if (req.url === '/hw/promotions?limit=20') {
+  else if (
+    dashboardBookings.some(
+      (booking) => req.url === `/hw/payments/${booking.bookingId}`,
+    )
+  ) {
+    const booking = dashboardBookings.find(
+      (booking) => req.url === `/hw/payments/${booking.bookingId}`,
+    );
+    const managed = managementState(booking);
+    const nights =
+      (Date.parse(booking.checkOutDate) - Date.parse(booking.checkInDate)) /
+      86400000;
+    body = {
+      ...managed,
+      paymentOption: 'FULL',
+      amountDue: booking.totalAmount,
+      paymentReference: 'fixture-management-payment',
+      holdExpiresAt: null,
+      paymentState:
+        managed.balanceAmount || managed.refundAmount
+          ? 'REVIEW_REQUIRED'
+          : 'PAID',
+      verificationDelayed: false,
+      emailStatus: 'SANDBOX',
+      priceSnapshot: {
+        nights,
+        nightlyRate: booking.totalAmount / nights,
+        subtotal: booking.totalAmount,
+        lineItems: [],
+      },
+    };
+  } else if (req.url === '/hw/promotions?limit=20') {
     status = offerStatus;
     body = { items: offers };
   } else if (req.url === '/hw/guests/me')
@@ -511,6 +686,128 @@ try {
   });
   console.log(
     'PASS: guest dashboard categories/counts, pagination, detail, escaped requests, missing booking, empty/error/expired states, mobile layout and sign-out.',
+  );
+  // DDP-#29: review-first booking management through server actions.
+  await command('Page.navigate', {
+    url: `${origin}/profile/bookings/${dashboardBookings[0].bookingId}`,
+  });
+  await text('Change booking');
+  await click('Cancel booking');
+  await text('Full refund for staff processing:');
+  assert.equal(savedManagementOperations, 0);
+  await click('Keep booking');
+  await until(
+    () =>
+      evaluate(
+        `!document.querySelector('dialog').open && document.activeElement.textContent.trim() === 'Cancel booking'`,
+      ),
+    'cancel back-out returns focus',
+  );
+  await click('Change booking');
+  await text('Choose your new stay');
+  await evaluate(
+    `document.querySelector('select[name=roomTypeId]').value = ${JSON.stringify(cheaperRoom.roomTypeId)}`,
+  );
+  await fill('input[name=checkOutDate]', '2099-12-13');
+  await evaluate(
+    `document.querySelector('textarea[name=specialRequests]').value = 'Quiet room please'`,
+  );
+  await click('Preview changes');
+  await text('Extra payment for staff to arrange:');
+  await text('Review your booking change');
+  assert.equal(savedManagementOperations, 0);
+  assert.equal(
+    await evaluate('document.activeElement.id'),
+    'management-dialog-title',
+  );
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 390,
+    height: 844,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
+  assert.equal(
+    await evaluate(
+      `document.querySelector('dialog').scrollWidth <= document.querySelector('dialog').clientWidth`,
+    ),
+    true,
+  );
+  await command('Emulation.clearDeviceMetricsOverride');
+  await evaluate(
+    `(() => { const button = [...document.querySelectorAll('button')].find((button) => button.textContent.trim() === 'Confirm booking change'); button.click(); button.click(); })()`,
+  );
+  await text('Your booking change has been verified.');
+  await text('Staff must resolve the outstanding payment');
+  assert.equal(savedManagementOperations, 1);
+  await until(
+    () =>
+      evaluate(
+        `document.querySelector('article').innerText.includes('30,000') && document.querySelector('article').innerText.includes('13 Dec 2099')`,
+      ),
+    'saved price and dates refresh',
+  );
+  await evaluate(
+    `document.querySelector('a[href^="/booking/confirmation?bookingId="]').click()`,
+  );
+  await text('Payment requires hotel review');
+  await text('Change or cancel booking');
+  assert.match(await evaluate('document.body.innerText'), /30,000/);
+  await evaluate(
+    `document.querySelector('a[href$="#manage-booking"]').click()`,
+  );
+  await text('Staff must resolve the outstanding payment');
+  await command('Page.navigate', {
+    url: `${origin}/profile/bookings/${dashboardBookings[1].bookingId}`,
+  });
+  await text('Cancel booking');
+  await click('Cancel booking');
+  managementReject = 409;
+  await click('Confirm cancellation');
+  await text('The 24-hour deadline');
+  assert.equal(savedManagementOperations, 1);
+  assert.equal(dashboardBookings[1].status, 'CONFIRMED');
+  managementReject = 0;
+  await click('Keep booking');
+  await click('Cancel booking');
+  managementUncertainOnce = true;
+  await click('Confirm cancellation');
+  await text('Retry same request');
+  assert.equal(savedManagementOperations, 2);
+  await click('Retry same request');
+  await text('Your booking is cancelled.');
+  await text('No refund has been issued by this request.');
+  await text('Update email validated in sandbox. No email was delivered.');
+  assert.equal(savedManagementOperations, 2);
+  await until(
+    () =>
+      evaluate(
+        `document.querySelector('article').innerText.includes('Cancelled')`,
+      ),
+    'saved cancellation refresh',
+  );
+  managementLate = true;
+  await command('Page.navigate', {
+    url: `${origin}/profile/bookings/${dashboardBookings[2].bookingId}`,
+  });
+  await text('The 24-hour deadline');
+  assert.equal(
+    await evaluate(
+      `[...document.querySelectorAll('button')].some((button) => button.textContent.trim() === 'Change booking')`,
+    ),
+    false,
+  );
+  managementLate = false;
+  await command('Page.reload');
+  await text('Cancel booking');
+  await click('Cancel booking');
+  managementReject = 401;
+  await click('Confirm cancellation');
+  await text('Your session expired. Sign in again');
+  assert.equal(savedManagementOperations, 2);
+  managementReject = 0;
+  await click('Keep booking');
+  console.log(
+    'PASS: management review/back-out/focus, repricing, duplicate-click protection, refreshed details, strict cutoff/server rejection, stable retry after an ambiguous cancellation, refund/email honesty and session expiry.',
   );
   await command('Page.navigate', {
     url: `${origin}/booking?${stayQuery}&step=select`,

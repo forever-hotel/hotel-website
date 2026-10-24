@@ -1,6 +1,8 @@
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
+import { Suspense } from 'react';
+import { BookingManagementPanel } from '@/features/bookings/management-panel';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { guestRequest } from '@/features/bookings/api';
@@ -56,7 +58,17 @@ export default async function BookingDetailPage({
                 Requests are subject to availability and hotel confirmation.
               </p>
             </section>
-            {booking.category === 'upcoming' && (
+            <Suspense
+              fallback={
+                <section id="manage-booking">
+                  <h2>Manage your booking</h2>
+                  <p role="status">Loading management options…</p>
+                </section>
+              }
+            >
+              <BookingManagementPanel id={bookingId} />
+            </Suspense>
+            {booking.currency === 'LKR' && (
               <section>
                 <h2>Reservation and payment status</h2>
                 <p>

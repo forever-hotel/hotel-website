@@ -4,6 +4,9 @@ These backend APIs let the signed-in owner modify or cancel a confirmed website
 booking. DDP-#29 owns the dashboard controls. The existing `/hw` gateway route
 already forwards them; no gateway configuration change is needed.
 
+The implemented guest controls and their manual/browser verification steps are
+documented in [booking management UI](booking-management-ui.md).
+
 ## Policy
 
 The user selected full refunds for eligible cancellations and staff review of

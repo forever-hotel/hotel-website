@@ -17,6 +17,11 @@
 
 ### Added
 
+- DDP-#29: booking change and cancellation dialogs from reservation details,
+  linked from Profile rows and payment confirmation. Includes server eligibility,
+  cutoff and refund explanations, authoritative price previews, explicit review,
+  request retry protection, refreshed booking/payment views and browser tests.
+
 - DDP-#27: guest booking dashboard with category counts, Upcoming/Past/Cancelled
   navigation, pagination and protected reservation details. Includes hotel-date
   classification, expired-hold labels, image fallbacks, loading/empty/error
