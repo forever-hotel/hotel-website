@@ -1,0 +1,28 @@
+name: hotel-website-staging
+
+services:
+  frontend:
+    image: ${FRONTEND_IMAGE:?Use an immutable frontend image digest}
+    env_file: ${STAGING_FRONTEND_ENV_FILE:?Set the host frontend env file}
+    restart: unless-stopped
+    init: true
+    networks:
+      staging:
+        aliases: [hotel-website-frontend]
+  backend:
+    image: ${BACKEND_IMAGE:?Use an immutable backend image digest}
+    env_file: ${STAGING_BACKEND_ENV_FILE:?Set the host backend env file}
+    environment:
+      NODE_ENV: production
+      DB_SYNCHRONIZE: "false"
+      DB_LOGGING: "false"
+    restart: unless-stopped
+    init: true
+    networks:
+      staging:
+        aliases: [hotel-website-backend]
+
+networks:
+  staging:
+    external: true
+    name: ${STAGING_NETWORK:?Use the infra-managed gateway network}

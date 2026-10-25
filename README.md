@@ -57,10 +57,14 @@ check, and the backend starts after that passes.
 Only frontend port 3001 is published, bound to `127.0.0.1`. The backend and
 database have no published ports and share a private, externally isolated
 network. This Compose file is a local scaffold smoke environment, not the shared
-production infrastructure. It adds no API gateway routes and the current frontend
-does not call the backend. Infra must attach its approved gateway and configure
+production infrastructure. It adds no API gateway routes. Frontend API calls
+require `API_GATEWAY_URL`; infra must attach its approved gateway and configure
 TLS, routes, secrets and controlled outbound access before real integrations.
-The private backend network intentionally cannot reach Stripe or SendGrid.
+The private backend network intentionally cannot reach payment or email providers.
+
+For reviewed, digest-pinned staging releases, smoke verification and rollback,
+see [the staging runbook](deploy/staging/README.md). The staging stack uses an
+infra-managed gateway network and database; it does not create a database.
 
 ### Verify the containers
 
