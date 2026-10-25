@@ -351,4 +351,160 @@ describe('HTTP producer → actual frontend consumer contracts', () => {
       created.data.checkout.fields.amount,
     );
   }, 60000);
+
+  it('security: denies foreign mutations and recovery before contacting the payment provider', async () => {
+    const created = await checkout();
+    const id = created.data.bookingId;
+    const quoteId = json<QuoteBody>(created.quote).quoteId;
+    receipts = [
+      {
+        paymentId: '123456789',
+        orderId: created.data.checkout.fields.order_id,
+        amount: json<QuoteBody>(created.quote).totalAmount,
+        status: 'RECEIVED',
+      },
+    ];
+    await notify(notification(created.data)).expect(200);
+    const changeQuote = await post(
+      `/bookings/${id}/change-quote`,
+      stay(),
+    ).expect(200);
+    receiptMock.mockClear();
+    const recovered = await get(`/payments/recovery/${quoteId}`, other).expect(
+      200,
+    );
+    expect(recovered.body).toEqual({ bookingId: null });
+    for (const [path, input, expectedStatus] of [
+      [`/payments/${id}/resume`, { paymentOption: 'FULL' }, 404],
+      [`/payments/${id}/cancel`, {}, 404],
+      [`/bookings/${id}/change-quote`, stay(), 404],
+      [
+        `/bookings/${id}/changes`,
+        { quoteToken: json<QuoteBody>(changeQuote).quoteToken },
+        400,
+      ],
+      [`/bookings/${id}/cancellations`, { revision: 0 }, 404],
+    ] as const) {
+      await post(path, input, other).expect(expectedStatus);
+      await post(path, input, 'invalid-token').expect(401);
+      await request(fixture.app.getHttpServer())
+        .post(`/hw${path}`)
+        .send(input)
+        .expect(401);
+    }
+    expect(receiptMock).not.toHaveBeenCalled();
+    const status = await get(`/payments/${id}`).expect(200);
+    expect(status.headers['cache-control']).toBe('no-store');
+    expect(json<{ status: string; paidAmount: number }>(status)).toMatchObject({
+      status: 'CONFIRMED',
+      paidAmount: json<QuoteBody>(created.quote).totalAmount,
+    });
+    expect(emails).toHaveLength(1);
+  }, 60000);
+
+  it('security: rejects card fields, forged identity and injection; stores only whitelisted payment metadata', async () => {
+    const quote = await post('/booking-quotes', stay()).expect(201);
+    const input = {
+      quoteToken: json<QuoteBody>(quote).quoteToken,
+      paymentOption: 'FULL',
+      billing: {
+        firstName: 'Contract',
+        lastName: 'Guest',
+        phone: '0771234567',
+        address: 'Fixture street',
+        city: 'Colombo',
+        country: 'Sri Lanka',
+      },
+    };
+    for (const field of ['cardNumber', 'cvv', 'expiryDate']) {
+      await post('/payments/checkout', {
+        ...input,
+        billing: { ...input.billing, [field]: 'security-card-canary' },
+      }).expect(400);
+    }
+    await post('/payments/checkout', {
+      ...input,
+      guestId: randomUUID(),
+    }).expect(400);
+    await post('/booking-quotes', {
+      ...stay(),
+      roomTypeId: "' OR 1=1 --",
+    }).expect(400);
+    await request(fixture.app.getHttpServer())
+      .post('/hw/guests/login')
+      .send({
+        email: "' OR 1=1 --",
+        password: 'contract-fixture-passphrase',
+      })
+      .expect(400);
+    const checkoutResponse = await post('/payments/checkout', input).expect(
+      201,
+    );
+    const data = json<CheckoutBody>(checkoutResponse);
+    const payload = notification(data);
+    receipts = [
+      {
+        paymentId: payload.payment_id,
+        orderId: payload.order_id,
+        amount: json<QuoteBody>(quote).totalAmount,
+        status: 'RECEIVED',
+      },
+    ];
+    // Provider callbacks can carry extra PII. Never persist the raw body.
+    await notify({
+      ...payload,
+      card_no: 'security-card-canary',
+      customer_token: 'security-provider-canary',
+    }).expect(200);
+    await notify(payload).expect(200);
+    expect(emails).toHaveLength(1);
+    const status = await get(`/payments/${data.bookingId}`).expect(200);
+    const publicData = JSON.stringify(status.body);
+    expect(publicData).not.toMatch(
+      /billing|password|merchant.secret|security-.*canary|contract-fixture-passphrase/i,
+    );
+    const rows: unknown = await fixture.runner.query(
+      'SELECT price_snapshot FROM pg_temp.bookings WHERE booking_id=$1',
+      [data.bookingId],
+    );
+    expect(JSON.stringify(rows)).not.toMatch(
+      /security-.*canary|fixture-only-merchant-secret|contract-fixture-passphrase/,
+    );
+    const guests = (await fixture.runner.query(
+      'SELECT password_hash FROM pg_temp.guests',
+    )) as { password_hash: string }[];
+    expect(guests).toHaveLength(2);
+    for (const guest of guests)
+      expect(guest.password_hash).toMatch(/^\$2[aby]\$/);
+    await post(`/bookings/${data.bookingId}/change-quote`, {
+      ...stay(),
+      specialRequests: '<script>alert(1)</script>',
+    }).expect(400);
+  }, 60000);
+
+  it('security: enquiry validation and throttling cannot be bypassed with forwarded IP headers', async () => {
+    const input = {
+      name: 'Security Guest',
+      email: 'security@example.invalid',
+      subject: 'General enquiry',
+      message: 'Please explain your room facilities.',
+    };
+    await post('/contact/enquiries', {
+      ...input,
+      name: 'Guest\r\nBcc: victim@example.invalid',
+    }).expect(400);
+    const results: number[] = [];
+    for (let index = 0; index < 6; index++) {
+      const response = await request(fixture.app.getHttpServer())
+        .post('/hw/contact/enquiries')
+        .set('X-Forwarded-For', `198.51.100.${index + 1}`)
+        .send(input);
+      results.push(response.status);
+    }
+    expect(results[5]).toBe(429);
+    expect(results.every((status) => status === 202 || status === 429)).toBe(
+      true,
+    );
+    expect(emails.length).toBeLessThanOrEqual(5);
+  }, 60000);
 });

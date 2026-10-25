@@ -294,6 +294,11 @@ The folders `config/`, `database/`, `common/`, and `health/`, plus the test setu
 
 ## Booking and payment persistence (DDP-#21)
 
+Guest/payment security checks (DDP-#33) run with `npm run test:security`.
+See the [security review](../documents/testing/security-review.md) for findings,
+test coverage, safe database prerequisites and deployment checks. Production
+rejects `DB_LOGGING=true` to prevent parameter-bearing SQL logs.
+
 The HTTP producer/consumer integration suite (DDP-#30) runs with
 `npm run test:contracts`. It uses real application wiring, temporary PostgreSQL
 fixtures and the actual frontend response parsers. See

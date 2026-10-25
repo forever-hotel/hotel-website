@@ -7,6 +7,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- DDP-#33: remove raw exception stacks from server logs and reject production
+  SQL logging. Extend HTTP security checks for guest ownership, payment metadata,
+  input injection and enquiry throttling; document staging verification limits.
+
 - Guest registration now checks normalized email under a transaction-scoped
   PostgreSQL advisory lock, preventing duplicate registrations through this
   service when the deployed schema lacks its email uniqueness constraint.
