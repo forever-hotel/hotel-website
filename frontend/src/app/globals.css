@@ -34,7 +34,7 @@ button:focus-visible,
 summary:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--champagne);
+  outline: 3px solid #a36f12;
   outline-offset: 5px;
 }
 button,
@@ -79,7 +79,7 @@ footer {
     500 0.62rem/1.6 Arial,
     sans-serif;
   letter-spacing: 0.28em;
-  color: var(--champagne);
+  color: #795b2c;
 }
 .button {
   display: inline-flex;
@@ -111,7 +111,7 @@ footer {
 }
 .button-outline {
   border-color: #746044;
-  color: #e6d6b7;
+  color: inherit;
   background: transparent;
 }
 .button-blue {
@@ -193,6 +193,11 @@ footer {
 }
 .hero .eyebrow {
   margin-bottom: 28px;
+  color: var(--champagne);
+}
+.services .eyebrow,
+.offers > .section-heading .eyebrow {
+  color: var(--champagne);
 }
 h1 {
   font-size: clamp(3.5rem, 6.5vw, 6.8rem);
@@ -487,7 +492,7 @@ h1 em {
 }
 .preview-note {
   font-size: 0.7rem;
-  color: #7c7469;
+  color: #6d6459;
   margin-top: 18px;
 }
 .offers {
@@ -569,7 +574,7 @@ h1 em {
   font:
     0.55rem Arial,
     sans-serif;
-  color: #80776b;
+  color: #6d6459;
 }
 .testimonial figcaption span {
   font-size: 0.5rem;
@@ -578,6 +583,7 @@ h1 em {
   padding: 80px 6% 90px;
 }
 .faq > .eyebrow {
+  color: var(--champagne);
   margin-bottom: 20px;
 }
 .faq-grid {
@@ -660,6 +666,8 @@ details > p {
 }
 .footer-grid a:not(.wordmark) {
   display: block;
+  min-height: 32px;
+  padding-block: 4px;
 }
 .footer-brand > p {
   max-width: 250px;
@@ -858,5 +866,6 @@ details > p {
   *:after {
     scroll-behavior: auto !important;
     transition: none !important;
+    animation: none !important;
   }
 }

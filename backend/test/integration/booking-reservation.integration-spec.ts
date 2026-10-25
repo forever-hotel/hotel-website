@@ -2,8 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { randomUUID } from 'crypto';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { ensureTemporaryCheckoutSchema } from '../support/checkout-fixture';
 import { DataSource, EntityManager, QueryRunner } from 'typeorm';
 import { AppModule } from '../../src/app.module';
 import { BookingRepository } from '../../src/database/repositories/booking.repository';
@@ -42,11 +41,7 @@ describe('Reservation persistence (temporary PostgreSQL fixtures)', () => {
       await runner.query(
         `CREATE TEMP TABLE ${table} (LIKE public.${table} INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES) ON COMMIT DROP`,
       );
-    const proposal = readFileSync(
-      resolve(__dirname, '../../../documents/api/booking-storage-proposal.sql'),
-      'utf8',
-    ).replaceAll('CREATE TABLE ', 'CREATE TEMP TABLE ');
-    await runner.query(proposal);
+    await ensureTemporaryCheckoutSchema(runner);
     guestId = randomUUID();
     roomTypeId = randomUUID();
     await runner.query(

@@ -1,5 +1,10 @@
 # Guided booking flow — GitHub #171 / DDP-#23
 
+Update: GitHub #178 / DDP-#25 now implements the payment handoff's hosted Stripe
+test checkout and final status screen. The descriptions below record the #23
+screen boundary; see [the current payment flow](stripe-checkout.md) for payment
+configuration, full-payment-only policy, 35-minute holds and verified confirmation.
+
 `/booking` implements selection, room configuration and guest information, then
 a payment handoff. It shares the existing room catalogue, search and calendar.
 All five milestones are visible: Select Room, Room Details, Guest Info, Payment,

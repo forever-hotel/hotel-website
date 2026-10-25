@@ -78,7 +78,7 @@ export function RoomCard({
               bookingHref ||
               `/booking?roomTypeId=${room.roomTypeId}&step=select`
             }
-            aria-label={`Select ${room.typeName} for your stay`}
+            aria-label={`${bookingHref ? 'Select room' : 'Check dates'}: ${room.typeName}`}
           >
             {bookingHref ? 'Select room' : 'Check dates'}
           </Link>

@@ -5,7 +5,10 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { getRoomCatalogue } from '@/features/rooms/catalogue';
 import { BookingFlow } from '@/features/booking/booking-flow';
+import { paymentRequest } from '@/features/booking/payments-api';
+import { validBookingId } from '@/features/booking/payment';
 import styles from '@/features/booking/booking.module.css';
+import { PendingCheckoutChoice } from '@/features/booking/pending-checkout-choice';
 
 export const metadata = {
   title: 'Book your stay | Forever City Hotel',
@@ -33,6 +36,35 @@ export default async function BookingPage({
   const login = `/sign-in?returnTo=${encodeURIComponent(returnTo)}`;
   const token = (await cookies()).get('hw_guest_session')?.value;
   if (!token) redirect(login);
+  const recoveryQuote = (await cookies()).get('hw_checkout_preview')?.value;
+  let recoveryBookingId = '';
+  let recoveryUnavailable = false;
+  let recoveryExpired = false;
+  if (recoveryQuote && validBookingId(recoveryQuote)) {
+    try {
+      const response = await paymentRequest(
+        process.env.API_GATEWAY_URL,
+        token,
+        `/recovery/${recoveryQuote}`,
+      );
+      recoveryExpired = response.status === 401;
+      if (!response.ok) throw new Error('Recovery unavailable');
+      const result = await response.json();
+      if (
+        typeof result?.bookingId === 'string' &&
+        validBookingId(result.bookingId)
+      )
+        recoveryBookingId = result.bookingId;
+    } catch {
+      recoveryUnavailable = true;
+    }
+  }
+  if (recoveryExpired) redirect(login);
+  const nextSelection = new URLSearchParams(safeParams);
+  nextSelection.set(
+    'step',
+    nextSelection.get('roomTypeId') ? 'details' : 'select',
+  );
   let guest: { fullName: string; email: string } | null = null;
   let expired = false;
   const catalogue = await getRoomCatalogue();
@@ -58,13 +90,35 @@ export default async function BookingPage({
     <>
       <SiteHeader />
       <main id="main-content" tabIndex={-1} className={styles.page}>
-        {guest && catalogue.state === 'ready' && catalogue.rooms.length ? (
+        {recoveryBookingId ? (
+          <section className={styles.panel}>
+            <h1>An earlier checkout is still open</h1>
+            <p>
+              Your new selection has not replaced that booking. Its room, dates
+              and price are still the ones from the earlier checkout.
+            </p>
+            <p>
+              Review the previous booking, or cancel its unpaid checkout to
+              continue with your newly selected room and dates. Cancellation
+              checks payment status first.
+            </p>
+            <PendingCheckoutChoice
+              bookingId={recoveryBookingId}
+              returnTo={`/booking?${nextSelection}`}
+            />
+          </section>
+        ) : !recoveryUnavailable &&
+          guest &&
+          catalogue.state === 'ready' &&
+          catalogue.rooms.length ? (
           <BookingFlow rooms={catalogue.rooms} guest={guest} />
         ) : (
           <section className={styles.panel}>
             <h1>Book your stay</h1>
             <p role="alert" className={styles.error}>
-              Your account or rooms could not be loaded.
+              {recoveryUnavailable
+                ? 'An earlier checkout could not be checked. Retry recovery before starting another payment.'
+                : 'Your account or rooms could not be loaded.'}
             </p>
             <Link href={returnTo}>Try again</Link>
           </section>

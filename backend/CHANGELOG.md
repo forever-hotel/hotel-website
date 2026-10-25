@@ -7,6 +7,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- DDP-#34: use distinct guests in the pooled-transaction last-room regression.
+  Add a configurable mixed HTTP load runner, threshold/payload/timeout reports,
+  real-inventory contention checks and a staging evidence checklist.
+
+- DDP-#33: remove raw exception stacks from server logs and reject production
+  SQL logging. Extend HTTP security checks for guest ownership, payment metadata,
+  input injection and enquiry throttling; document staging verification limits.
+
 - Guest registration now checks normalized email under a transaction-scoped
   PostgreSQL advisory lock, preventing duplicate registrations through this
   service when the deployed schema lacks its email uniqueness constraint.
@@ -17,6 +25,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Documented the proposed per-service authentication architecture in ADR 001; team and gateway approval remain pending.
 
 ### Added
+
+- Stripe test checkout and verified payment confirmation (#178): full-payment
+  flow, approved 35-minute payment holds, stable provider idempotency, owned
+  status/recovery, cancellation and late-payment refund recovery using existing
+  tables. Frontend adds a secure handoff and printable confirmation/status view.
 
 - Checkout persistence refactor: replace quote/idempotency tables with five
   proposed nullable bookings fields. Quotes are signed previews; starting payment

@@ -5,6 +5,14 @@ import { resolve } from 'path';
 import { DataSource } from 'typeorm';
 import { BookingRepository } from '../../src/database/repositories/booking.repository';
 import { BookingsService } from '../../src/bookings/bookings.service';
+import { PaymentRepository } from '../../src/database/repositories/payment.repository';
+import type Stripe from 'stripe';
+import { ConfirmationEmailRepository } from '../../src/payments/confirmation-email.repository';
+import { PayHereRepository } from '../../src/payments/payhere.repository';
+import { BookingManagementRepository } from '../../src/bookings/booking-management.repository';
+import { BookingManagementService } from '../../src/bookings/booking-management.service';
+import { BookingChangeEmailService } from '../../src/bookings/booking-change-email.service';
+import { PROJECT_MANAGEMENT_POLICY } from '../../src/bookings/management-policy';
 
 // Explicitly enabled only for the disposable localhost PostgreSQL CI service.
 const raceTests =
@@ -42,7 +50,13 @@ raceTests(
         ...options,
         extra: { options: `-c search_path=${schema},public`, max: 5 },
       }).initialize();
-      for (const table of ['guests', 'room_types', 'rooms', 'bookings'])
+      for (const table of [
+        'guests',
+        'room_types',
+        'rooms',
+        'bookings',
+        'payments',
+      ])
         await source.query(
           `CREATE TABLE "${schema}".${table} (LIKE public.${table} INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)`,
         );
@@ -54,6 +68,12 @@ raceTests(
           ),
           'utf8',
         ),
+      );
+      await source.query(
+        `CREATE TYPE "${schema}".payment_method AS ENUM ('STRIPE','CASH','CARD_ON_SITE','PAYHERE')`,
+      );
+      await source.query(
+        `ALTER TABLE "${schema}".payments ALTER COLUMN payment_method TYPE "${schema}".payment_method USING payment_method::text::"${schema}".payment_method`,
       );
       service = new BookingsService(new BookingRepository(source), {
         get: () =>
@@ -74,7 +94,7 @@ raceTests(
     });
     beforeEach(async () => {
       await source.query(
-        `TRUNCATE ${['bookings', 'rooms', 'room_types', 'guests'].map((table) => `"${schema}".${table}`).join(',')}`,
+        `TRUNCATE ${['payments', 'bookings', 'rooms', 'room_types', 'guests'].map((table) => `"${schema}".${table}`).join(',')}`,
       );
       guestId = randomUUID();
       roomTypeId = randomUUID();
@@ -102,15 +122,92 @@ raceTests(
       checkOutDate: '2099-12-12',
       numberOfGuests: 2,
     });
+    it('serializes a confirmed-booking date change against a competing last-room reservation', async () => {
+      const originalQuote = await service.createQuote(guestId, quoteInput());
+      const original = await service.createReservation(
+        guestId,
+        { quoteToken: originalQuote.quoteToken },
+        'management-original-key',
+      );
+      await source.query(
+        "UPDATE bookings SET status='CONFIRMED' WHERE booking_id=$1",
+        [original.bookingId],
+      );
+      await source.query(
+        "INSERT INTO payments (booking_id,payment_method,amount,payment_status) VALUES ($1,'CASH',$2,'COMPLETED')",
+        [original.bookingId, original.totalAmount],
+      );
+      const settings: Record<string, string> = {
+        NODE_ENV: 'test',
+        'jwt.secret': 'ci-management-test-signing-secret-over-32-chars',
+        BOOKING_MANAGEMENT_POLICY: JSON.stringify(PROJECT_MANAGEMENT_POLICY),
+        BOOKING_PRICING_POLICY: JSON.stringify({
+          version: 'ci-fixture-only',
+          rateBasis: 'INCLUSIVE',
+          charges: [],
+        }),
+      };
+      const management = new BookingManagementService(
+        new BookingManagementRepository(source),
+        new BookingRepository(source),
+        { get: (key: string) => settings[key] } as ConfigService,
+        {
+          send: () => Promise.resolve('SANDBOX'),
+        } as unknown as BookingChangeEmailService,
+      );
+      const target = {
+        ...quoteInput(),
+        checkInDate: '2099-12-14',
+        checkOutDate: '2099-12-16',
+      };
+      const change = await management.quote(
+        guestId,
+        original.bookingId,
+        target,
+      );
+      const competing = await service.createQuote(guestId, target);
+      const results = await Promise.allSettled([
+        management.modify(
+          guestId,
+          original.bookingId,
+          change.quoteToken,
+          'management-change-key',
+        ),
+        service.createReservation(
+          guestId,
+          { quoteToken: competing.quoteToken },
+          'management-competitor-key',
+        ),
+      ]);
+      expect(
+        results.filter((result) => result.status === 'fulfilled'),
+      ).toHaveLength(1);
+      const [overlap] = await source.query<{ count: number }[]>(
+        "SELECT count(*)::int AS count FROM bookings WHERE room_type_id=$1 AND status IN ('CONFIRMED','PENDING') AND check_in_date<'2099-12-16' AND check_out_date>'2099-12-14'",
+        [roomTypeId],
+      );
+      expect(overlap.count).toBe(1);
+    });
     it('allows only one last-room reservation across simultaneous transactions', async () => {
+      const otherGuest = randomUUID();
+      await source.query(
+        'INSERT INTO guests (guest_id,full_name,email,password_hash) VALUES ($1,$2,$3,$4)',
+        [
+          otherGuest,
+          'Other CI Guest',
+          `${otherGuest}@example.invalid`,
+          'fixture-hash',
+        ],
+      );
+      const guests = [guestId, otherGuest];
       const quotes = await Promise.all([
         service.createQuote(guestId, quoteInput()),
-        service.createQuote(guestId, quoteInput()),
+        service.createQuote(otherGuest, quoteInput()),
       ]);
       const results = await Promise.allSettled(
         quotes.map((quote, index) =>
           service.createReservation(
-            guestId,
+            guests[index],
             { quoteToken: quote.quoteToken },
             `ci-attempt-${index}`,
           ),
@@ -148,6 +245,116 @@ raceTests(
       expect(
         await source.query('SELECT count(*)::int AS count FROM bookings'),
       ).toEqual([{ count: 1 }]);
+    });
+    it('prepares and confirms exactly one payment under simultaneous retries', async () => {
+      const quote = await service.createQuote(guestId, quoteInput());
+      const booking = await service.createReservation(
+        guestId,
+        { quoteToken: quote.quoteToken },
+        'ci-stripe-attempt',
+      );
+      const payments = new PaymentRepository(source);
+      const prepared = await Promise.all([
+        payments.prepare(booking.bookingId, guestId, 'FULL', null, 35),
+        payments.prepare(booking.bookingId, guestId, 'FULL', null, 35),
+      ]);
+      expect(prepared[0]).toEqual(prepared[1]);
+      const session = {
+        id: 'cs_test_ci_fixture',
+        livemode: false,
+        mode: 'payment',
+        status: 'complete',
+        payment_status: 'paid',
+        amount_total: 2000000,
+        currency: 'lkr',
+        client_reference_id: booking.bookingId,
+        metadata: {
+          bookingId: booking.bookingId,
+          paymentId: prepared[0].paymentId,
+        },
+        payment_intent: 'pi_ci_fixture',
+        url: null,
+      } as Stripe.Checkout.Session;
+      await Promise.all([payments.settle(session), payments.settle(session)]);
+      expect(
+        await source.query('SELECT count(*)::int AS count FROM payments'),
+      ).toEqual([{ count: 1 }]);
+      expect(await payments.status(booking.bookingId, guestId)).toMatchObject({
+        status: 'CONFIRMED',
+        paidAmount: 2000000,
+        balanceAmount: 0,
+      });
+      const mail = new ConfirmationEmailRepository(source);
+      const claims = await Promise.all([
+        mail.claim(booking.bookingId),
+        mail.claim(booking.bookingId),
+        mail.claim(booking.bookingId),
+      ]);
+      expect(claims.filter(Boolean)).toHaveLength(1);
+      await mail.finish(booking.bookingId, 'ACCEPTED');
+      expect(await mail.claim(booking.bookingId)).toBeNull();
+    });
+    it('creates and settles one PayHere payment across concurrent requests and claims one receipt', async () => {
+      const quote = await service.createQuote(guestId, quoteInput());
+      const booking = await service.createReservation(
+        guestId,
+        { quoteToken: quote.quoteToken },
+        'ci-payhere-attempt',
+      );
+      const payments = new PayHereRepository(source);
+      const billing = {
+        firstName: 'Test',
+        lastName: 'Guest',
+        phone: '0771234567',
+        address: 'Test street',
+        city: 'Colombo',
+        country: 'Sri Lanka',
+      };
+      const prepared = await Promise.all([
+        payments.prepareCheckout(
+          booking.bookingId,
+          guestId,
+          'sandbox',
+          billing,
+        ),
+        payments.prepareCheckout(
+          booking.bookingId,
+          guestId,
+          'sandbox',
+          billing,
+        ),
+      ]);
+      expect(prepared[0]).toEqual(prepared[1]);
+      const receipt = {
+        orderId: prepared[0].paymentId,
+        paymentId: '12345',
+        amount: 2000000,
+        status: 'RECEIVED',
+      };
+      await Promise.all([
+        payments.settleReceipts(booking.bookingId, receipt.orderId, 'sandbox', [
+          receipt,
+        ]),
+        payments.settleReceipts(booking.bookingId, receipt.orderId, 'sandbox', [
+          receipt,
+        ]),
+      ]);
+      expect(
+        await source.query('SELECT count(*)::int AS count FROM payments'),
+      ).toEqual([{ count: 1 }]);
+      expect(await payments.status(booking.bookingId, guestId)).toMatchObject({
+        status: 'CONFIRMED',
+        paidAmount: 2000000,
+      });
+      const email = new ConfirmationEmailRepository(source);
+      expect(
+        (
+          await Promise.all([
+            email.claim(booking.bookingId),
+            email.claim(booking.bookingId),
+          ])
+        ).filter(Boolean),
+      ).toHaveLength(1);
     });
   },
 );

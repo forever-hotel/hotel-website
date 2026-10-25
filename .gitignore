@@ -15,3 +15,11 @@ temp_interactive_push.bat
 /frontend/out/
 /frontend/next-env.d.ts
 /frontend/*.tsbuildinfo
+/frontend/.test-artifacts/
+
+# Generated integration-test reports
+/backend/integration-results.json
+
+# Performance accounts and environment-specific reports
+/performance/*.local.json
+/performance/results/

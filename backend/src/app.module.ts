@@ -12,6 +12,7 @@ import { RoomTypesModule } from './room-types/room-types.module';
 import { ContactModule } from './contact/contact.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { PromotionsModule } from './promotions/promotions.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { PromotionsModule } from './promotions/promotions.module';
     ContactModule,
     BookingsModule,
     PromotionsModule,
+    PaymentsModule,
     // Further feature modules (bookings, payments, ...) are added here.
   ],
   providers: [
