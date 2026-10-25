@@ -17,6 +17,11 @@
 
 ### Added
 
+- DDP-#31: automated Home/Rooms-to-booking browser journey through registration
+  and sign-in forms with retained stay selection, failed-payment/forged-return
+  rejection and a confirmed reservation in My Bookings. Adds `test:e2e`, a CI
+  browser job and optional result/failure artifacts using isolated provider fixtures.
+
 - DDP-#29: booking change and cancellation dialogs from reservation details,
   linked from Profile rows and payment confirmation. Includes server eligibility,
   cutoff and refund explanations, authoritative price previews, explicit review,

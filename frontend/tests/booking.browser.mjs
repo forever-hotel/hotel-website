@@ -5,9 +5,9 @@ import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 const browserPath =
@@ -55,6 +55,30 @@ let paymentBookingId = '33333333-3333-4333-8333-333333333333';
 let checkoutCreated = false;
 let paid = false;
 let paymentCancelled = false;
+let journeyActive = false;
+let journeyAccount = null;
+let availabilityStock = 1;
+const journeyBookingIds = [];
+const journeyEvidence = {
+  registration: false,
+  loginReturn: false,
+  soldOut: false,
+  failedPayment: false,
+  forgedReturn: false,
+  confirmedProfile: false,
+};
+function syncJourneyBooking() {
+  if (!journeyActive || !journeyBookingIds.includes(paymentBookingId)) return;
+  const booking = dashboardBookings.find(
+    (item) => item.bookingId === paymentBookingId,
+  );
+  booking.status = paid
+    ? 'CONFIRMED'
+    : paymentCancelled
+      ? 'CANCELLED'
+      : 'PENDING';
+  booking.category = paymentCancelled ? 'cancelled' : 'upcoming';
+}
 const promotion = {
   promoId: 'ui-offer',
   code: 'UISTAY10',
@@ -149,13 +173,42 @@ const gateway = createServer(async (req, res) => {
   calls.push(req.url);
   let body;
   let status = 200;
-  if (req.url.startsWith('/hw/bookings?')) {
-    assert.equal(req.headers.authorization, 'Bearer fixture-session');
+  syncJourneyBooking();
+  if (req.url === '/hw/guests/register') {
+    assert.ok(journeyActive);
+    assert.equal(journeyAccount, null);
+    journeyAccount = JSON.parse(raw);
+    status = 201;
+    body = {
+      guestId: randomUUID(),
+      fullName: journeyAccount.fullName,
+      email: journeyAccount.email,
+    };
+  } else if (req.url === '/hw/guests/login') {
+    const input = JSON.parse(raw);
+    assert.equal(input.email, journeyAccount.email);
+    assert.equal(input.password, journeyAccount.password);
+    body = {
+      accessToken: 'fixture.session.token',
+      expiresIn: 3600,
+      tokenType: 'Bearer',
+    };
+  } else if (req.url.startsWith('/hw/bookings?')) {
+    assert.equal(
+      req.headers.authorization,
+      journeyActive ? 'Bearer fixture.session.token' : 'Bearer fixture-session',
+    );
     const query = new URL(req.url, 'http://fixture.invalid').searchParams;
     const category = query.get('category');
     const page = Number(query.get('page'));
     status = dashboardStatus;
-    const records = dashboardEmpty ? [] : dashboardBookings;
+    const records = dashboardEmpty
+      ? []
+      : journeyActive
+        ? dashboardBookings.filter((booking) =>
+            journeyBookingIds.includes(booking.bookingId),
+          )
+        : dashboardBookings;
     body = {
       items: records
         .filter((booking) => booking.category === category)
@@ -173,7 +226,10 @@ const gateway = createServer(async (req, res) => {
       pageSize: 20,
     };
   } else if (req.url.startsWith('/hw/bookings/')) {
-    assert.equal(req.headers.authorization, 'Bearer fixture-session');
+    assert.equal(
+      req.headers.authorization,
+      journeyActive ? 'Bearer fixture.session.token' : 'Bearer fixture-session',
+    );
     const match =
       /^\/hw\/bookings\/([^/]+)\/(management|change-quote|changes|cancellations)$/.exec(
         req.url,
@@ -316,6 +372,27 @@ const gateway = createServer(async (req, res) => {
       paymentCancelled = false;
     }
     checkoutCreated = true;
+    if (journeyActive && !journeyBookingIds.includes(paymentBookingId)) {
+      journeyBookingIds.push(paymentBookingId);
+      managementRooms.set(paymentBookingId, checkoutQuote.roomTypeId);
+      dashboardBookings.push({
+        bookingId: paymentBookingId,
+        roomType:
+          checkoutQuote.roomTypeId === cheaperRoom.roomTypeId
+            ? cheaperRoom.typeName
+            : room.typeName,
+        roomImage: null,
+        checkInDate: checkoutQuote.checkInDate,
+        checkOutDate: checkoutQuote.checkOutDate,
+        numberOfGuests: checkoutQuote.numberOfGuests,
+        totalAmount: checkoutQuote.totalAmount,
+        currency: 'LKR',
+        status: 'PENDING',
+        category: 'upcoming',
+        holdExpired: false,
+        specialRequests: 'Journey fixture request',
+      });
+    }
     body = {
       bookingId: paymentBookingId,
       checkoutUrl: null,
@@ -393,9 +470,12 @@ const gateway = createServer(async (req, res) => {
     status = offerStatus;
     body = { items: offers };
   } else if (req.url === '/hw/guests/me')
-    body = { fullName: 'UI Test Guest', email: 'ui@example.com' };
+    body =
+      journeyActive && journeyAccount
+        ? { fullName: journeyAccount.fullName, email: journeyAccount.email }
+        : { fullName: 'UI Test Guest', email: 'ui@example.com' };
   else if (req.url.startsWith('/hw/availability?'))
-    body = { availableCount: 1 };
+    body = { availableCount: availabilityStock };
   else if (req.url.includes('/availability-calendar')) {
     const query = new URL(req.url, 'http://fixture.invalid').searchParams;
     const days = [];
@@ -406,11 +486,11 @@ const gateway = createServer(async (req, res) => {
     )
       days.push({
         date: new Date(day).toISOString().slice(0, 10),
-        availableCount: 1,
+        availableCount: availabilityStock,
       });
     body = { days };
   } else if (req.url === '/hw/booking-quotes') {
-    status = quoteStatus;
+    status = journeyActive && availabilityStock === 0 ? 409 : quoteStatus;
     const stay = JSON.parse(raw);
     const nights =
       (Date.parse(stay.checkOutDate) - Date.parse(stay.checkInDate)) / 86400000;
@@ -451,6 +531,12 @@ await once(portServer, 'listening');
 const port = portServer.address().port;
 await new Promise((resolve) => portServer.close(resolve));
 const origin = `http://127.0.0.1:${port}`;
+const artifactDirectory = process.env.E2E_ARTIFACT_DIR
+  ? resolve(process.env.E2E_ARTIFACT_DIR)
+  : null;
+let appLog = '';
+let browserLog = '';
+let captureFailure;
 const profile = await mkdtemp(join(tmpdir(), 'hotel-booking-ui-'));
 const app = spawn(
   process.execPath,
@@ -468,7 +554,7 @@ const app = spawn(
       API_GATEWAY_URL: `http://127.0.0.1:${gateway.address().port}`,
     },
     windowsHide: true,
-    stdio: 'ignore',
+    stdio: ['ignore', 'ignore', 'pipe'],
   },
 );
 const browser = spawn(
@@ -478,12 +564,25 @@ const browser = spawn(
     '--disable-gpu',
     '--no-first-run',
     '--no-default-browser-check',
+    ...(process.env.CI === 'true' ? ['--no-sandbox'] : []),
     '--remote-debugging-port=0',
     `--user-data-dir=${profile}`,
     'about:blank',
   ],
-  { windowsHide: true, stdio: 'ignore' },
+  { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] },
 );
+app.stderr.on('data', (chunk) => {
+  appLog = (appLog + chunk.toString()).slice(-16000);
+});
+browser.stderr.on('data', (chunk) => {
+  browserLog = (browserLog + chunk.toString()).slice(-16000);
+});
+app.on('error', (error) => {
+  appLog += error.message;
+});
+browser.on('error', (error) => {
+  browserLog += error.message;
+});
 let socket;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function until(check, label) {
@@ -524,17 +623,24 @@ try {
     const response = JSON.parse(event.data);
     if (!response.id) return;
     const pending = waiting.get(response.id);
+    if (!pending) return;
     waiting.delete(response.id);
+    clearTimeout(pending.timer);
     if (response.error) pending.reject(new Error(response.error.message));
     else pending.resolve(response.result);
   });
   function command(method, params = {}) {
     return new Promise((resolve, reject) => {
       const id = ++sequence;
-      waiting.set(id, { resolve, reject });
+      const timer = setTimeout(() => {
+        waiting.delete(id);
+        reject(new Error(`Browser command timed out: ${method}`));
+      }, 10000);
+      waiting.set(id, { resolve, reject, timer });
       socket.send(JSON.stringify({ id, method, params }));
     });
   }
+  captureFailure = () => command('Page.captureScreenshot', { format: 'png' });
   async function evaluate(expression) {
     const result = await command('Runtime.evaluate', {
       expression,
@@ -576,6 +682,13 @@ try {
     );
   }
   async function fill(selector, value) {
+    await until(
+      () =>
+        evaluate(
+          `(() => { const input = document.querySelector(${JSON.stringify(selector)}); return Boolean(input && Object.keys(input).some((key) => key.startsWith('__reactProps$'))); })()`,
+        ),
+      `hydrated input ${selector}`,
+    );
     await evaluate(
       `(() => { const input = document.querySelector(${JSON.stringify(selector)}); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(value)}); input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); })()`,
     );
@@ -1075,6 +1188,216 @@ try {
   console.log(
     'PASS: booking/Offers recovery; explicit unpaid checkout cancellation; changed room and dates replace the previous 3-night LKR 90000 checkout with a 1-night LKR 10000 checkout; failed cancellation blocks a new payment; verified confirmation and print (isolated fixtures only).',
   );
+  // Complete a fresh visitor journey using the actual auth forms/server actions.
+  // Payment-provider outcomes remain deterministic fixture responses.
+  journeyActive = true;
+  checkoutCreated = false;
+  paid = false;
+  paymentCancelled = false;
+  checkoutQuoteId = '';
+  quoteStatus = 201;
+  expired = false;
+  offerStatus = 200;
+  availabilityStock = 0;
+  await command('Network.clearBrowserCookies');
+  await command('Page.navigate', { url: origin });
+  await text('Explore availability');
+  await fill('#plan-stay input[name=checkInDate]', '2099-12-20');
+  await fill('#plan-stay input[name=checkOutDate]', '2099-12-22');
+  await evaluate(
+    `document.querySelector('#plan-stay select[name=numberOfGuests]').value = '2'; document.querySelector('#plan-stay select[name=roomTypeId]').value = ${JSON.stringify(cheaperRoom.roomTypeId)}`,
+  );
+  await click('Explore availability');
+  await text('No rooms match this stay.');
+  assert.equal(journeyBookingIds.length, 0);
+  journeyEvidence.soldOut = true;
+  availabilityStock = 1;
+  await click('Search availability');
+  await text('room types confirmed available for your stay.');
+  await evaluate(
+    `document.querySelector('a[aria-label="Select UI Budget Room for your stay"]').click()`,
+  );
+  await text('Sign in with your email and password.');
+  const preservedReturn = new URL(
+    await evaluate('location.href'),
+  ).searchParams.get('returnTo');
+  assert.ok(preservedReturn.startsWith('/booking?'));
+  assert.ok(preservedReturn.includes('checkInDate=2099-12-20'));
+  assert.ok(preservedReturn.includes('checkOutDate=2099-12-22'));
+  assert.ok(preservedReturn.includes(`roomTypeId=${cheaperRoom.roomTypeId}`));
+  await evaluate(
+    `document.querySelector('a[href^="/sign-up?returnTo="]').click()`,
+  );
+  await text('Enter your details to register as a guest.');
+  await fill('input[name=firstName]', 'Journey');
+  await fill('input[name=lastName]', 'Guest');
+  await fill('input[name=email]', 'journey@example.com');
+  await fill('input[name=password]', 'journey-fixture-only-passphrase');
+  await fill('input[name=confirmPassword]', 'journey-fixture-only-passphrase');
+  await click('Create account');
+  await text('Your account was created. Please sign in to continue.');
+  journeyEvidence.registration = true;
+  assert.equal(
+    new URL(await evaluate('location.href')).searchParams.get('returnTo'),
+    preservedReturn,
+  );
+  await fill('input[name=email]', 'journey@example.com');
+  await fill('input[name=password]', 'journey-fixture-only-passphrase');
+  await click('Sign in');
+  await text('Check price and continue');
+  assert.equal(await evaluate('location.pathname'), '/booking');
+  assert.ok(
+    (await evaluate('location.search')).includes('checkInDate=2099-12-20'),
+  );
+  assert.ok(
+    (await evaluate('location.search')).includes('checkOutDate=2099-12-22'),
+  );
+  const sessionCookie = (
+    await command('Network.getCookies', { urls: [origin] })
+  ).cookies.find((cookie) => cookie.name === 'hw_guest_session');
+  assert.ok(sessionCookie?.httpOnly);
+  assert.equal(sessionCookie.value, 'fixture.session.token');
+  assert.equal(
+    await evaluate(
+      `Object.keys(localStorage).filter((key) => key !== 'hotel-cookie-choice').length + sessionStorage.length`,
+    ),
+    0,
+  );
+  journeyEvidence.loginReturn = true;
+  async function finishGuestAndPay() {
+    await text('Check price and continue');
+    await click('Check price and continue');
+    await text('Confirm email');
+    await fill('input[type=email]:not([readonly])', 'journey@example.com');
+    await click('Review payment handoff');
+    await text('Full payment only. Advance deposits are not enabled.');
+    for (const [name, value] of Object.entries({
+      firstName: 'Journey',
+      lastName: 'Guest',
+      phone: '0771234567',
+      address: 'Fixture street',
+      city: 'Colombo',
+      country: 'Sri Lanka',
+    }))
+      await fill(`input[name=${name}]`, value);
+    await click('Continue to PayHere checkout');
+    await text('Payment confirmation pending');
+  }
+  await finishGuestAndPay();
+  const failedBookingId = paymentBookingId;
+  paymentCancelled = true;
+  await command('Page.navigate', {
+    url: `${origin}/booking/confirmation?bookingId=${failedBookingId}&status=success`,
+  });
+  await text('Checkout cancelled or expired');
+  assert.equal(
+    await evaluate(
+      `document.body.innerText.includes('Your stay is confirmed')`,
+    ),
+    false,
+  );
+  journeyEvidence.forgedReturn = true;
+  await command('Page.navigate', {
+    url: `${origin}/profile?category=cancelled`,
+  });
+  await text(failedBookingId);
+  assert.equal(
+    await evaluate(
+      `document.querySelector('a[href="/profile/bookings/${failedBookingId}"]').closest('article').innerText.includes('Cancelled')`,
+    ),
+    true,
+  );
+  journeyEvidence.failedPayment = true;
+  const successfulStay = `roomTypeId=${cheaperRoom.roomTypeId}&checkInDate=2099-12-23&checkOutDate=2099-12-25&numberOfGuests=2`;
+  await command('Page.navigate', {
+    url: `${origin}/booking?${successfulStay}&step=select`,
+  });
+  await text('Select room');
+  await click('Search availability');
+  await until(
+    () =>
+      evaluate(`Boolean(document.querySelector('a[href*="step=details"]'))`),
+    'successful journey room selection',
+  );
+  await evaluate(`document.querySelector('a[href*="step=details"]').click()`);
+  await finishGuestAndPay();
+  const successfulBookingId = paymentBookingId;
+  assert.notEqual(successfulBookingId, failedBookingId);
+  paid = true;
+  await click('Refresh payment status');
+  await text('Your stay is confirmed');
+  await command('Page.navigate', { url: `${origin}/profile` });
+  await text('Journey Guest');
+  await text(successfulBookingId);
+  const confirmedRow = await evaluate(
+    `document.querySelector('a[href="/profile/bookings/${successfulBookingId}"]').closest('article').innerText`,
+  );
+  assert.match(confirmedRow, /Confirmed/);
+  assert.match(confirmedRow, /23 Dec 2099/);
+  assert.match(confirmedRow, /20,000/);
+  assert.equal(
+    await evaluate(
+      `Boolean(document.querySelector('a[href="/profile/bookings/${failedBookingId}"]'))`,
+    ),
+    false,
+  );
+  await evaluate(
+    `document.querySelector('a[href="/profile/bookings/${successfulBookingId}"]').click()`,
+  );
+  await text('Booking details');
+  await text(successfulBookingId);
+  journeyEvidence.confirmedProfile = true;
+  assert.ok(Object.values(journeyEvidence).every(Boolean));
+  console.log(
+    'PASS: Home/Rooms → registration → login with preserved stay → booking → failed payment/forged return → successful fixture payment → confirmed reservation in My Bookings.',
+  );
+  if (artifactDirectory) {
+    await mkdir(artifactDirectory, { recursive: true });
+    await writeFile(
+      join(artifactDirectory, 'results.json'),
+      JSON.stringify(
+        {
+          status: 'passed',
+          journey: journeyEvidence,
+          scope:
+            'Production frontend with fixture gateway/payment outcomes; no external payment or email delivery.',
+        },
+        null,
+        2,
+      ),
+    );
+  }
+} catch (error) {
+  if (artifactDirectory) {
+    await mkdir(artifactDirectory, { recursive: true });
+    const screenshot = await captureFailure?.().catch(() => null);
+    await Promise.allSettled([
+      writeFile(
+        join(artifactDirectory, 'results.json'),
+        JSON.stringify(
+          {
+            status: 'failed',
+            message: error.message,
+            journey: journeyEvidence,
+            paths: calls,
+          },
+          null,
+          2,
+        ),
+      ),
+      writeFile(join(artifactDirectory, 'app.log'), appLog),
+      writeFile(join(artifactDirectory, 'browser.log'), browserLog),
+      ...(screenshot
+        ? [
+            writeFile(
+              join(artifactDirectory, 'failure.png'),
+              Buffer.from(screenshot.data, 'base64'),
+            ),
+          ]
+        : []),
+    ]);
+  }
+  throw error;
 } finally {
   socket?.close();
   browser.kill();
