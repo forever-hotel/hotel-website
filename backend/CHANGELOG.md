@@ -7,6 +7,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- DDP-#34: use distinct guests in the pooled-transaction last-room regression.
+  Add a configurable mixed HTTP load runner, threshold/payload/timeout reports,
+  real-inventory contention checks and a staging evidence checklist.
+
 - DDP-#33: remove raw exception stacks from server logs and reject production
   SQL logging. Extend HTTP security checks for guest ownership, payment metadata,
   input injection and enquiry throttling; document staging verification limits.

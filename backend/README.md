@@ -294,6 +294,11 @@ The folders `config/`, `database/`, `common/`, and `health/`, plus the test setu
 
 ## Booking and payment persistence (DDP-#21)
 
+DDP-#34 adds a configurable [performance runner](../performance/README.md) for
+public pages/images, search/calendar, quote refresh, reservations and last-room
+contention. The full staging capacity run requires infra coordination and
+approved NFR-14 targets; local fixture results are not capacity evidence.
+
 Guest/payment security checks (DDP-#33) run with `npm run test:security`.
 See the [security review](../documents/testing/security-review.md) for findings,
 test coverage, safe database prerequisites and deployment checks. Production

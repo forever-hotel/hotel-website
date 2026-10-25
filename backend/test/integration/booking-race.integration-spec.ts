@@ -189,14 +189,25 @@ raceTests(
       expect(overlap.count).toBe(1);
     });
     it('allows only one last-room reservation across simultaneous transactions', async () => {
+      const otherGuest = randomUUID();
+      await source.query(
+        'INSERT INTO guests (guest_id,full_name,email,password_hash) VALUES ($1,$2,$3,$4)',
+        [
+          otherGuest,
+          'Other CI Guest',
+          `${otherGuest}@example.invalid`,
+          'fixture-hash',
+        ],
+      );
+      const guests = [guestId, otherGuest];
       const quotes = await Promise.all([
         service.createQuote(guestId, quoteInput()),
-        service.createQuote(guestId, quoteInput()),
+        service.createQuote(otherGuest, quoteInput()),
       ]);
       const results = await Promise.allSettled(
         quotes.map((quote, index) =>
           service.createReservation(
-            guestId,
+            guests[index],
             { quoteToken: quote.quoteToken },
             `ci-attempt-${index}`,
           ),

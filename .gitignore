@@ -19,3 +19,7 @@ temp_interactive_push.bat
 
 # Generated integration-test reports
 /backend/integration-results.json
+
+# Performance accounts and environment-specific reports
+/performance/*.local.json
+/performance/results/
