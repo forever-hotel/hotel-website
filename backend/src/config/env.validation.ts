@@ -1,8 +1,12 @@
 import {
+  AppLogLevel,
   DEFAULT_APP_PORT,
   DEFAULT_DB_PORT,
+  DEFAULT_LOG_LEVELS,
   DEFAULT_SERVICE_NAME,
+  JWT_SECRET_MIN_BYTES,
   LOG_FORMATS,
+  LOG_LEVELS,
   LogFormat,
   NODE_ENVIRONMENTS,
   NodeEnvironment,
@@ -14,6 +18,7 @@ export interface EnvironmentVariables {
   NODE_ENV: NodeEnvironment;
   PORT: number;
   LOG_FORMAT: LogFormat;
+  LOG_LEVEL: AppLogLevel;
   DB_HOST: string;
   DB_PORT: number;
   DB_USERNAME: string;
@@ -22,6 +27,8 @@ export interface EnvironmentVariables {
   DB_SSL: boolean;
   DB_SYNCHRONIZE: boolean;
   DB_LOGGING: boolean;
+  JWT_SECRET: string;
+  JWT_ISSUER: string;
 }
 
 type RawEnvironment = Record<string, string | undefined>;
@@ -106,6 +113,8 @@ export function validateEnv(raw: RawEnvironment): EnvironmentVariables {
     return value;
   };
 
+  const nodeEnv = readOneOf('NODE_ENV', NODE_ENVIRONMENTS, 'development');
+
   const env: EnvironmentVariables = {
     SERVICE_NAME: readMatching(
       'SERVICE_NAME',
@@ -113,9 +122,10 @@ export function validateEnv(raw: RawEnvironment): EnvironmentVariables {
       DEFAULT_SERVICE_NAME,
       'lowercase kebab-case (e.g. front-desk), 3-50 characters',
     ),
-    NODE_ENV: readOneOf('NODE_ENV', NODE_ENVIRONMENTS, 'development'),
+    NODE_ENV: nodeEnv,
     PORT: readPort('PORT', DEFAULT_APP_PORT),
     LOG_FORMAT: readOneOf('LOG_FORMAT', LOG_FORMATS, 'text'),
+    LOG_LEVEL: readOneOf('LOG_LEVEL', LOG_LEVELS, DEFAULT_LOG_LEVELS[nodeEnv]),
     DB_HOST: readRequired('DB_HOST'),
     DB_PORT: readPort('DB_PORT', DEFAULT_DB_PORT),
     DB_USERNAME: readRequired('DB_USERNAME'),
@@ -124,9 +134,23 @@ export function validateEnv(raw: RawEnvironment): EnvironmentVariables {
     DB_SSL: readBoolean('DB_SSL', false),
     DB_SYNCHRONIZE: readBoolean('DB_SYNCHRONIZE', false),
     DB_LOGGING: readBoolean('DB_LOGGING', false),
+    JWT_SECRET: readRequired('JWT_SECRET'),
+    JWT_ISSUER: readRequired('JWT_ISSUER'),
   };
 
-  // Schema changes in shared environments must go through migrations (NFR-16).
+  if (Buffer.byteLength(env.JWT_SECRET, 'utf8') < JWT_SECRET_MIN_BYTES) {
+    errors.push(`JWT_SECRET must be at least ${JWT_SECRET_MIN_BYTES} bytes`);
+  }
+
+  // A pasted connection URL (postgresql://user:password@host/db) would put the
+  // password into DNS errors and logs, so only a bare host name is allowed.
+  if (/[/@?]/.test(env.DB_HOST)) {
+    errors.push(
+      'DB_HOST must be a host name only (e.g. ep-xxx.neon.tech), not a connection URL',
+    );
+  }
+
+  // The shared schema is owned by forever-hotel/infra migrations (NFR-16).
   if (env.NODE_ENV === 'production' && env.DB_SYNCHRONIZE) {
     errors.push('DB_SYNCHRONIZE must not be true when NODE_ENV is production');
   }

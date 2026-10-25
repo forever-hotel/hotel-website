@@ -5,6 +5,8 @@ const validEnv = (): Record<string, string | undefined> => ({
   DB_USERNAME: 'hotel_user',
   DB_PASSWORD: 'super-secret-value',
   DB_NAME: 'hotel_db',
+  JWT_SECRET: 'test-jwt-secret-with-at-least-32-bytes',
+  JWT_ISSUER: 'hotel-website',
 });
 
 describe('validateEnv', () => {
@@ -21,6 +23,7 @@ describe('validateEnv', () => {
       NODE_ENV: 'development',
       PORT: 3000,
       LOG_FORMAT: 'text',
+      LOG_LEVEL: 'debug',
       DB_HOST: 'localhost',
       DB_PORT: 5432,
       DB_USERNAME: 'hotel_user',
@@ -29,6 +32,8 @@ describe('validateEnv', () => {
       DB_SSL: false,
       DB_SYNCHRONIZE: false,
       DB_LOGGING: false,
+      JWT_SECRET: 'test-jwt-secret-with-at-least-32-bytes',
+      JWT_ISSUER: 'hotel-website',
     });
   });
 
@@ -61,7 +66,7 @@ describe('validateEnv', () => {
   it('should list every missing required variable given an empty environment', () => {
     // Act & Assert
     expect(() => validateEnv({})).toThrow(
-      /DB_HOST is not defined[\s\S]*DB_USERNAME is not defined[\s\S]*DB_PASSWORD is not defined[\s\S]*DB_NAME is not defined/,
+      /DB_HOST is not defined[\s\S]*DB_USERNAME is not defined[\s\S]*DB_PASSWORD is not defined[\s\S]*DB_NAME is not defined[\s\S]*JWT_SECRET is not defined[\s\S]*JWT_ISSUER is not defined/,
     );
   });
 
@@ -71,6 +76,12 @@ describe('validateEnv', () => {
 
     // Act & Assert
     expect(() => validateEnv(raw)).toThrow('DB_HOST is not defined');
+  });
+
+  it('should reject a JWT secret shorter than 32 bytes', () => {
+    expect(() =>
+      validateEnv({ ...validEnv(), JWT_SECRET: 'too-short' }),
+    ).toThrow('JWT_SECRET must be at least 32 bytes');
   });
 
   it.each(['0', '65536', 'abc', '54.3'])(
@@ -92,6 +103,54 @@ describe('validateEnv', () => {
 
     // Act & Assert
     expect(() => validateEnv(raw)).toThrow('DB_SSL must be "true" or "false"');
+  });
+
+  it.each([
+    ['development', 'debug'],
+    ['test', 'warn'],
+    ['production', 'warn'],
+  ])('should default LOG_LEVEL given NODE_ENV=%s', (nodeEnv, expectedLevel) => {
+    // Act
+    const env = validateEnv({ ...validEnv(), NODE_ENV: nodeEnv });
+
+    // Assert
+    expect(env.LOG_LEVEL).toBe(expectedLevel);
+  });
+
+  it('should use an explicit LOG_LEVEL given a valid value', () => {
+    // Act
+    const env = validateEnv({
+      ...validEnv(),
+      NODE_ENV: 'production',
+      LOG_LEVEL: 'verbose',
+    });
+
+    // Assert
+    expect(env.LOG_LEVEL).toBe('verbose');
+  });
+
+  it('should reject an unknown LOG_LEVEL value', () => {
+    // Arrange
+    const raw = { ...validEnv(), LOG_LEVEL: 'trace' };
+
+    // Act & Assert
+    expect(() => validateEnv(raw)).toThrow(
+      'LOG_LEVEL must be one of: verbose, debug, log, warn, error',
+    );
+  });
+
+  it('should reject a connection URL in DB_HOST without printing it', () => {
+    // Arrange
+    const raw = {
+      ...validEnv(),
+      DB_HOST: 'postgresql://user:leaked-secret@ep-example.neon.tech/db',
+    };
+
+    // Act & Assert
+    expect(() => validateEnv(raw)).toThrow(
+      'DB_HOST must be a host name only (e.g. ep-xxx.neon.tech), not a connection URL',
+    );
+    expect(() => validateEnv(raw)).not.toThrow(/leaked-secret/);
   });
 
   it('should reject unknown NODE_ENV and LOG_FORMAT values', () => {

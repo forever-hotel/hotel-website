@@ -1,4 +1,3 @@
-import { join } from 'path';
 import { DatabaseConfig } from '../config/configuration';
 import { buildTypeOrmOptions } from './database.module';
 
@@ -11,7 +10,6 @@ const baseConfig: DatabaseConfig = {
   ssl: false,
   synchronize: false,
   logging: false,
-  migrationsTableName: 'hotel_website_migrations',
 };
 
 describe('buildTypeOrmOptions', () => {
@@ -32,18 +30,7 @@ describe('buildTypeOrmOptions', () => {
       synchronize: false,
       logging: false,
       ssl: false,
-      migrationsTableName: 'hotel_website_migrations',
     });
-  });
-
-  it('should load migrations from database/migrations', () => {
-    // Act
-    const options = buildTypeOrmOptions(baseConfig);
-
-    // Assert
-    expect(options.migrations).toEqual([
-      join(__dirname, 'migrations', '*.{ts,js}'),
-    ]);
   });
 
   it('should require a verified TLS certificate given SSL is enabled', () => {

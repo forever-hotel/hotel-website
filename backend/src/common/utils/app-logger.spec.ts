@@ -1,4 +1,23 @@
-import { AppLogger } from './app-logger';
+import { AppLogger, logLevelsFrom } from './app-logger';
+
+describe('logLevelsFrom', () => {
+  it('should include the minimum level and every more serious level', () => {
+    // Act & Assert
+    expect(logLevelsFrom('log')).toEqual(['log', 'warn', 'error', 'fatal']);
+  });
+
+  it('should include every level given verbose', () => {
+    // Act & Assert
+    expect(logLevelsFrom('verbose')).toEqual([
+      'verbose',
+      'debug',
+      'log',
+      'warn',
+      'error',
+      'fatal',
+    ]);
+  });
+});
 
 describe('AppLogger', () => {
   let write: jest.SpyInstance;
@@ -29,6 +48,18 @@ describe('AppLogger', () => {
       context: 'Bootstrap',
       message: 'Booking service ready',
     });
+  });
+
+  it('should hide messages below the configured level', () => {
+    // Arrange
+    const logger = new AppLogger('json', 'front-desk', 'warn');
+
+    // Act
+    logger.debug('Query details', 'GuestRepository');
+    logger.log('Guest account created', 'GuestRepository');
+
+    // Assert
+    expect(write).not.toHaveBeenCalled();
   });
 
   it('should emit human-readable text given text format', () => {

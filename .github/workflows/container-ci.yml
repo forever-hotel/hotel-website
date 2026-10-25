@@ -1,0 +1,63 @@
+name: Container checks
+
+on:
+  push:
+    branches: [develop, pre-develop]
+  pull_request:
+    branches: [develop, pre-develop]
+
+permissions:
+  contents: read
+
+jobs:
+  containers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate disposable database credential
+        shell: bash
+        run: |
+          password=$(openssl rand -hex 24)
+          echo "::add-mask::$password"
+          echo "COMPOSE_DB_PASSWORD=$password" >> "$GITHUB_ENV"
+          jwt_secret=$(openssl rand -hex 32)
+          echo "::add-mask::$jwt_secret"
+          echo "JWT_SECRET=$jwt_secret" >> "$GITHUB_ENV"
+      - name: Validate configuration
+        run: docker compose config --quiet
+      - name: Build and wait for healthy containers
+        run: docker compose up --build --detach --wait --wait-timeout 180
+      - name: Verify infra schema loaded
+        shell: bash
+        run: |
+          missing=$(docker compose exec -T database psql -U hotel_website -d hotel_website -tA -c \
+            "select t from unnest(array['guests','room_types','room_type_images','room_type_amenities','rooms','bookings','payments','mad_promotion_codes','mad_promotion_room_types']) t where to_regclass('public.' || t) is null")
+          if [ -n "$missing" ]; then echo "Missing tables: $missing"; exit 1; fi
+      - name: Verify frontend and private backend
+        shell: bash
+        run: |
+          curl --fail --show-error --silent --max-time 30 \
+            --output "$RUNNER_TEMP/frontend-smoke.html" http://127.0.0.1:3001/
+          grep -Fq 'Forever City Hotel' "$RUNNER_TEMP/frontend-smoke.html"
+          docker compose exec -T backend node -e "fetch('http://127.0.0.1:3000/health').then(async r => { const b = await r.json(); if (!r.ok || b.database !== 'up') process.exit(1); }).catch(() => process.exit(1))"
+          for service in frontend backend; do
+            docker compose exec -T "$service" node -e "if (process.getuid() === 0) process.exit(1)"
+          done
+          for service in backend database; do
+            id=$(docker compose ps -q "$service")
+            test "$(docker inspect --format '{{json .HostConfig.PortBindings}}' "$id")" = '{}'
+          done
+      - name: Verify database outage affects readiness
+        shell: bash
+        run: |
+          docker compose stop database
+          docker compose exec -T backend node -e "fetch('http://127.0.0.1:3000/health', {signal: AbortSignal.timeout(15000)}).then(async r => { const b = await r.json(); if (r.status !== 503 || b.error !== 'DATABASE_UNAVAILABLE') process.exit(1); }).catch(() => process.exit(1))"
+      - name: Container diagnostics
+        if: failure()
+        run: |
+          docker compose ps --all
+          docker compose logs --tail 100
+      - name: Stop disposable CI stack
+        if: always()
+        run: docker compose down --volumes

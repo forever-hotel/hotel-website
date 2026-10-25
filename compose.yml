@@ -1,0 +1,61 @@
+name: forever-hotel-website
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:3001:3001"
+    networks:
+      - web
+    init: true
+
+  backend:
+    build: ./backend
+    environment:
+      NODE_ENV: production
+      SERVICE_NAME: hotel-website
+      PORT: "3000"
+      LOG_FORMAT: json
+      DB_HOST: database
+      DB_PORT: "5432"
+      DB_USERNAME: hotel_website
+      DB_PASSWORD: ${COMPOSE_DB_PASSWORD:?Set COMPOSE_DB_PASSWORD in your shell or root .env}
+      DB_NAME: hotel_website
+      DB_SSL: "false"
+      DB_SYNCHRONIZE: "false"
+      DB_LOGGING: "false"
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the root .env}
+      JWT_ISSUER: hotel-website
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - private
+    init: true
+
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: hotel_website
+      POSTGRES_PASSWORD: ${COMPOSE_DB_PASSWORD:?Set COMPOSE_DB_PASSWORD in your shell or root .env}
+      POSTGRES_DB: hotel_website
+    volumes:
+      - database-data:/var/lib/postgresql/data
+      # Team schema copy from forever-hotel/infra; runs only on an empty volume.
+      - ./database/infra-schema:/docker-entrypoint-initdb.d:ro
+    networks:
+      - private
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hotel_website -d hotel_website"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+networks:
+  web:
+  private:
+    internal: true
+
+volumes:
+  database-data:
