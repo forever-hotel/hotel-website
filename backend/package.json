@@ -20,7 +20,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json --passWithNoTests",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
-    "test:integration": "jest --config ./test/jest-integration.json --runInBand"
+    "test:integration": "jest --config ./test/jest-integration.json --runInBand",
+    "test:contracts": "jest --config ./test/jest-integration.json --runInBand --runTestsByPath test/integration/http-consumer-contracts.integration-spec.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

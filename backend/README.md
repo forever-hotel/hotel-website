@@ -294,6 +294,12 @@ The folders `config/`, `database/`, `common/`, and `health/`, plus the test setu
 
 ## Booking and payment persistence (DDP-#21)
 
+The HTTP producer/consumer integration suite (DDP-#30) runs with
+`npm run test:contracts`. It uses real application wiring, temporary PostgreSQL
+fixtures and the actual frontend response parsers. See
+[booking contract verification](../documents/testing/booking-contracts.md) for
+coverage, gateway checks, prerequisites and named contract gaps.
+
 Booking modification/cancellation APIs (DDP-#28), policy settings, signed change
 quotes, idempotency and staff refund review are documented in
 [booking management](../documents/api/booking-management.md). Local check-in
