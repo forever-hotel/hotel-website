@@ -16,6 +16,14 @@ Staging URL: **not supplied**. Staging deployment/rollback, the coordinated
 pending; see the named gaps in the traceability matrix. A passing local fixture
 test does not establish that those release gates passed.
 
+Final guideline deliverables 6–9 are directly under `documents/`:
+[coverage report](documents/coverage-sprint8.pdf),
+[test register](documents/test-register.pdf),
+[OWASP evidence](documents/owasp-checklist.pdf) and
+[performance results](documents/performance-report.pdf). These reports
+record unresolved vulnerabilities, blocked integration and unexecuted staging/load
+checks; they are not blanket compliance or release approvals.
+
 See the [local container setup](#local-container-setup) to build and
 run the frontend, backend and private PostgreSQL database with Docker Compose.
 
