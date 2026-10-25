@@ -6,6 +6,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
 RUN mkdir -p public
+# Public image hostnames are baked into Next's optimizer configuration.
+ARG ROOM_IMAGE_HOSTS=""
 RUN BUILD_STANDALONE=true npm run build
 
 FROM node:22-alpine AS runtime

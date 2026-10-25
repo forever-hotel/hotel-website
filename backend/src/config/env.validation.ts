@@ -154,6 +154,10 @@ export function validateEnv(raw: RawEnvironment): EnvironmentVariables {
   if (env.NODE_ENV === 'production' && env.DB_SYNCHRONIZE) {
     errors.push('DB_SYNCHRONIZE must not be true when NODE_ENV is production');
   }
+  // TypeORM query/error logs include bound billing and authentication parameters.
+  if (env.NODE_ENV === 'production' && env.DB_LOGGING) {
+    errors.push('DB_LOGGING must not be true when NODE_ENV is production');
+  }
 
   if (errors.length > 0) {
     throw new Error(

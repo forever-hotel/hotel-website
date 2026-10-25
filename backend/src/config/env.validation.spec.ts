@@ -41,7 +41,7 @@ describe('validateEnv', () => {
     // Arrange
     const raw = {
       ...validEnv(),
-      NODE_ENV: 'production',
+      NODE_ENV: 'test',
       PORT: '8080',
       LOG_FORMAT: 'json',
       DB_PORT: '6543',
@@ -54,7 +54,7 @@ describe('validateEnv', () => {
 
     // Assert
     expect(env).toMatchObject({
-      NODE_ENV: 'production',
+      NODE_ENV: 'test',
       PORT: 8080,
       LOG_FORMAT: 'json',
       DB_PORT: 6543,
@@ -175,6 +175,19 @@ describe('validateEnv', () => {
     expect(() => validateEnv(raw)).toThrow(
       'DB_SYNCHRONIZE must not be true when NODE_ENV is production',
     );
+  });
+
+  it('refuses parameter-bearing database logging in production', () => {
+    expect(() =>
+      validateEnv({
+        ...validEnv(),
+        NODE_ENV: 'production',
+        DB_LOGGING: 'true',
+      }),
+    ).toThrow('DB_LOGGING must not be true when NODE_ENV is production');
+    expect(
+      validateEnv({ ...validEnv(), NODE_ENV: 'production' }).DB_LOGGING,
+    ).toBe(false);
   });
 
   it('should never include secret values in the error message', () => {

@@ -1,0 +1,128 @@
+.page {
+  background: #f6f3ec;
+  padding-bottom: 3rem;
+}
+.hero {
+  position: relative;
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  text-align: center;
+  isolation: isolate;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #101f29b3;
+  z-index: -1;
+}
+.hero img {
+  object-fit: cover;
+  z-index: -2;
+}
+.hero h1 {
+  font-family: Georgia, serif;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  padding: 1rem;
+}
+.hero p {
+  padding: 0 1rem;
+}
+.codeStrip,
+.newsletter {
+  background: #152c37;
+  color: white;
+  padding: 2rem max(1.5rem, calc((100vw - 1150px) / 2));
+}
+.codeStrip h2,
+.newsletter h2 {
+  font-family: Georgia, serif;
+  margin-bottom: 1rem;
+}
+.codeStrip form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+  max-width: 700px;
+}
+.codeStrip label,
+.codeStrip form p {
+  grid-column: 1 / -1;
+}
+.codeStrip input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.7rem;
+  font: inherit;
+  background: #fff;
+  color: #172d38;
+  border: 1px solid #767676;
+}
+.codeStrip a {
+  display: inline-block;
+  margin-right: 1.5rem;
+  min-height: 44px;
+  padding-top: 0.75rem;
+  text-decoration: underline;
+}
+.catalogue {
+  max-width: 1200px;
+  margin: 3rem auto;
+  padding: 0 1.5rem;
+}
+.catalogue h2 {
+  font-family: Georgia, serif;
+  font-size: 2.5rem;
+}
+.catalogue p {
+  margin: 1rem 0;
+  line-height: 1.7;
+}
+.filters {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 1.5rem 0;
+}
+.filters [aria-pressed='true'] {
+  background: #e5c283;
+  color: #152c37;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+.grid article {
+  background: #fff;
+  min-width: 0;
+  padding: 1.5rem;
+  overflow-wrap: anywhere;
+}
+.grid article p:not(:global(.eyebrow)) {
+  color: #62594e;
+}
+.newsletter p {
+  margin: 1rem 0;
+}
+.error {
+  background: #fff2f0;
+  color: #b42318;
+  padding: 0.75rem;
+  border-left: 3px solid #b42318;
+}
+@media (max-width: 850px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 550px) {
+  .grid,
+  .codeStrip form {
+    grid-template-columns: 1fr;
+  }
+}

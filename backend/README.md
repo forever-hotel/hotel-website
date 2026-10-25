@@ -1,5 +1,39 @@
 # Forever Hotel website backend
 
+## Active checkout: PayHere
+
+New bookings use PayHere hosted checkout in sandbox or live mode. See
+[PayHere setup, database prerequisite and testing](../documents/api/payhere-checkout.md)
+and [ADR 002](../documents/architecture/adr-002-payhere-checkout.md).
+The Stripe guide below is retained for legacy attempts only.
+
+## Booking confirmation email (#179 / DDP-#26)
+
+Verified payment settlement now attempts one Brevo confirmation receipt.
+Use `BOOKING_EMAIL_MODE=sandbox`, `BREVO_API_KEY` and `BOOKING_EMAIL_FROM`
+outside production; the default is off. Email failures preserve paid bookings.
+See [configuration, retry states and checks](../documents/api/booking-confirmation-email.md).
+
+## Stripe test checkout (DDP-#25 / GitHub #178)
+
+Hosted checkout uses the existing booking/payment tables, frozen server prices,
+an approved 35-minute payment hold and verified, idempotent settlement. Full
+payment is enabled when configured; deposits remain disabled by default.
+Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and `PAYMENT_RETURN_ORIGIN` manually
+in your backend development environment. Live Stripe keys/events are rejected.
+See [checkout setup, endpoints and testing](../documents/api/stripe-checkout.md).
+
+## Active promotion listing (DDP-#24, interim database reads)
+
+`GET /promotions?limit=20` is exposed through the gateway as `/hw/promotions`.
+It reads existing `mad_promotion_codes` / `mad_promotion_room_types` with no writes.
+Only ACTIVE, currently valid and non-exhausted codes are returned. Limit is 1–100;
+the default is 20. Amounts are LKR cents for FIXED, whole percentages for PERCENTAGE.
+Inactive/expired/future/exhausted codes and administrative counters are excluded.
+An empty room-type list means unrestricted room types under the existing public
+contract. Listing does not apply a code to a quote or reserve a redemption.
+See [the endpoint and remaining contracts](../documents/api/offers-contract-readiness.md).
+
 ## Contact enquiries (DDP-#15)
 
 `POST /contact/enquiries` validates enquiries and dispatches plain-text mail via
@@ -19,13 +53,19 @@ gateway mapping, timeout/retry limitations and tests.
 
 NestJS backend for the **Hotel Website (HW)** subsystem of the Forever Hotel management system: the guest-facing site for room browsing, booking, and guest self-service. See the [repository CLAUDE.md](../CLAUDE.md) for requirements, architecture, and team standards.
 
-The service currently provides the foundation: configuration, PostgreSQL connection, request validation, error handling, structured logging, a health endpoint, and a Docker image. Booking and guest APIs are planned in the project issue backlog. This foundation is also the team's backend template (see [Reusing this as a template](#reusing-this-as-a-template-for-another-subsystem)).
+The service implements catalogue/availability, registration/login, signed booking
+quotes, guest-owned reservations/status/dashboard/management, PayHere checkout,
+Brevo notifications and contact enquiries. See the current
+[API index](../documents/release/api.md), [fresh setup](../documents/release/setup.md)
+and [release gaps](../documents/release/traceability.md). The foundation can also
+be reused as a backend template; provider and booking modules are website-specific.
 
 ## Structure
 
-For planned guest and booking integrations, see the
-[API contract draft](../documents/api/hotel-website-contracts.md). Proposed routes
-and ownership require team approval; they are not implemented endpoints.
+For implemented guest and booking integrations, use the
+[current API index](../documents/release/api.md). The original
+[API contract draft](../documents/api/hotel-website-contracts.md) retains pending
+proposals; it is not a current endpoint inventory.
 
 The code follows the team-agreed backend structure: modules are grouped by business feature, not by client type.
 
@@ -138,6 +178,9 @@ All data access lives in `src/database/repositories/` and uses one style: the Ty
 Put DTOs in `<feature>/dto/`, for example `bookings/dto/create-booking.dto.ts`.
 
 ## API endpoints
+
+The table below lists foundational endpoints. Booking, payment, management,
+availability and enquiry routes are linked in the [current API index](../documents/release/api.md).
 
 | Method | Path                      | Purpose                                                                                                                           |
 | ------ | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -259,6 +302,37 @@ The folders `config/`, `database/`, `common/`, and `health/`, plus the test setu
 5. Run `npm ci`, `npm run lint`, and `npm test` to confirm everything passes.
 
 ## Booking and payment persistence (DDP-#21)
+
+DDP-#34 adds a configurable [performance runner](../performance/README.md) for
+public pages/images, search/calendar, quote refresh, reservations and last-room
+contention. The full staging capacity run requires infra coordination and
+approved NFR-14 targets; local fixture results are not capacity evidence.
+
+Guest/payment security checks (DDP-#33) run with `npm run test:security`.
+See the [security review](../documents/testing/security-review.md) for findings,
+test coverage, safe database prerequisites and deployment checks. Production
+rejects `DB_LOGGING=true` to prevent parameter-bearing SQL logs.
+
+The HTTP producer/consumer integration suite (DDP-#30) runs with
+`npm run test:contracts`. It uses real application wiring, temporary PostgreSQL
+fixtures and the actual frontend response parsers. See
+[booking contract verification](../documents/testing/booking-contracts.md) for
+coverage, gateway checks, prerequisites and named contract gaps.
+
+Booking modification/cancellation APIs (DDP-#28), policy settings, signed change
+quotes, idempotency and staff refund review are documented in
+[booking management](../documents/api/booking-management.md). Local check-in
+defaults to a provisional 14:00 in Sri Lanka; production requires an explicit
+hotel-confirmed policy. Change emails use the existing booking email mode.
+
+Guest-scoped booking list/detail reads and the Profile dashboard (DDP-#27) are
+documented in [guest bookings](../documents/api/guest-bookings.md), including
+category rules, pagination, ownership checks and verification commands.
+
+Issue 22 adds protected quote/reservation endpoints; see
+[booking reservation API](../documents/api/booking-reservation-api.md) for request
+examples, deployment prerequisites, errors and verification. Storage and pricing
+must be configured before use; no live schema changes are performed here.
 
 The application registers booking and payment entity mappings against the
 existing Infra tables, without migrations or schema synchronization. See

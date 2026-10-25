@@ -37,6 +37,31 @@ This file is the working context for contributors and coding assistants in this 
 
 ## Current repository state
 
+- DDP-#25 / GitHub #178 adds hosted Stripe **test** checkout, raw-body signature
+  verification, idempotent settlement, owned recovery/status and a printable final
+  reservation view. User approved full payment only for now and a 35-minute
+  provider hold (the initial pre-payment hold remains 20 minutes). Price snapshots
+  stay frozen; existing bookings/payments store payment identity and late-refund
+  recovery, without new schema. Test secrets must be configured manually; no env
+  files/live records are modified. See `documents/api/stripe-checkout.md`. PDF
+  endpoint, email and confirmed-stay modification remain separate follow-ups.
+
+- DDP-#24 partially adds `/offers`, shared Home cards/feed, supported discount-type
+  filters, code syntax/recovery guidance and honest newsletter unavailability.
+  Promo application remains blocked: the current quote DTO rejects `promoCode`,
+  and Manager Dashboard validation/redemption/marketing contracts are not
+  supplied. The interim `/hw/promotions` backend reads existing Manager tables
+  directly (ACTIVE, valid, non-exhausted only), without writes. Do not claim browser code syntax checks
+  apply discounts. See `documents/api/offers-contract-readiness.md`.
+
+- DDP-#23 / GitHub #171 adds `/booking` selection/configuration/guest information
+  and a quote-backed payment handoff. Uses `/hw/booking-quotes` through a server
+  action and the existing HttpOnly guest session. Safe selections persist in the
+  URL; quotes/guest inputs stay in memory. No booking holds or payment calls are
+  created until #25 connects actual payment. Supports one room, guest count and
+  plain-text requests only; no invented optional contracts. See
+  `documents/api/frontend-booking-flow.md` for acceptance checks.
+
 - DDP-#16 adds `/rooms` and shared API-backed Home previews under
   `frontend/src/features/rooms/`. Source is gateway `GET /api/v1/room-types` using
   the implemented backend DTO, not static sample room data. Prices are LKR cents;

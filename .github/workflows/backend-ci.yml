@@ -20,7 +20,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
@@ -66,12 +66,13 @@ jobs:
       SERVICE_NAME: hotel-website
       NODE_ENV: test
       DB_HOST: localhost
-      DB_PORT: '5432'
+      DB_PORT: "5432"
       DB_USERNAME: hotel_website
       DB_PASSWORD: ci-throwaway-only
       DB_NAME: hotel_website
-      DB_SSL: 'false'
-      DB_SYNCHRONIZE: 'false'
+      DB_SSL: "false"
+      DB_SYNCHRONIZE: "false"
+      BOOKING_RACE_TEST: "true"
       JWT_ISSUER: hotel-website
 
     steps:
@@ -81,7 +82,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
@@ -99,5 +100,13 @@ jobs:
           echo "::add-mask::$jwt_secret"
           echo "JWT_SECRET=$jwt_secret" >> "$GITHUB_ENV"
 
-      - name: Run integration tests
-        run: npm run test:integration
+      - name: Run database and HTTP consumer contract integration tests
+        run: npm run test:integration -- --json --outputFile=integration-results.json
+
+      - name: Upload integration results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-integration-results
+          path: backend/integration-results.json
+          if-no-files-found: ignore

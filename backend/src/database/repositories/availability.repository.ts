@@ -42,7 +42,10 @@ export class AvailabilityRepository {
                 check_out_date::text AS "checkOutDate"
          FROM bookings WHERE room_type_id = $1
            AND status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN')
-           AND check_in_date < $3::date AND check_out_date > $2::date`,
+           AND check_in_date < $3::date AND check_out_date > $2::date
+           AND NOT (status='PENDING' AND source='WEBSITE'
+             AND COALESCE(to_jsonb(bookings)->>'checkout_key','')<>''
+             AND COALESCE((to_jsonb(bookings)->>'hold_expires_at')::timestamptz<=clock_timestamp(),false))`,
         [roomTypeId, from, to],
       );
       return { maxGuests: types[0].maxGuests, rooms, bookings };

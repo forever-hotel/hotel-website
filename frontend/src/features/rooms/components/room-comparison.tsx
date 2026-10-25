@@ -10,9 +10,11 @@ import styles from '../rooms.module.css';
 export function RoomComparison({
   rooms,
   availability,
+  bookingLinks,
 }: {
   rooms: RoomType[];
   availability?: Record<string, string>;
+  bookingLinks?: Record<string, string>;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -173,6 +175,7 @@ export function RoomComparison({
             key={room.roomTypeId}
             room={room}
             availability={availability?.[room.roomTypeId]}
+            bookingHref={bookingLinks?.[room.roomTypeId]}
             comparison={{
               selected: selectedIds.includes(room.roomTypeId),
               disabled: atLimit && !selectedIds.includes(room.roomTypeId),

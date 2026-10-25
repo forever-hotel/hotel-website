@@ -160,6 +160,9 @@
   color: var(--cream);
   padding: 60px 6%;
 }
+.team > :global(.eyebrow) {
+  color: var(--champagne);
+}
 .team h2 {
   font-size: clamp(2rem, 3vw, 2.8rem);
   margin-top: 18px;

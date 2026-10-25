@@ -91,6 +91,7 @@ describe('Booking/payment mapping safety (no database connection)', () => {
       'STRIPE',
       'CASH',
       'CARD_ON_SITE',
+      'PAYHERE',
     ]);
     expect(payment.columns.map((column) => column.databaseName).sort()).toEqual(
       [

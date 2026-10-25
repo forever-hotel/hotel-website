@@ -74,7 +74,7 @@ test(
         });
         return;
       }
-      assert.equal(request.url, '/api/v1/promotions?limit=20');
+      assert.equal(request.url, '/hw/promotions?limit=20');
       response.writeHead(gatewayStatus, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify({ items: offers, nextCursor: null }));
     });
@@ -209,12 +209,32 @@ test(
       assert.match(activeHtml, /2,500\.00 off/);
       assert.match(activeHtml, /Applies to selected room types/);
       assert.doesNotMatch(activeHtml, /EXPIRED10|FUTURE10/);
+      const offersHtml = await (await fetch(`${baseUrl}/offers`)).text();
+      assert.match(offersHtml, /Exclusive Offers/);
+      assert.match(offersHtml, /ACTIVE10/);
+      assert.match(offersHtml, /FIXED2500/);
+      assert.doesNotMatch(offersHtml, /EXPIRED10|FUTURE10/);
+      assert.match(
+        offersHtml,
+        /Newsletter subscriptions are not available yet/,
+      );
+      assert.match(offersHtml, /Online code application is not available yet/);
+      assert.doesNotMatch(
+        offersHtml,
+        /Early Bird Special|Honeymoon Package|Spa &amp; Dine/,
+      );
       gatewayStatus = 503;
       const unavailable = await fetch(baseUrl);
       assert.equal(unavailable.status, 200);
       assert.match(
         await unavailable.text(),
         /There are no offers to show right now/,
+      );
+      const failedOffers = await fetch(`${baseUrl}/offers`);
+      assert.equal(failedOffers.status, 200);
+      assert.match(
+        await failedOffers.text(),
+        /Offers are temporarily unavailable/,
       );
       const missing = await fetch(`${baseUrl}/does-not-exist`);
       const contactResponse = await fetch(`${baseUrl}/contact`);

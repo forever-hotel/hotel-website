@@ -4,12 +4,39 @@
 
 ### Fixed
 
+- Changing rooms or dates no longer silently redirects to an older pending
+  checkout with its frozen total. Recovery now offers an explicit review or
+  verified unpaid-cancellation choice, preserves the new selection, and clears
+  the recovery cookie only after cancellation is confirmed. Regression checks
+  cover replacing a three-night LKR 90,000 stay with a one-night LKR 10,000 stay.
+
 - Authentication errors now appear in a red alert with focus and scroll handling.
   Required/invalid fields use the same inline feedback rather than relying only
   on browser validation tooltips; general paragraph styling no longer overrides
   the error color.
 
 ### Added
+
+- DDP-#32: axe-core and responsive browser checks for key pages and booking
+  states at 320/768/1440px, plus keyboard/calendar/comparison/error-focus checks.
+  Improves contrast, focus outlines, footer/booking link targets and accessible
+  names that retain visible room-link and calendar text. CI saves screenshots
+  and quality reports alongside the isolated browser journey.
+
+- DDP-#31: automated Home/Rooms-to-booking browser journey through registration
+  and sign-in forms with retained stay selection, failed-payment/forged-return
+  rejection and a confirmed reservation in My Bookings. Adds `test:e2e`, a CI
+  browser job and optional result/failure artifacts using isolated provider fixtures.
+
+- DDP-#29: booking change and cancellation dialogs from reservation details,
+  linked from Profile rows and payment confirmation. Includes server eligibility,
+  cutoff and refund explanations, authoritative price previews, explicit review,
+  request retry protection, refreshed booking/payment views and browser tests.
+
+- DDP-#27: guest booking dashboard with category counts, Upcoming/Past/Cancelled
+  navigation, pagination and protected reservation details. Includes hotel-date
+  classification, expired-hold labels, image fallbacks, loading/empty/error
+  states, session-expiry handling and isolated browser acceptance checks.
 
 - DDP-#20: registration and sign-in forms, safe return navigation, server-side
   gateway authentication, an HttpOnly guest cookie, verified account page and
