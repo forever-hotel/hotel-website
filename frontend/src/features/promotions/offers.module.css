@@ -103,6 +103,9 @@
   padding: 1.5rem;
   overflow-wrap: anywhere;
 }
+.grid article p:not(:global(.eyebrow)) {
+  color: #62594e;
+}
 .newsletter p {
   margin: 1rem 0;
 }

@@ -17,6 +17,12 @@
 
 ### Added
 
+- DDP-#32: axe-core and responsive browser checks for key pages and booking
+  states at 320/768/1440px, plus keyboard/calendar/comparison/error-focus checks.
+  Improves contrast, focus outlines, footer/booking link targets and accessible
+  names that retain visible room-link and calendar text. CI saves screenshots
+  and quality reports alongside the isolated browser journey.
+
 - DDP-#31: automated Home/Rooms-to-booking browser journey through registration
   and sign-in forms with retained stay selection, failed-payment/forged-return
   rejection and a confirmed reservation in My Bookings. Adds `test:e2e`, a CI

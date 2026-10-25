@@ -9,6 +9,9 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { createQualityAudit } from './quality-audit.mjs';
+
+const qualityMode = process.argv.includes('--quality');
 
 const browserPath =
   process.env.CHROME_BIN ||
@@ -36,6 +39,7 @@ const cheaperRoom = {
   typeName: 'UI Budget Room',
   pricePerNight: 1000000,
 };
+if (qualityMode) room.imageUrls = ['/images/quality-blocked.webp'];
 const quotes = new Map();
 let checkoutQuote = {
   roomTypeId: room.roomTypeId,
@@ -533,7 +537,9 @@ await new Promise((resolve) => portServer.close(resolve));
 const origin = `http://127.0.0.1:${port}`;
 const artifactDirectory = process.env.E2E_ARTIFACT_DIR
   ? resolve(process.env.E2E_ARTIFACT_DIR)
-  : null;
+  : qualityMode
+    ? resolve('.test-artifacts/quality')
+    : null;
 let appLog = '';
 let browserLog = '';
 let captureFailure;
@@ -677,6 +683,13 @@ try {
         ),
       `interactive ${label}`,
     );
+    if (qualityMode) {
+      await evaluate(
+        `([...document.querySelectorAll('button')].find((button) => button.textContent.trim() === ${JSON.stringify(label)})).focus()`,
+      );
+      await key('Enter', 'Enter', 13);
+      return;
+    }
     await evaluate(
       `(() => { const button = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === ${JSON.stringify(label)}); if (!button || button.disabled) throw new Error('Button unavailable'); button.click(); })()`,
     );
@@ -693,6 +706,32 @@ try {
       `(() => { const input = document.querySelector(${JSON.stringify(selector)}); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(value)}); input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); })()`,
     );
   }
+  const quality = qualityMode
+    ? await createQualityAudit({
+        command,
+        evaluate,
+        until,
+        directory: artifactDirectory,
+      })
+    : null;
+  async function audit(label, widths) {
+    if (quality) await quality.audit(label, widths);
+  }
+  async function key(key, code = key, virtualKey = 0) {
+    await command('Input.dispatchKeyEvent', {
+      type: 'keyDown',
+      key,
+      code,
+      windowsVirtualKeyCode: virtualKey,
+      ...(key === 'Enter' ? { text: '\r', unmodifiedText: '\r' } : {}),
+    });
+    await command('Input.dispatchKeyEvent', {
+      type: 'keyUp',
+      key,
+      code,
+      windowsVirtualKeyCode: virtualKey,
+    });
+  }
   const stayQuery = `roomTypeId=${room.roomTypeId}&checkInDate=2099-12-10&checkOutDate=2099-12-12&numberOfGuests=2`;
   await command('Page.navigate', { url: `${origin}/booking?${stayQuery}` });
   await text('Sign in');
@@ -707,6 +746,134 @@ try {
     httpOnly: true,
     sameSite: 'Lax',
   });
+  if (quality) {
+    await command('Network.enable');
+    await command('Network.setBlockedURLs', {
+      urls: ['*google.com/maps*', '*maps.google*', '*quality-blocked*'],
+    });
+    for (const [label, path, ready] of [
+      ['home', '/', 'Explore availability'],
+      ['rooms', '/rooms', 'Search availability'],
+      ['services', '/services', 'Services'],
+      ['contact', '/contact', 'Contact'],
+      ['offers', '/offers', 'Offers'],
+      ['profile', '/profile', 'Upcoming (21)'],
+      ['sign-in', '/sign-in', 'Sign in with your email'],
+      ['sign-up', '/sign-up', 'Enter your details'],
+    ]) {
+      await command('Page.navigate', { url: `${origin}${path}` });
+      await text(ready);
+      await audit(label);
+    }
+    await command('Page.navigate', { url: `${origin}/sign-in` });
+    await text('Sign in with your email');
+    await key('Tab', 'Tab', 9);
+    assert.equal(
+      await evaluate('document.activeElement.className'),
+      'skip-link',
+    );
+    assert.equal(
+      await evaluate(
+        `getComputedStyle(document.activeElement).outlineStyle !== 'none'`,
+      ),
+      true,
+    );
+    await key('Enter', 'Enter', 13);
+    assert.equal(await evaluate('document.activeElement.id'), 'main-content');
+    await until(
+      () =>
+        evaluate(
+          `Object.keys(document.querySelector('button[type=submit]')).some((name) => name.startsWith('__reactProps$'))`,
+        ),
+      'hydrated auth form',
+    );
+    await evaluate(`document.querySelector('button[type=submit]').focus()`);
+    await key('Enter', 'Enter', 13);
+    await until(
+      () => evaluate(`document.activeElement.id === 'auth-error'`),
+      'keyboard form error focus',
+    );
+    await audit('auth-error', [320]);
+    await command('Page.navigate', {
+      url: `${origin}/rooms?roomTypeId=${room.roomTypeId}&checkInDate=2099-12-10&checkOutDate=2099-12-12&numberOfGuests=2`,
+    });
+    await text('Choose your check-in date.');
+    await evaluate(
+      `document.querySelector('button[aria-label^="2099-12-10,"]').focus()`,
+    );
+    await key('ArrowRight', 'ArrowRight', 39);
+    assert.ok(
+      (
+        await evaluate(`document.activeElement.getAttribute('aria-label')`)
+      ).startsWith('2099-12-11,'),
+    );
+    await key('Enter', 'Enter', 13);
+    await text('Choose your checkout date.');
+    await evaluate(
+      `document.querySelector('button[aria-label^="2099-12-13,"]').focus()`,
+    );
+    await key('Enter', 'Enter', 13);
+    await text(
+      'Dates selected. Search to verify continuous-stay availability.',
+    );
+    await audit('calendar');
+    await command('Page.navigate', { url: `${origin}/rooms` });
+    await text('Select two or three room types to compare.');
+    for (const index of [0, 1]) {
+      await until(
+        () =>
+          evaluate(
+            `Boolean(document.querySelectorAll('input[type=checkbox]')[${index}] && Object.keys(document.querySelectorAll('input[type=checkbox]')[${index}]).some((name) => name.startsWith('__reactProps$')))`,
+          ),
+        'hydrated comparison control',
+      );
+      await evaluate(
+        `document.querySelectorAll('input[type=checkbox]')[${index}].focus()`,
+      );
+      await key(' ', 'Space', 32);
+    }
+    await evaluate(
+      `[...document.querySelectorAll('button')].find((button) => button.textContent.trim() === 'Compare rooms').focus()`,
+    );
+    await key('Enter', 'Enter', 13);
+    await until(
+      () => evaluate(`document.activeElement.id === 'comparison-title'`),
+      'comparison focus',
+    );
+    await audit('comparison', [320]);
+    await key('Escape', 'Escape', 27);
+    assert.equal(
+      await evaluate('document.activeElement.textContent.trim()'),
+      'Compare rooms',
+    );
+    await command('Page.navigate', { url: origin });
+    await text('Optional analytics are currently disabled.');
+    await until(
+      () =>
+        evaluate(
+          `Boolean(document.querySelector('.cookie-notice button') && Object.keys(document.querySelector('.cookie-notice button')).some((name) => name.startsWith('__reactProps$')))`,
+        ),
+      'cookie keyboard control',
+    );
+    await evaluate(
+      `document.querySelector('.cookie-notice button:last-child').focus()`,
+    );
+    await key('Enter', 'Enter', 13);
+    await until(
+      () => evaluate(`!document.querySelector('.cookie-notice')`),
+      'cookie dismissal',
+    );
+    await evaluate(`document.querySelectorAll('#faq summary')[1].focus()`);
+    await key('Enter', 'Enter', 13);
+    assert.equal(
+      await evaluate(`document.querySelectorAll('#faq details')[1].open`),
+      true,
+    );
+    await audit('home-keyboard', [320]);
+    quality.verify();
+    await command('Emulation.clearDeviceMetricsOverride');
+    await command('Emulation.setEmulatedMedia', { features: [] });
+  }
   await command('Page.navigate', { url: `${origin}/profile` });
   await text('Upcoming (21)');
   await text('UI Test Guest');
@@ -939,12 +1106,15 @@ try {
       evaluate(`Boolean(document.querySelector('a[href*="step=details"]'))`),
     'available selection after search',
   );
+  await audit('booking-select');
   await evaluate(`document.querySelector('a[href*="step=details"]').click()`);
   await text('Check price and continue');
+  await audit('booking-room-details');
   await evaluate(
     `(() => { const button = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Check price and continue'); button.click(); button.click(); })()`,
   );
   await text('Confirm email');
+  await audit('booking-guest-info');
   assert.equal(calls.filter((url) => url === '/hw/booking-quotes').length, 1);
   await click('Review payment handoff');
   await text('Enter the email address shown on your guest account.');
@@ -957,6 +1127,7 @@ try {
   await fill('input[type=email]:not([readonly])', 'ui@example.com');
   await click('Review payment handoff');
   await text('Ready for payment');
+  await audit('booking-payment');
   await text('No payment has been taken and no room has been reserved yet.');
   await evaluate('history.back()');
   await text('Confirm email');
@@ -1162,6 +1333,7 @@ try {
   paid = true;
   await click('Refresh payment status');
   await text('Your stay is confirmed');
+  await audit('booking-confirmation');
   await text('Your reservation is confirmed from verified payment data.');
   await text('PDF download is not available yet.');
   await text(
@@ -1191,6 +1363,17 @@ try {
   // Complete a fresh visitor journey using the actual auth forms/server actions.
   // Payment-provider outcomes remain deterministic fixture responses.
   journeyActive = true;
+  if (quality) {
+    await command('Emulation.setDeviceMetricsOverride', {
+      width: 320,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    await command('Emulation.setEmulatedMedia', {
+      features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
+    });
+  }
   checkoutCreated = false;
   paid = false;
   paymentCancelled = false;
@@ -1215,7 +1398,7 @@ try {
   await click('Search availability');
   await text('room types confirmed available for your stay.');
   await evaluate(
-    `document.querySelector('a[aria-label="Select UI Budget Room for your stay"]').click()`,
+    `document.querySelector('a[aria-label="Select room: UI Budget Room"]').click()`,
   );
   await text('Sign in with your email and password.');
   const preservedReturn = new URL(
@@ -1346,6 +1529,13 @@ try {
   );
   await text('Booking details');
   await text(successfulBookingId);
+  await audit('booking-detail');
+  if (quality) {
+    quality.verify();
+    console.log(
+      `PASS: ${quality.pages.length} viewport/accessibility audits, keyboard forms/calendar/comparison/FAQ/cookie checks and a completed 320px booking journey.`,
+    );
+  }
   journeyEvidence.confirmedProfile = true;
   assert.ok(Object.values(journeyEvidence).every(Boolean));
   console.log(
@@ -1359,6 +1549,13 @@ try {
         {
           status: 'passed',
           journey: journeyEvidence,
+          quality: quality
+            ? {
+                snapshots: quality.pages.length,
+                widths: [320, 768, 1440],
+                bookingJourneyWidth: 320,
+              }
+            : null,
           scope:
             'Production frontend with fixture gateway/payment outcomes; no external payment or email delivery.',
         },

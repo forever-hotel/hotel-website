@@ -145,6 +145,13 @@
 .page a {
   text-underline-offset: 0.2em;
 }
+.heading > a,
+.panel > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-right: 1rem;
+}
 .page input[type='radio'] {
   width: 20px;
   min-height: 20px;

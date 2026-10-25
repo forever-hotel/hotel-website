@@ -12,6 +12,9 @@
   color: var(--cream);
   padding: 70px 10%;
 }
+.photo :global(.eyebrow) {
+  color: var(--champagne);
+}
 .photo > img {
   object-fit: cover;
   z-index: -2;

@@ -475,7 +475,7 @@ function AvailabilityCalendar({
               aria-disabled={blocked && !anchor}
               aria-pressed={selected || date === anchor}
               data-blocked={blocked}
-              aria-label={`${date}, ${count === undefined ? 'availability unknown' : `${count} rooms available`}${date === search.checkOutDate ? ', checkout' : ''}`}
+              aria-label={`${date}, day ${Number(date.slice(-2))}, ${count === undefined ? 'availability unknown' : `${count} rooms available`}${blocked ? ', Booked' : ''}${date === search.checkOutDate ? ', checkout' : ''}`}
               onClick={() => {
                 if (count === undefined) return;
                 if (!anchor) {

@@ -31,14 +31,18 @@ jobs:
       - run: npm run test:coverage
 
   browser:
-    name: Visitor-to-booking browser journey
+    name: Browser ${{ matrix.suite }} checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [e2e, quality]
     defaults:
       run:
         working-directory: frontend
     env:
-      E2E_ARTIFACT_DIR: .test-artifacts/e2e
+      E2E_ARTIFACT_DIR: .test-artifacts/${{ matrix.suite }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -56,12 +60,12 @@ jobs:
           fi
           echo "CHROME_BIN=$browser_path" >> "$GITHUB_ENV"
       - run: npm run build
-      - name: Run isolated browser journeys
-        run: npm run test:e2e
+      - name: Run isolated browser checks
+        run: npm run test:${{ matrix.suite }}
       - name: Upload browser journey evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: visitor-booking-browser-results
-          path: frontend/.test-artifacts/e2e/
+          name: browser-${{ matrix.suite }}-results
+          path: frontend/.test-artifacts/${{ matrix.suite }}/
           if-no-files-found: ignore
