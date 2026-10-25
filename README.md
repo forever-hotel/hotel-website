@@ -1,5 +1,21 @@
 # Forever Hotel website
 
+Guest-facing Next.js frontend, NestJS backend and PostgreSQL integration. New
+checkout uses PayHere; Brevo handles email. Browser traffic reaches the backend
+through the separate API Gateway repository, using the `/hw` prefix.
+
+Start with the [fresh-checkout setup](documents/release/setup.md), including
+sample local environment values, a disposable database and gateway setup.
+Then use the [test and demo checklist](documents/release/demo.md) and the
+[HW-01–HW-17 / screen traceability matrix](documents/release/traceability.md).
+The current [API guide index and examples](documents/release/api.md) distinguish
+implemented endpoints from the historical contract draft below.
+
+Staging URL: **not supplied**. Staging deployment/rollback, the coordinated
+300-user test, final content/legal approval and several service decisions remain
+pending; see the named gaps in the traceability matrix. A passing local fixture
+test does not establish that those release gates passed.
+
 See the [local container setup](#local-container-setup) to build and
 run the frontend, backend and private PostgreSQL database with Docker Compose.
 
@@ -22,11 +38,6 @@ unprivileged `node` user. The frontend uses Next.js standalone output, with its
 static assets copied into the runtime image. The existing backend image includes
 production dependencies and compiled NestJS code. Neither build includes `.env`
 files or local `node_modules`.
-
-The frontend scaffold is a prerequisite (DDP-#04). Missing files on this branch
-were restored from `feature/45-frontend-configuration`; the current frontend
-README was preserved. Merge the original scaffold branch first when preparing a
-PR if it has not yet reached the integration branch, to avoid reviewing it twice.
 
 ### Prerequisites and startup
 

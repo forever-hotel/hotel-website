@@ -53,13 +53,19 @@ gateway mapping, timeout/retry limitations and tests.
 
 NestJS backend for the **Hotel Website (HW)** subsystem of the Forever Hotel management system: the guest-facing site for room browsing, booking, and guest self-service. See the [repository CLAUDE.md](../CLAUDE.md) for requirements, architecture, and team standards.
 
-The service currently provides the foundation: configuration, PostgreSQL connection, request validation, error handling, structured logging, a health endpoint, and a Docker image. Booking and guest APIs are planned in the project issue backlog. This foundation is also the team's backend template (see [Reusing this as a template](#reusing-this-as-a-template-for-another-subsystem)).
+The service implements catalogue/availability, registration/login, signed booking
+quotes, guest-owned reservations/status/dashboard/management, PayHere checkout,
+Brevo notifications and contact enquiries. See the current
+[API index](../documents/release/api.md), [fresh setup](../documents/release/setup.md)
+and [release gaps](../documents/release/traceability.md). The foundation can also
+be reused as a backend template; provider and booking modules are website-specific.
 
 ## Structure
 
-For planned guest and booking integrations, see the
-[API contract draft](../documents/api/hotel-website-contracts.md). Proposed routes
-and ownership require team approval; they are not implemented endpoints.
+For implemented guest and booking integrations, use the
+[current API index](../documents/release/api.md). The original
+[API contract draft](../documents/api/hotel-website-contracts.md) retains pending
+proposals; it is not a current endpoint inventory.
 
 The code follows the team-agreed backend structure: modules are grouped by business feature, not by client type.
 
@@ -172,6 +178,9 @@ All data access lives in `src/database/repositories/` and uses one style: the Ty
 Put DTOs in `<feature>/dto/`, for example `bookings/dto/create-booking.dto.ts`.
 
 ## API endpoints
+
+The table below lists foundational endpoints. Booking, payment, management,
+availability and enquiry routes are linked in the [current API index](../documents/release/api.md).
 
 | Method | Path                      | Purpose                                                                                                                           |
 | ------ | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |

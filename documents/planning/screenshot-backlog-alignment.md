@@ -1,5 +1,9 @@
 # Screenshot and backlog alignment
 
+Current implementation, requirement/screen evidence and remaining release gates
+are recorded in the [DDP-#36 release matrix](../release/traceability.md).
+The planning decisions below retain their original approval/status context.
+
 Reviewed on 20 October 2026 against all user-supplied hotel website screenshots,
 the [screen catalogue](../../frontend/SCREEN_CATALOGUE.md), the
 [Home UI guide](../../frontend/UI_GUIDE.md), and the 36 local draft tickets in
