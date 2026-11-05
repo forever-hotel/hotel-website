@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { publicLinks } from './navigation';
+import { MainNavigation } from './main-navigation';
 
 export function SiteHeader() {
   return (
@@ -11,13 +11,7 @@ export function SiteHeader() {
         <Link className="wordmark" href="/">
           Forever City Hotel
         </Link>
-        <nav aria-label="Main navigation">
-          {publicLinks.map((link) => (
-            <Link key={link.href} href={link.href}>
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <MainNavigation />
         <Link href="/profile" className="guest-icon" aria-label="Guest account">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle

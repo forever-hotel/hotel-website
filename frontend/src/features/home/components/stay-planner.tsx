@@ -34,7 +34,7 @@ export function StayPlanner({
     >
       <form action="/rooms" method="get" onSubmit={planStay}>
         <label>
-          Check-in
+          Check-in (required)
           <input
             type="date"
             name="checkInDate"
@@ -44,7 +44,7 @@ export function StayPlanner({
           />
         </label>
         <label>
-          Check-out
+          Check-out (required)
           <input
             type="date"
             name="checkOutDate"

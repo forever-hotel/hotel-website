@@ -34,8 +34,7 @@ export async function submitEnquiry(
       if (data.status === 'accepted')
         return {
           accepted: true,
-          message:
-            'Your enquiry has been accepted for email delivery. Inbox delivery is not yet confirmed.',
+          message: 'Thank you. Your enquiry has been submitted to the hotel.',
         };
       if (data.status === 'sandbox')
         return {

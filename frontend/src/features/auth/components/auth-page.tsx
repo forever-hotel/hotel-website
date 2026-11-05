@@ -90,7 +90,7 @@ export function AuthPage({
             </p>
             {!register && (
               <p className={styles.note}>
-                Social sign-in and password recovery are not available yet.
+                <Link href="/forgot-password">Forgot your password?</Link>
               </p>
             )}
           </div>

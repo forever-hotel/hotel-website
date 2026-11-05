@@ -57,6 +57,7 @@ let expired = false;
 let offerStatus = 200;
 let paymentBookingId = '33333333-3333-4333-8333-333333333333';
 let checkoutCreated = false;
+let returnPayHereForm = false;
 let paid = false;
 let paymentCancelled = false;
 let journeyActive = false;
@@ -401,6 +402,32 @@ const gateway = createServer(async (req, res) => {
       bookingId: paymentBookingId,
       checkoutUrl: null,
       state: 'CHECK_STATUS',
+      ...(returnPayHereForm
+        ? {
+            checkout: {
+              action: 'https://sandbox.payhere.lk/pay/checkout',
+              fields: {
+                merchant_id: '123456',
+                order_id: paymentBookingId,
+                amount: (checkoutQuote.totalAmount / 100).toFixed(2),
+                currency: 'LKR',
+                hash: 'A'.repeat(32),
+                return_url: `${origin}/booking/confirmation?bookingId=${paymentBookingId}`,
+                cancel_url: `${origin}/booking/confirmation?bookingId=${paymentBookingId}&cancelled=1`,
+                notify_url:
+                  'https://fixture.example/hw/payments/payhere/notify',
+                first_name: 'UI',
+                last_name: 'Guest',
+                email: 'ui@example.com',
+                phone: '0771234567',
+                address: 'Test street',
+                city: 'Colombo',
+                country: 'Sri Lanka',
+                items: 'Fixture reservation',
+              },
+            },
+          }
+        : {}),
     };
   } else if (req.url === `/hw/payments/${paymentBookingId}/cancel`) {
     status = cancelStatus;
@@ -477,7 +504,11 @@ const gateway = createServer(async (req, res) => {
     body =
       journeyActive && journeyAccount
         ? { fullName: journeyAccount.fullName, email: journeyAccount.email }
-        : { fullName: 'UI Test Guest', email: 'ui@example.com' };
+        : {
+            fullName: 'UI Test Guest',
+            email: 'ui@example.com',
+            phone: '0771234567',
+          };
   else if (req.url.startsWith('/hw/availability?'))
     body = { availableCount: availabilityStock };
   else if (req.url.includes('/availability-calendar')) {
@@ -746,6 +777,52 @@ try {
     httpOnly: true,
     sameSite: 'Lax',
   });
+  await command('Page.navigate', { url: `${origin}/services` });
+  await text('Services &');
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 320,
+    height: 812,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
+  assert.equal(
+    await evaluate(
+      `document.querySelector('.site-header nav a[href="/"]').textContent.trim()`,
+    ),
+    'Home',
+  );
+  assert.equal(
+    await evaluate(
+      `document.querySelector('.site-header nav a[aria-current="page"]').textContent.trim()`,
+    ),
+    'Services',
+  );
+  assert.equal(
+    await evaluate(
+      `getComputedStyle(document.querySelector('.guest-icon')).display !== 'none'`,
+    ),
+    true,
+  );
+  assert.equal(
+    await evaluate('document.documentElement.scrollWidth <= window.innerWidth'),
+    true,
+  );
+  await evaluate(`document.querySelector('.footer-bottom a').click()`);
+  await until(
+    () => evaluate(`location.hash === '#main-content'`),
+    'current-page back to top',
+  );
+  assert.equal(await evaluate('location.pathname'), '/services');
+  assert.equal(
+    await evaluate(`Boolean(document.querySelector('.cookie-notice'))`),
+    false,
+  );
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 1280,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: false,
+  });
   if (quality) {
     await command('Network.enable');
     await command('Network.setBlockedURLs', {
@@ -764,6 +841,19 @@ try {
       await command('Page.navigate', { url: `${origin}${path}` });
       await text(ready);
       await audit(label);
+      if (label === 'contact') {
+        const alignment = await evaluate(`(() => {
+          const location = document.querySelector('[aria-label="Location and enquiries"] > div:first-child').getBoundingClientRect();
+          const enquiry = document.querySelector('[aria-label="Location and enquiries"] > div:last-child').getBoundingClientRect();
+          const phone = document.querySelector('input[name="phone"]').getBoundingClientRect();
+          const subject = document.querySelector('select[name="subject"]').getBoundingClientRect();
+          return { top: Math.abs(location.top-enquiry.top), bottom: Math.abs(location.bottom-enquiry.bottom), fields: Math.abs(phone.top-subject.top) };
+        })()`);
+        assert.ok(
+          alignment.top < 2 && alignment.bottom < 2 && alignment.fields < 2,
+          'Contact cards and paired fields align',
+        );
+      }
     }
     await command('Page.navigate', { url: `${origin}/sign-in` });
     await text('Sign in with your email');
@@ -847,21 +937,10 @@ try {
       'Compare rooms',
     );
     await command('Page.navigate', { url: origin });
-    await text('Optional analytics are currently disabled.');
-    await until(
-      () =>
-        evaluate(
-          `Boolean(document.querySelector('.cookie-notice button') && Object.keys(document.querySelector('.cookie-notice button')).some((name) => name.startsWith('__reactProps$')))`,
-        ),
-      'cookie keyboard control',
-    );
-    await evaluate(
-      `document.querySelector('.cookie-notice button:last-child').focus()`,
-    );
-    await key('Enter', 'Enter', 13);
-    await until(
-      () => evaluate(`!document.querySelector('.cookie-notice')`),
-      'cookie dismissal',
+    await text('Frequently Asked');
+    assert.equal(
+      await evaluate(`Boolean(document.querySelector('.cookie-notice'))`),
+      false,
     );
     await evaluate(`document.querySelectorAll('#faq summary')[1].focus()`);
     await key('Enter', 'Enter', 13);
@@ -1030,7 +1109,7 @@ try {
     `document.querySelector('a[href^="/booking/confirmation?bookingId="]').click()`,
   );
   await text('Payment requires hotel review');
-  await text('Change or cancel booking');
+  await text('Manage booking');
   assert.match(await evaluate('document.body.innerText'), /30,000/);
   await evaluate(
     `document.querySelector('a[href$="#manage-booking"]').click()`,
@@ -1116,7 +1195,7 @@ try {
   await text('Confirm email');
   await audit('booking-guest-info');
   assert.equal(calls.filter((url) => url === '/hw/booking-quotes').length, 1);
-  await click('Review payment handoff');
+  await click('Continue to payment');
   await text('Enter the email address shown on your guest account.');
   assert.equal(
     await evaluate(
@@ -1125,10 +1204,10 @@ try {
     'rgb(180, 35, 24)',
   );
   await fill('input[type=email]:not([readonly])', 'ui@example.com');
-  await click('Review payment handoff');
+  await click('Continue to payment');
   await text('Ready for payment');
   await audit('booking-payment');
-  await text('No payment has been taken and no room has been reserved yet.');
+  await text('Pay securely with PayHere.');
   await evaluate('history.back()');
   await text('Confirm email');
   assert.equal(
@@ -1158,23 +1237,31 @@ try {
   await text('Your quote has expired.');
   assert.equal(
     await evaluate(
-      `Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Review payment handoff').disabled`,
+      `Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Refresh price to continue').disabled`,
     ),
-    true,
+    false,
   );
   expired = false;
-  await click('Refresh quote');
+  await fill('input[type=email]:not([readonly])', 'ui@example.com');
+  await click('Refresh price to continue');
+  assert.equal(
+    await evaluate(
+      `document.querySelector('input[type=email]:not([readonly])').value`,
+    ),
+    'ui@example.com',
+  );
+  assert.ok(!(await evaluate('location.href')).includes('step=payment'));
   await until(
     () =>
       evaluate(
-        `!Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Review payment handoff').disabled`,
+        `!Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Continue to payment').disabled`,
       ),
     'fresh quote ready',
   );
   await fill('input[name=checkOutDate]', '2099-12-13');
   assert.equal(
     await evaluate(
-      `Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Review payment handoff').disabled`,
+      `Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Continue to payment').disabled`,
     ),
     true,
   );
@@ -1222,12 +1309,17 @@ try {
   );
   await click('All offers');
   await fill('#promo-code', 'bad code!');
-  await click('Check next steps');
+  await click('Enquire about code');
   await text('Enter 1–50 letters, numbers, hyphens or underscores.');
   await fill('#promo-code', ' uistay10 ');
-  await click('Check next steps');
-  await text('Code UISTAY10 has not been validated or applied.');
-  await text('Newsletter subscriptions are not available yet.');
+  await click('Enquire about code');
+  await text('Send message');
+  assert.match(
+    await evaluate(`document.querySelector('textarea[name=message]').value`),
+    /UISTAY10/,
+  );
+  await command('Page.navigate', { url: `${origin}/offers` });
+  await text('Plan something special');
   assert.equal(
     await evaluate('document.documentElement.scrollWidth <= window.innerWidth'),
     true,
@@ -1261,15 +1353,74 @@ try {
   await click('Check price and continue');
   await text('Confirm email');
   await fill('input[type=email]:not([readonly])', 'ui@example.com');
-  await click('Review payment handoff');
-  await text('Full payment only. Advance deposits are not enabled.');
+  await click('Continue to payment');
+  await text('Amount to pay:');
+  await fill('input[name=phone]', 'invalid phone');
+  assert.equal(
+    await evaluate(
+      `document.querySelector('input[name=phone]').validity.patternMismatch`,
+    ),
+    true,
+  );
+  await fill('input[name=phone]', '0771234567');
+  assert.equal(
+    await evaluate(`document.querySelector('input[name=firstName]').value`),
+    'UI Test',
+  );
+  assert.equal(
+    await evaluate(`document.querySelector('input[name=lastName]').value`),
+    'Guest',
+  );
+  assert.equal(
+    await evaluate(`document.querySelector('input[name=phone]').value`),
+    '0771234567',
+  );
+  assert.equal(
+    await evaluate(`document.querySelector('input[name=address]').value`),
+    '',
+  );
+  assert.equal(
+    await evaluate(`document.querySelector('input[name=country]').value`),
+    '',
+  );
+  assert.equal(
+    await evaluate(
+      `Array.from(document.querySelectorAll('form[aria-label="Billing details"] input')).every(input => input.required && input.labels[0].textContent.includes('(required)'))`,
+    ),
+    true,
+  );
   await fill('input[name=firstName]', 'UI');
   await fill('input[name=lastName]', 'Guest');
   await fill('input[name=phone]', '0771234567');
   await fill('input[name=address]', 'Test street');
   await fill('input[name=city]', 'Colombo');
   await fill('input[name=country]', 'Sri Lanka');
+  returnPayHereForm = true;
+  // Capture the native POST without sending a request to the external provider.
+  await evaluate(`HTMLFormElement.prototype.submit = function () {
+    window.__payhereSubmission = { method: this.method, action: this.action, fields: Object.fromEntries(new FormData(this)) };
+  }`);
   await click('Continue to PayHere checkout');
+  await until(
+    () => evaluate('Boolean(window.__payhereSubmission)'),
+    'PayHere POST form',
+  );
+  const submission = await evaluate('window.__payhereSubmission');
+  assert.equal(submission.method, 'post');
+  assert.equal(submission.action, 'https://sandbox.payhere.lk/pay/checkout');
+  assert.equal(submission.fields.amount, '90000.00');
+  assert.equal(submission.fields.currency, 'LKR');
+  assert.equal(submission.fields.order_id, paymentBookingId);
+  assert.equal(submission.fields.email, 'ui@example.com');
+  assert.equal(
+    submission.fields.notify_url,
+    'https://fixture.example/hw/payments/payhere/notify',
+  );
+  assert.equal(await evaluate('location.pathname'), '/booking/confirmation');
+  returnPayHereForm = false;
+  await command('Page.navigate', {
+    url: `${origin}/booking/confirmation?bookingId=${paymentBookingId}`,
+  });
   await text('Payment confirmation pending');
   assert.equal(checkoutQuote.nights, 3);
   assert.equal(checkoutQuote.totalAmount, 9000000);
@@ -1316,8 +1467,8 @@ try {
     /90,000\.00/,
   );
   await fill('input[type=email]:not([readonly])', 'ui@example.com');
-  await click('Review payment handoff');
-  await text('Full payment only. Advance deposits are not enabled.');
+  await click('Continue to payment');
+  await text('Amount to pay:');
   await fill('input[name=firstName]', 'UI');
   await fill('input[name=lastName]', 'Guest');
   await fill('input[name=phone]', '0771234567');
@@ -1334,8 +1485,20 @@ try {
   await click('Refresh payment status');
   await text('Your stay is confirmed');
   await audit('booking-confirmation');
-  await text('Your reservation is confirmed from verified payment data.');
-  await text('PDF download is not available yet.');
+  await text('Your reservation is confirmed.');
+  assert.deepEqual(
+    await evaluate(
+      `Array.from(document.querySelector('[aria-label="Booking actions"]').querySelectorAll('a,button')).map(el => el.textContent.trim())`,
+    ),
+    ['Manage booking', 'Print booking details'],
+  );
+  assert.equal(
+    await evaluate(
+      `Array.from(document.querySelectorAll('button')).some(el => el.textContent.trim() === 'Refresh payment status')`,
+    ),
+    false,
+  );
+  await text('Print booking details');
   await text(
     'Confirmation email validated in sandbox. No email was delivered.',
   );
@@ -1452,8 +1615,8 @@ try {
     await click('Check price and continue');
     await text('Confirm email');
     await fill('input[type=email]:not([readonly])', 'journey@example.com');
-    await click('Review payment handoff');
-    await text('Full payment only. Advance deposits are not enabled.');
+    await click('Continue to payment');
+    await text('Amount to pay:');
     for (const [name, value] of Object.entries({
       firstName: 'Journey',
       lastName: 'Guest',

@@ -34,74 +34,96 @@
 }
 .contactGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  background: #fff;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 32px;
+  max-width: 1250px;
+  margin: 0 auto;
+  padding: 48px 24px;
+  align-items: stretch;
 }
 .location {
   position: relative;
-  background: #e8e0d3;
+  background: #fff;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
 }
 .location iframe {
   display: block;
   border: 0;
   width: 100%;
-  height: 410px;
+  min-height: 320px;
+  height: 320px;
+  flex: 1;
 }
 .address {
-  padding: 30px 8%;
-  background: var(--ink);
-  color: var(--cream);
+  padding: 32px;
+  color: var(--ink);
 }
 .address h2 {
-  font-size: 1.7rem;
-  margin-bottom: 15px;
+  font: 600 1.5rem/1.35 var(--body);
+  margin: 12px 0 24px;
 }
 .address address {
   font-style: normal;
-  font-size: 0.9rem;
+  font-size: 1rem;
   line-height: 1.8;
 }
 .address a {
   display: inline-block;
-  color: #e6c991;
+  color: #72501c;
   text-decoration: underline;
   text-underline-offset: 4px;
   padding-block: 12px;
-  font-size: 0.85rem;
+  font-size: 0.9375rem;
 }
 .address p {
+  font-size: 0.8125rem;
+  color: #665e54;
+}
+.address > :global(.eyebrow) {
+  color: #856028;
   font-size: 0.75rem;
-  color: #c5b9a5;
 }
 .formPanel {
-  padding: 48px 8%;
+  padding: 32px;
   min-width: 0;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
 }
 .formPanel > :global(.eyebrow) {
   color: #856028;
+  font-size: 0.75rem;
 }
 .formPanel h2 {
-  font-size: clamp(2rem, 3vw, 2.8rem);
-  margin-top: 15px;
+  font: 600 1.5rem/1.35 var(--body);
+  margin: 12px 0 24px;
+}
+.formPanel h2 em {
+  font-style: normal;
+  font-weight: inherit;
+}
+.formPanel > :global(.gold-rule) {
+  display: none;
 }
 .form {
   display: grid;
-  gap: 26px;
+  gap: 20px;
 }
 .fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 26px;
+  gap: 20px;
+  align-items: start;
 }
 .form label {
   display: grid;
-  gap: 12px;
-  font:
-    0.62rem/1.5 Arial,
-    sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  gap: 8px;
+  font: 500 0.875rem/1.5 var(--body);
   color: #655a4c;
 }
 .form label span {
@@ -113,32 +135,31 @@
 .form select {
   width: 100%;
   min-width: 0;
-  border: 0;
-  border-bottom: 1px solid #c9bdac;
-  border-radius: 0;
-  padding: 10px 2px;
+  border: 1px solid #c9bdac;
+  border-radius: 6px;
+  padding: 12px;
   background: #fff;
   color: var(--ink);
-  font:
-    0.9rem/1.5 Georgia,
-    serif;
+  font: 1rem/1.5 var(--body);
 }
 .form input,
 .form select {
-  min-height: 44px;
+  min-height: 48px;
 }
 .form textarea {
   resize: vertical;
 }
 .submitRow {
-  display: flex;
-  align-items: center;
-  gap: 22px;
+  display: grid;
+  justify-items: start;
+  gap: 12px;
 }
 .submitRow p {
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   color: #766a5c;
-  max-width: 300px;
+  max-width: 100%;
+  margin: 0;
+  line-height: 1.6;
 }
 .form button {
   flex-shrink: 0;
@@ -182,13 +203,22 @@
     grid-template-columns: 1fr;
   }
   .formPanel {
-    padding: 45px 6%;
+    padding: 28px;
   }
   .location iframe {
     height: 330px;
+    flex: none;
   }
 }
 @media (max-width: 520px) {
+  .contactGrid {
+    padding: 28px 16px;
+    gap: 24px;
+  }
+  .address,
+  .formPanel {
+    padding: 24px;
+  }
   .fields {
     grid-template-columns: 1fr;
   }

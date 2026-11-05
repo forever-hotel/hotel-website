@@ -5,6 +5,7 @@ export function GuestInformation({
   requests,
   errors,
   fresh,
+  stayEdited,
   pending,
   onConfirmation,
   onRequests,
@@ -15,6 +16,7 @@ export function GuestInformation({
   requests: string;
   errors: { email?: string; requests?: string };
   fresh: boolean;
+  stayEdited: boolean;
   pending: boolean;
   onConfirmation: (value: string) => void;
   onRequests: (value: string) => void;
@@ -23,10 +25,7 @@ export function GuestInformation({
   return (
     <>
       <h2>Guest information</h2>
-      <p>
-        Your booking uses your signed-in guest account. Contact the hotel if
-        your account details need correcting.
-      </p>
+      <p>Confirm your account email to continue.</p>
       <form
         noValidate
         onSubmit={(event) => {
@@ -48,7 +47,7 @@ export function GuestInformation({
           />
         </label>
         <label>
-          Confirm email
+          Confirm email (required)
           <input
             type="email"
             value={confirmation}
@@ -89,8 +88,27 @@ export function GuestInformation({
         >
           {errors.requests}
         </p>
-        <button className="button button-gold" disabled={!fresh || pending}>
-          Review payment handoff
+        {stayEdited ? (
+          <p role="status">
+            Select Update stay and recheck to apply your changes.
+          </p>
+        ) : !fresh ? (
+          <p role="status" id="guest-quote-help">
+            Refresh your price, then review the updated total to continue.
+          </p>
+        ) : null}
+        <button
+          className="button button-gold"
+          disabled={stayEdited || pending}
+          aria-describedby={
+            !fresh && !stayEdited ? 'guest-quote-help' : undefined
+          }
+        >
+          {pending
+            ? 'Checking…'
+            : fresh || stayEdited
+              ? 'Continue to payment'
+              : 'Refresh price to continue'}
         </button>
       </form>
     </>

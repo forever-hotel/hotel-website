@@ -23,14 +23,36 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import type { AuthenticatedGuest } from '../common/interfaces/authenticated-guest.interface';
 import { GuestAuthResponseDto } from './dto/guest-auth-response.dto';
 import { GuestResponseDto } from './dto/guest-response.dto';
+import { GuestProfileResponseDto } from './dto/guest-profile-response.dto';
 import { LoginGuestDto } from './dto/login-guest.dto';
 import { RegisterGuestDto } from './dto/register-guest.dto';
 import { GuestsService } from './guests.service';
+import { PasswordResetService } from './password-reset.service';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/password-reset.dto';
 
 @ApiTags('guests')
 @Controller('guests')
 export class GuestsController {
-  constructor(private readonly guestsService: GuestsService) {}
+  constructor(
+    private readonly guestsService: GuestsService,
+    private readonly passwordReset: PasswordResetService,
+  ) {}
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request a password reset email' })
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.passwordReset.request(dto.email);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Set a new password using an expiring single-use link',
+  })
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.passwordReset.reset(dto.token, dto.password);
+  }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -69,17 +91,17 @@ export class GuestsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get the authenticated guest profile (HW-07)' })
-  @ApiOkResponse({ type: GuestResponseDto })
+  @ApiOkResponse({ type: GuestProfileResponseDto })
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
     description: 'UNAUTHORIZED: missing, invalid or expired bearer token',
   })
   async me(
     @CurrentGuest() currentGuest: AuthenticatedGuest,
-  ): Promise<GuestResponseDto> {
+  ): Promise<GuestProfileResponseDto> {
     const guest = await this.guestsService.getAuthenticatedGuest(
       currentGuest.sub,
     );
-    return GuestResponseDto.fromGuest(guest);
+    return { ...GuestResponseDto.fromGuest(guest), phone: guest.phone ?? null };
   }
 }
