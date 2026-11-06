@@ -2,6 +2,7 @@ import { INestApplication, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
+import { App } from 'supertest/types';
 import { DatabaseService } from '../database/database.service';
 import { HealthController } from './health.controller';
 
@@ -56,7 +57,7 @@ describe('HealthController', () => {
 });
 
 describe('Health HTTP routes', () => {
-  let app: INestApplication;
+  let app: INestApplication<App>;
   const isHealthy = jest.fn();
 
   beforeAll(async () => {
@@ -98,7 +99,7 @@ describe('Health HTTP routes', () => {
       isHealthy.mockResolvedValue(false);
       const response = await request(app.getHttpServer()).get(path);
       expect(response.status).toBe(503);
-      expect(response.body.error).toBe('DATABASE_UNAVAILABLE');
+      expect(response.body).toMatchObject({ error: 'DATABASE_UNAVAILABLE' });
     },
   );
 });
