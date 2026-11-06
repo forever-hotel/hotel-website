@@ -159,7 +159,7 @@ export function AvailabilitySearch({
           </select>
         </label>
         <label>
-          Check-in
+          Check-in (required)
           <input
             type="date"
             required
@@ -168,7 +168,7 @@ export function AvailabilitySearch({
           />
         </label>
         <label>
-          Check-out
+          Check-out (required)
           <input
             type="date"
             required
@@ -178,7 +178,7 @@ export function AvailabilitySearch({
           />
         </label>
         <label>
-          Guests
+          Guests (required)
           <input
             type="number"
             min="1"

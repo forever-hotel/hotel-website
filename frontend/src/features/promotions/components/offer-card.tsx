@@ -19,7 +19,7 @@ export function OfferCard({ promotion }: { promotion: Promotion }) {
         {promotion.roomTypeIds.length
           ? 'Applies to selected room types.'
           : 'Applies to all room types.'}{' '}
-        Eligibility is confirmed when booking.
+        Contact the hotel to confirm availability and arrange this offer.
       </p>
       <p>
         Valid until{' '}
@@ -33,12 +33,16 @@ export function OfferCard({ promotion }: { promotion: Promotion }) {
         (Sri Lanka time).
       </p>
       <p>
-        Online code application is not available yet. No discount has been
-        applied.
+        This offer is arranged directly with the hotel. Standard online room
+        bookings use the total shown at checkout.
       </p>
-      <Link className="button button-blue" href={offerRoomsLink(promotion)}>
-        Explore eligible room types
+      <Link
+        className="button button-blue"
+        href={`/contact?offer=${encodeURIComponent(promotion.code)}`}
+      >
+        Enquire about this offer
       </Link>
+      <Link href={offerRoomsLink(promotion)}>Explore eligible room types</Link>
     </article>
   );
 }

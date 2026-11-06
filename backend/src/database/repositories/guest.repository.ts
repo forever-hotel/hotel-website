@@ -14,6 +14,31 @@ import { isUniqueViolation } from '../postgres-errors';
  */
 @Injectable()
 export class GuestRepository {
+  async findByIdForPasswordReset(guestId: string): Promise<Guest | null> {
+    return this.guests
+      .createQueryBuilder('guest')
+      .addSelect('guest.passwordHash')
+      .where('guest.guestId = :guestId', { guestId })
+      .getOne();
+  }
+
+  async replacePassword(
+    guestId: string,
+    previousHash: string,
+    passwordHash: string,
+    expires: Date,
+  ): Promise<boolean> {
+    const result = await this.guests
+      .createQueryBuilder()
+      .update(Guest)
+      .set({ passwordHash })
+      .where(
+        'guest_id = :guestId AND password_hash = :previousHash AND clock_timestamp() < :expires',
+        { guestId, previousHash, expires },
+      )
+      .execute();
+    return result.affected === 1;
+  }
   private readonly logger = new Logger(GuestRepository.name);
 
   constructor(

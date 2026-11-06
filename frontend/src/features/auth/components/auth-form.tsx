@@ -55,7 +55,7 @@ export function AuthForm({
       {register && (
         <div className={styles.names}>
           <label>
-            First name
+            First name (required)
             <input
               name="firstName"
               autoComplete="given-name"
@@ -64,7 +64,7 @@ export function AuthForm({
             />
           </label>
           <label>
-            Last name
+            Last name (required)
             <input
               name="lastName"
               autoComplete="family-name"
@@ -75,7 +75,7 @@ export function AuthForm({
         </div>
       )}
       <label>
-        Email address
+        Email address (required)
         <input
           name="email"
           type="email"
@@ -85,7 +85,7 @@ export function AuthForm({
         />
       </label>
       <label>
-        Password
+        Password (required)
         <input
           name="password"
           type="password"
@@ -102,7 +102,7 @@ export function AuthForm({
             Use at least 8 characters. Passwords are limited to 72 UTF-8 bytes.
           </p>
           <label>
-            Confirm password
+            Confirm password (required)
             <input
               name="confirmPassword"
               type="password"

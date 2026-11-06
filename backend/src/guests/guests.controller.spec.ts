@@ -1,9 +1,31 @@
+import { PasswordResetService } from './password-reset.service';
 import { Guest } from './entities/guest.entity';
 import { GuestAuthResponseDto } from './dto/guest-auth-response.dto';
 import { GuestsController } from './guests.controller';
 import { GuestsService } from './guests.service';
 
 describe('GuestsController', () => {
+  it('returns the saved phone only in the authenticated profile without exposing password data', async () => {
+    const guest = Object.assign(new Guest(), {
+      guestId: 'guest-1',
+      fullName: 'Nimali Perera',
+      email: 'nimali@example.com',
+      phone: '+94771234567',
+      passwordHash: 'private',
+      createdAt: new Date('2026-10-14T08:00:00Z'),
+    });
+    const getAuthenticatedGuest = jest.fn().mockResolvedValue(guest);
+    const controller = new GuestsController(
+      { getAuthenticatedGuest } as unknown as GuestsService,
+      {} as PasswordResetService,
+    );
+    const profile = await controller.me({ sub: 'guest-1' } as Parameters<
+      GuestsController['me']
+    >[0]);
+    expect(profile.phone).toBe('+94771234567');
+    expect(getAuthenticatedGuest).toHaveBeenCalledWith('guest-1');
+    expect(profile).not.toHaveProperty('passwordHash');
+  });
   it('should return only the public guest fields given a successful registration', async () => {
     // Arrange
     const createdAt = new Date('2026-10-14T08:00:00Z');
@@ -17,9 +39,12 @@ describe('GuestsController', () => {
       updatedAt: createdAt,
     });
     const register = jest.fn().mockResolvedValue(guest);
-    const controller = new GuestsController({
-      register,
-    } as unknown as GuestsService);
+    const controller = new GuestsController(
+      {
+        register,
+      } as unknown as GuestsService,
+      {} as PasswordResetService,
+    );
     const dto = {
       fullName: 'Nimali Perera',
       email: 'nimali@example.com',
@@ -53,9 +78,12 @@ describe('GuestsController', () => {
       },
     });
     const login = jest.fn().mockResolvedValue(response);
-    const controller = new GuestsController({
-      login,
-    } as unknown as GuestsService);
+    const controller = new GuestsController(
+      {
+        login,
+      } as unknown as GuestsService,
+      {} as PasswordResetService,
+    );
     const dto = {
       email: 'nimali@example.com',
       password: 'a long passphrase',

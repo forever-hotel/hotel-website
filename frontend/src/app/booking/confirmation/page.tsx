@@ -57,7 +57,9 @@ export default async function ConfirmationPage({
           <h1>
             {status ? paymentHeading(status) : 'Booking status unavailable'}
           </h1>
-          <p>Booking reference: {id || 'Not supplied'}</p>
+          <p className={styles.bookingReference}>
+            Reference <span>{id || 'Not supplied'}</span>
+          </p>
           {!status && (
             <p role="alert" className={styles.error}>
               We could not verify this booking.{' '}
@@ -68,95 +70,120 @@ export default async function ConfirmationPage({
         </header>
         {status && (
           <>
-            <nav className={styles.progress} aria-label="Booking progress">
-              <ol>
-                {[
-                  'Select Room',
-                  'Room Details',
-                  'Guest Info',
-                  'Payment',
-                  'Confirmation',
-                ].map((label, index) => (
-                  <li
-                    key={label}
-                    aria-current={
-                      index === (confirmed ? 4 : 3) ? 'step' : undefined
-                    }
-                  >
-                    {label}
-                  </li>
-                ))}
-              </ol>
-            </nav>
             <div className={styles.columns}>
               <section className={styles.panel}>
                 <h2>{status.roomType}</h2>
-                <RoomImage
-                  source={
-                    status.roomImage
-                      ? safeRoomImage(status.roomImage) || undefined
-                      : undefined
+                {status.roomImage && safeRoomImage(status.roomImage) && (
+                  <div className={styles.confirmationImage}>
+                    <RoomImage
+                      source={safeRoomImage(status.roomImage) || undefined}
+                      name={status.roomType}
+                    />
+                  </div>
+                )}
+                <div
+                  className={styles.statusNotice}
+                  role={
+                    status.verificationDelayed ||
+                    status.paymentState === 'REVIEW_REQUIRED'
+                      ? 'alert'
+                      : 'status'
                   }
-                  name={status.roomType}
-                />
-                {status.guestName && <p>Guest: {status.guestName}</p>}
-                {status.guestEmail && <p>Email: {status.guestEmail}</p>}
-                {status.specialRequests && (
-                  <p>Special requests: {status.specialRequests}</p>
-                )}
-                <p>Status: {status.status}</p>
-                <p>Check-in: {status.checkInDate}</p>
-                <p>Check-out: {status.checkOutDate}</p>
-                <p>
-                  {status.priceSnapshot.nights} nights · {status.numberOfGuests}{' '}
-                  guests · 1 room
-                </p>
-                {status.paymentState === 'REVIEW_REQUIRED' ? (
-                  <p role="alert">
-                    Your payment requires hotel review. Contact the hotel with
-                    your booking reference before making another payment.
-                  </p>
-                ) : confirmed ? (
-                  <p role="status">
-                    Your reservation is confirmed from verified payment data.
-                  </p>
-                ) : (
-                  <p role="status">
-                    Your stay is not confirmed. Refresh payment status before
-                    making another payment.
-                  </p>
-                )}
-                {status.verificationDelayed && (
-                  <p role="alert">
-                    Payment verification is delayed. These are the last recorded
-                    details; keep your reference and retry.
-                  </p>
-                )}
-                {status.refundStatus && (
+                >
+                  <span className={styles.statusBadge}>
+                    {status.paymentState === 'REVIEW_REQUIRED'
+                      ? 'Needs review'
+                      : confirmed
+                        ? 'Confirmed'
+                        : status.status === 'CANCELLED' ||
+                            status.paymentState === 'EXPIRED'
+                          ? 'Closed'
+                          : 'Awaiting payment'}
+                  </span>
                   <p>
-                    Refund status: {status.refundStatus}. An expired or
-                    cancelled hold cannot be confirmed by a late payment.
+                    {status.paymentState === 'REVIEW_REQUIRED'
+                      ? 'Contact the hotel before making another payment.'
+                      : status.verificationDelayed
+                        ? 'Payment verification is delayed. Refresh the status before paying again.'
+                        : confirmed
+                          ? 'Your reservation is confirmed.'
+                          : status.status === 'CANCELLED' ||
+                              status.paymentState === 'EXPIRED'
+                            ? 'This checkout is closed. Choose new dates to book again.'
+                            : 'Your room is awaiting payment. Complete checkout to confirm your stay.'}
                   </p>
-                )}
-                {!confirmed && status.holdExpiresAt && (
-                  <p>
-                    Hold deadline:{' '}
-                    {new Date(status.holdExpiresAt).toLocaleString('en-LK', {
-                      timeZone: 'Asia/Colombo',
-                    })}{' '}
-                    (Asia/Colombo).
-                  </p>
-                )}
-                <p>
-                  PDF download is not available yet. Use Print booking details
-                  to print or save this view.
-                </p>
-                <p>
-                  Booking changes and cancellation of a confirmed stay will be
-                  available through booking management.{' '}
-                  <Link href="/contact">Contact the hotel</Link> for assistance.
-                </p>
-                <p>{confirmationEmailMessage(status.emailStatus)}</p>
+                </div>
+                <dl className={styles.reservationFacts}>
+                  <div>
+                    <dt>Check-in</dt>
+                    <dd>
+                      {new Intl.DateTimeFormat('en-GB', {
+                        dateStyle: 'medium',
+                        timeZone: 'Asia/Colombo',
+                      }).format(
+                        new Date(status.checkInDate + 'T12:00:00+05:30'),
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Check-out</dt>
+                    <dd>
+                      {new Intl.DateTimeFormat('en-GB', {
+                        dateStyle: 'medium',
+                        timeZone: 'Asia/Colombo',
+                      }).format(
+                        new Date(status.checkOutDate + 'T12:00:00+05:30'),
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Stay</dt>
+                    <dd>
+                      {status.priceSnapshot.nights}{' '}
+                      {status.priceSnapshot.nights === 1 ? 'night' : 'nights'}{' '}
+                      &middot; {status.numberOfGuests}{' '}
+                      {status.numberOfGuests === 1 ? 'guest' : 'guests'}{' '}
+                      &middot; 1 room
+                    </dd>
+                  </div>
+                  {status.guestName && (
+                    <div>
+                      <dt>Guest</dt>
+                      <dd>{status.guestName}</dd>
+                    </div>
+                  )}
+                </dl>
+                {!confirmed &&
+                  status.status === 'PENDING' &&
+                  status.holdExpiresAt && (
+                    <p className={styles.deadline}>
+                      Complete checkout by{' '}
+                      {new Date(status.holdExpiresAt).toLocaleTimeString(
+                        'en-GB',
+                        {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          timeZone: 'Asia/Colombo',
+                        },
+                      )}{' '}
+                      (Sri Lanka time).
+                    </p>
+                  )}
+                <details className={styles.extraDetails}>
+                  <summary>Contact &amp; booking details</summary>
+                  {status.guestEmail && <p>{status.guestEmail}</p>}
+                  {status.specialRequests && (
+                    <div>
+                      <h3>Special requests</h3>
+                      <p>{status.specialRequests}</p>
+                    </div>
+                  )}
+                  {status.refundStatus && (
+                    <p>Refund: {status.refundStatus.toLowerCase()}</p>
+                  )}
+                  <p>{confirmationEmailMessage(status.emailStatus)}</p>
+                  <Link href="/contact">Contact the hotel</Link>
+                </details>
                 <ConfirmationControls status={status} />
               </section>
               <aside
@@ -165,55 +192,55 @@ export default async function ConfirmationPage({
               >
                 <h2>Payment summary</h2>
                 <p>
-                  {status.priceSnapshot.nights} nights ×{' '}
+                  {status.priceSnapshot.nights}{' '}
+                  {status.priceSnapshot.nights === 1 ? 'night' : 'nights'} ×{' '}
                   {money(status.priceSnapshot.nightlyRate)}
                 </p>
                 <dl>
-                  <dt>Room subtotal</dt>
-                  <dd>{money(status.priceSnapshot.subtotal)}</dd>
+                  <div>
+                    <dt>Room subtotal</dt>
+                    <dd>{money(status.priceSnapshot.subtotal)}</dd>
+                  </div>
                   {status.priceSnapshot.lineItems.map((line) => (
                     <div key={line.code}>
                       <dt>{line.label}</dt>
                       <dd>{money(line.amount)}</dd>
                     </div>
                   ))}
-                  <dt>Total</dt>
-                  <dd>{money(status.totalAmount)}</dd>
-                  <dt>Paid</dt>
-                  <dd>{money(status.paidAmount)}</dd>
-                  <dt>Balance</dt>
-                  <dd>
-                    {status.paymentState === 'REVIEW_REQUIRED'
-                      ? 'Under hotel review'
-                      : money(status.balanceAmount)}
-                  </dd>
+                  <div>
+                    <dt>Total</dt>
+                    <dd>{money(status.totalAmount)}</dd>
+                  </div>
+                  <div>
+                    <dt>Paid</dt>
+                    <dd>{money(status.paidAmount)}</dd>
+                  </div>
+                  <div>
+                    <dt>Balance</dt>
+                    <dd>
+                      {status.paymentState === 'REVIEW_REQUIRED'
+                        ? 'Under hotel review'
+                        : money(status.balanceAmount)}
+                    </dd>
+                  </div>
                 </dl>
-                <p>Currency: {status.currency}</p>
-                <p>
-                  Payment reference:{' '}
-                  {status.paymentReference || 'Awaiting provider session'}
-                </p>
-                <p>
-                  Card details are handled by the payment provider and are not
-                  stored here.
-                </p>
+                {status.paymentReference && (
+                  <details className={styles.paymentReference}>
+                    <summary>Payment reference</summary>
+                    <p>{status.paymentReference}</p>
+                  </details>
+                )}
               </aside>
             </div>
           </>
         )}
-        <div className={styles.heading}>
-          {status && (
-            <Link
-              className="button button-outline"
-              href={`/profile/bookings/${id}#manage-booking`}
-            >
-              {status.status === 'CONFIRMED'
-                ? 'Change or cancel booking'
-                : 'View booking details'}
+        {!status && (
+          <div className={styles.heading}>
+            <Link className="button button-outline" href="/profile">
+              My bookings
             </Link>
-          )}
-          <Link href="/rooms">Browse rooms</Link>
-        </div>
+          </div>
+        )}
       </main>
       <SiteFooter />
     </>

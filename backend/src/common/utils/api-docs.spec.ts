@@ -1,3 +1,4 @@
+import { PasswordResetService } from '../../guests/password-reset.service';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { GuestsController } from '../../guests/guests.controller';
@@ -16,6 +17,7 @@ describe('buildApiDocument', () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [GuestsController, RoomTypesController, ContactController],
       providers: [
+        { provide: PasswordResetService, useValue: {} },
         { provide: GuestsService, useValue: {} },
         { provide: RoomTypesService, useValue: {} },
         { provide: ContactService, useValue: {} },

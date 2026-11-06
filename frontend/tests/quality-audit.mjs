@@ -30,6 +30,10 @@ export async function createQualityAudit({
         `ready for ${label}`,
       );
       await evaluate('document.fonts.ready.then(() => true)');
+      await until(
+        () => evaluate('document.title.trim().length > 0'),
+        `page title for ${label}`,
+      );
       await evaluate(axe);
       const result = await evaluate(`(async () => {
           const results = await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] } });

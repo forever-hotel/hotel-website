@@ -112,7 +112,7 @@
 .reference {
   color: #625d55;
   overflow-wrap: anywhere;
-  font-family: Arial, sans-serif;
+  font-family: var(--body);
   font-size: 0.7rem !important;
 }
 .badge {

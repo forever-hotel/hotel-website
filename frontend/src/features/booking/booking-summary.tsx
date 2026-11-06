@@ -66,7 +66,7 @@ export function BookingSummary({
           Your quote has expired. Refresh it to continue.
         </p>
       )}
-      {step !== 'details' && (
+      {step !== 'details' && !fresh && (
         <button
           type="button"
           className="button button-gold"
@@ -83,14 +83,6 @@ export function BookingSummary({
         onClick={() => onNavigate('details')}
       >
         Change room or dates
-      </button>
-      <button
-        type="button"
-        className="button button-outline"
-        disabled={pending}
-        onClick={() => onNavigate('select')}
-      >
-        Back to room search
       </button>
     </aside>
   );
