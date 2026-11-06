@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { PromotionFeed } from '../api/promotions';
 import { filterOffers, normalizePromoCode } from '../offers';
 import type { OfferFilter } from '../offers';
@@ -10,7 +11,7 @@ import styles from '../offers.module.css';
 
 export function OffersCatalogue({ feed }: { feed: PromotionFeed }) {
   const [filter, setFilter] = useState<OfferFilter>('ALL');
-  const [message, setMessage] = useState('');
+  const router = useRouter();
   const [error, setError] = useState('');
   const offers = filterOffers(feed.promotions, filter);
   return (
@@ -19,8 +20,8 @@ export function OffersCatalogue({ feed }: { feed: PromotionFeed }) {
         <div>
           <h2 id="promo-title">Have a promotion code?</h2>
           <p>
-            Choose your dates and room first. Online code application is not
-            available yet.
+            Send your code to our team to confirm eligibility and arrange your
+            booking.
           </p>
         </div>
         <form
@@ -34,11 +35,7 @@ export function OffersCatalogue({ feed }: { feed: PromotionFeed }) {
                 ? ''
                 : 'Enter 1–50 letters, numbers, hyphens or underscores.',
             );
-            setMessage(
-              code
-                ? `Code ${code} has not been validated or applied. Select your stay and contact the hotel to confirm eligibility.`
-                : '',
-            );
+            if (code) router.push(`/contact?offer=${encodeURIComponent(code)}`);
           }}
         >
           <label htmlFor="promo-code">Promotion code</label>
@@ -50,17 +47,16 @@ export function OffersCatalogue({ feed }: { feed: PromotionFeed }) {
             aria-invalid={Boolean(error)}
             aria-describedby="promo-help"
             onChange={() => {
-              setMessage('');
               setError('');
             }}
           />
-          <button className="button button-gold">Check next steps</button>
+          <button className="button button-gold">Enquire about code</button>
           <p
             id="promo-help"
             role={error ? 'alert' : 'status'}
             className={error ? styles.error : undefined}
           >
-            {error || message}
+            {error}
           </p>
         </form>
         <Link href="/rooms">Choose dates and a room</Link>
@@ -124,10 +120,10 @@ export function OffersCatalogue({ feed }: { feed: PromotionFeed }) {
         </p>
       </section>
       <section className={styles.newsletter} aria-labelledby="newsletter-title">
-        <h2 id="newsletter-title">Stay in touch</h2>
+        <h2 id="newsletter-title">Plan something special</h2>
         <p>
-          Newsletter subscriptions are not available yet. Contact the hotel for
-          current offers.
+          Speak with our team about current offers, room packages and your next
+          stay.
         </p>
         <Link href="/contact" className="button button-gold">
           Contact the hotel

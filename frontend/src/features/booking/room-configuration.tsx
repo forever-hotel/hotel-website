@@ -42,15 +42,10 @@ export function RoomConfiguration({
           </article>
         ))}
       </div>
+      <p>Booking more than one room? Contact the hotel.</p>
       <p>
-        Room quantity: 1. Multiple rooms, child-specific pricing, meal plans and
-        arrival options are not available online yet.
-      </p>
-      <p>
-        Promotion codes cannot be applied online yet.{' '}
-        <Link href="/offers">View current offers</Link> or contact the hotel
-        about eligibility. No discount is included unless shown in your backend
-        quote.
+        <Link href="/offers">Special offers</Link> are arranged directly with
+        the hotel.
       </p>
       <button
         type="button"

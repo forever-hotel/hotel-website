@@ -13,6 +13,7 @@ import { BookingSummary } from './booking-summary';
 import { RoomConfiguration } from './room-configuration';
 import { GuestInformation } from './guest-information';
 import { PaymentStep } from './payment-step';
+import type { CheckoutGuest } from './billing';
 
 const milestones = [
   'Select Room',
@@ -27,7 +28,7 @@ export function BookingFlow({
   guest,
 }: {
   rooms: RoomType[];
-  guest: { fullName: string; email: string };
+  guest: CheckoutGuest;
 }) {
   const params = useSearchParams();
   const router = useRouter();
@@ -149,10 +150,6 @@ export function BookingFlow({
         <h1 ref={title} tabIndex={-1}>
           {milestones[milestone]}
         </h1>
-        <p>
-          Hotel dates use Asia/Colombo time. Selecting a room or requesting a
-          quote does not reserve it.
-        </p>
       </header>
       {error && (
         <p role="alert" className={styles.error}>
@@ -197,7 +194,7 @@ export function BookingFlow({
               }}
             >
               <label>
-                Check-in
+                Check-in (required)
                 <input
                   name="checkInDate"
                   disabled={pending}
@@ -208,7 +205,7 @@ export function BookingFlow({
                 />
               </label>
               <label>
-                Check-out
+                Check-out (required)
                 <input
                   name="checkOutDate"
                   disabled={pending}
@@ -219,7 +216,7 @@ export function BookingFlow({
                 />
               </label>
               <label>
-                Guests
+                Guests (required)
                 <input
                   name="numberOfGuests"
                   disabled={pending}
@@ -257,6 +254,7 @@ export function BookingFlow({
                     requests={requests}
                     errors={errors}
                     fresh={Boolean(fresh)}
+                    stayEdited={dirtyKey === key}
                     pending={pending}
                     onConfirmation={(value) => {
                       setConfirmation(value);
@@ -274,8 +272,8 @@ export function BookingFlow({
                       );
                       setErrors(validation);
                       if (Object.keys(validation).length) return;
-                      if (!fresh || !quote) {
-                        setError('Request a fresh quote before continuing.');
+                      if (!quote || Date.parse(quote.expiresAt) <= Date.now()) {
+                        loadQuote();
                         return;
                       }
                       setReviewed(quote.quoteId);
@@ -291,22 +289,15 @@ export function BookingFlow({
                     </h2>
                     {handoffReady ? (
                       <>
-                        <p>Guest: {guest.fullName}</p>
-                        <p>Email: {guest.email}</p>
-                        {requests && <p>Special requests: {requests}</p>}
-                        <p>Quote reference: {quote.quoteId}</p>
                         <p>
-                          Your price preview expires at{' '}
-                          {new Date(quote.expiresAt).toLocaleTimeString(
-                            'en-LK',
-                            { timeZone: 'Asia/Colombo' },
-                          )}{' '}
-                          (Asia/Colombo).
+                          {guest.fullName} · {guest.email}
                         </p>
-                        <PaymentStep quote={quote} requests={requests} />
-                        <Link href="/contact">
-                          Contact the hotel for assistance
-                        </Link>
+                        {requests && <p>Special requests: {requests}</p>}
+                        <PaymentStep
+                          quote={quote}
+                          requests={requests}
+                          guest={guest}
+                        />
                       </>
                     ) : (
                       <p>

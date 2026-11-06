@@ -1,6 +1,7 @@
 'use client';
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { cancelPayment, resumePayment } from './payment-actions';
 import { submitPayHere } from './payhere-checkout';
 import type { PaymentStatus } from './payment';
@@ -13,18 +14,38 @@ export function ConfirmationControls({ status }: { status: PaymentStatus }) {
   const busy = useRef(false);
   const payable =
     status.status === 'PENDING' && status.paymentState === 'PENDING';
+  const needsRefresh =
+    status.status === 'PENDING' ||
+    status.verificationDelayed ||
+    status.paymentState === 'REVIEW_REQUIRED' ||
+    status.refundStatus === 'PENDING';
   return (
-    <div className={styles.controls}>
-      <button
-        type="button"
-        className="button button-outline"
-        disabled={pending}
-        onClick={() => {
-          startTransition(() => router.refresh());
-        }}
-      >
-        Refresh payment status
-      </button>
+    <div
+      className={styles.controls}
+      role="group"
+      aria-label="Booking actions"
+      aria-busy={pending}
+    >
+      {status.status === 'CONFIRMED' && (
+        <Link
+          className="button button-gold"
+          href={`/profile/bookings/${status.bookingId}#manage-booking`}
+        >
+          Manage booking
+        </Link>
+      )}
+      {needsRefresh && (
+        <button
+          type="button"
+          className="button button-outline"
+          disabled={pending}
+          onClick={() => {
+            startTransition(() => router.refresh());
+          }}
+        >
+          {pending ? 'Checking status…' : 'Refresh payment status'}
+        </button>
+      )}
       {payable && (
         <>
           <button
@@ -94,6 +115,14 @@ export function ConfirmationControls({ status }: { status: PaymentStatus }) {
       >
         Print booking details
       </button>
+      {status.status !== 'CONFIRMED' && (
+        <Link
+          className="button button-outline"
+          href={`/profile/bookings/${status.bookingId}`}
+        >
+          Booking details
+        </Link>
+      )}
       {error && (
         <p role="alert" className={styles.error}>
           {error}

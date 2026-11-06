@@ -1,0 +1,22 @@
+name: Staging tooling checks
+
+on:
+  push:
+    paths: ["deploy/staging/**", ".github/workflows/staging*.yml"]
+  pull_request:
+    paths: ["deploy/staging/**", ".github/workflows/staging*.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Smoke contracts and rollback rehearsal
+        working-directory: deploy/staging
+        run: npm run test:coverage

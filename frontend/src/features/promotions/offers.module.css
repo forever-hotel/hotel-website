@@ -23,7 +23,7 @@
   z-index: -2;
 }
 .hero h1 {
-  font-family: Georgia, serif;
+  font-family: var(--serif);
   font-size: clamp(2.5rem, 6vw, 4.5rem);
   padding: 1rem;
 }
@@ -38,7 +38,7 @@
 }
 .codeStrip h2,
 .newsletter h2 {
-  font-family: Georgia, serif;
+  font-family: var(--serif);
   margin-bottom: 1rem;
 }
 .codeStrip form {
@@ -74,7 +74,7 @@
   padding: 0 1.5rem;
 }
 .catalogue h2 {
-  font-family: Georgia, serif;
+  font-family: var(--serif);
   font-size: 2.5rem;
 }
 .catalogue p {

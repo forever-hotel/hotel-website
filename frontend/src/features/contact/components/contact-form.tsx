@@ -4,7 +4,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { submitEnquiry } from '@/lib/api/contact-client';
 import styles from '../contact.module.css';
 
-export function ContactForm() {
+export function ContactForm({ offer = '' }: { offer?: string }) {
   const inFlight = useRef(false);
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState('');
@@ -40,7 +40,7 @@ export function ContactForm() {
     <form className={styles.form} onSubmit={handleSubmit} aria-busy={pending}>
       <div className={styles.fields}>
         <label>
-          Full name
+          Full name (required)
           <input
             name="name"
             autoComplete="name"
@@ -50,7 +50,7 @@ export function ContactForm() {
           />
         </label>
         <label>
-          Email address
+          Email address (required)
           <input
             name="email"
             type="email"
@@ -60,17 +60,19 @@ export function ContactForm() {
           />
         </label>
         <label>
-          Phone <span>(optional)</span>
+          <span>
+            Phone <span>(optional)</span>
+          </span>
           <input
             name="phone"
             type="tel"
             autoComplete="tel"
             maxLength={25}
-            pattern="[+0-9 \(\)\-]{7,25}"
+            pattern={String.raw`\+?[0-9 \(\)\-]{7,25}`}
           />
         </label>
         <label>
-          Subject
+          Subject (required)
           <select name="subject" defaultValue="" required>
             <option value="" disabled>
               Select a subject
@@ -83,9 +85,14 @@ export function ContactForm() {
         </label>
       </div>
       <label>
-        Message
+        Message (required)
         <textarea
           name="message"
+          defaultValue={
+            offer
+              ? `I would like to enquire about offer ${offer}. Please confirm availability and booking details.`
+              : ''
+          }
           required
           minLength={10}
           maxLength={3000}
@@ -97,8 +104,7 @@ export function ContactForm() {
           {pending ? 'Submitting…' : 'Send message'}
         </button>
         <p>
-          Your contact details are used to respond to this enquiry. Please do
-          not include card details or other sensitive information.
+          We use your contact details to reply. Please leave out card details.
         </p>
       </div>
       {notice && (

@@ -2,6 +2,10 @@
 
 ## Source and agreed scope
 
+For the implemented screen/control status, owners, test evidence and named
+release gaps, use the [release matrix](../documents/release/traceability.md).
+The original proposals below remain design history rather than shipment claims.
+
 This is the durable written reference for all hotel website screenshots supplied
 in this conversation on 20 October 2026. Use it together with
 [UI_GUIDE.md](UI_GUIDE.md), which documents the Home layout, visual tokens, and

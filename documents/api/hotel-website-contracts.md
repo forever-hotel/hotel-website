@@ -1,5 +1,9 @@
 # Hotel website API contracts
 
+Historical proposal: use the [current API index](../release/api.md) and generated
+development OpenAPI for shipped routes. The original review status and dated
+proposals below remain intact; they do not describe today's full implementation.
+
 Status: **Draft for team review — not approved. Room catalogue and some guest-auth endpoints are
 implemented; gateway mappings and the remaining proposed routes are not.**
 

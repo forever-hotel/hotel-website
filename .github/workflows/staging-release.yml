@@ -1,0 +1,157 @@
+name: Staging release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Full reviewed develop merge commit SHA with passing CI
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hotel-website-staging-release
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require a develop commit and protected workflow branch
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/develop
+          [[ "$RELEASE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/develop
+      - name: Verify review and CI evidence for this exact commit
+        uses: actions/github-script@v7
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        with:
+          script: |
+            const sha = process.env.RELEASE_SHA;
+            const repo = context.repo;
+            const associated = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, { ...repo, commit_sha: sha });
+            const pr = associated.find(p => p.merged_at && p.base.ref === 'develop' && p.merge_commit_sha === sha);
+            if (!pr) throw new Error('Use a reviewed PR merge commit on develop.');
+            const reviews = await github.paginate(github.rest.pulls.listReviews, { ...repo, pull_number: pr.number });
+            const latest = new Map();
+            for (const review of reviews) {
+              if (['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(review.state)) latest.set(review.user.login, review);
+            }
+            const approved = [...latest.values()].some(r => r.state === 'APPROVED' && r.commit_id === pr.head.sha && r.user.login !== pr.user.login);
+            if (!approved || [...latest.values()].some(r => r.state === 'CHANGES_REQUESTED')) throw new Error('A peer approval on the final PR head is required.');
+            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, { ...repo, head_sha: sha, per_page: 100 });
+            for (const name of ['Backend CI', 'Frontend CI', 'Container checks']) {
+              const latestRun = runs.filter(r => r.name === name).sort((a,b) => b.id-a.id)[0];
+              if (latestRun?.conclusion !== 'success') throw new Error(`Missing passing ${name} for release commit.`);
+            }
+
+  images:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      frontend: ${{ steps.names.outputs.frontend }}@${{ steps.frontend.outputs.digest }}
+      backend: ${{ steps.names.outputs.backend }}@${{ steps.backend.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_sha }}
+          persist-credentials: false
+      - id: names
+        run: |
+          echo "frontend=ghcr.io/${GITHUB_REPOSITORY,,}/frontend" >> "$GITHUB_OUTPUT"
+          echo "backend=ghcr.io/${GITHUB_REPOSITORY,,}/backend" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        id: frontend
+        with:
+          context: frontend
+          push: true
+          build-args: ROOM_IMAGE_HOSTS=${{ vars.STAGING_ROOM_IMAGE_HOSTS }}
+          tags: ${{ steps.names.outputs.frontend }}:${{ inputs.release_sha }}
+      - uses: docker/build-push-action@v6
+        id: backend
+        with:
+          context: backend
+          push: true
+          tags: ${{ steps.names.outputs.backend }}:${{ inputs.release_sha }}
+
+  deploy:
+    needs: images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_sha }}
+          persist-credentials: false
+      - name: Install pinned staging SSH identity
+        env:
+          SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+        run: |
+          test -n "$SSH_KEY"
+          test -n "$KNOWN_HOSTS"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Deploy immutable images and restore prior release on failure
+        env:
+          STAGING_HOST: ${{ vars.STAGING_HOST }}
+          STAGING_USER: ${{ vars.STAGING_USER }}
+          STAGING_PORT: ${{ vars.STAGING_PORT || '22' }}
+          STAGING_DIRECTORY: ${{ vars.STAGING_DIRECTORY }}
+          FRONTEND_IMAGE: ${{ needs.images.outputs.frontend }}
+          BACKEND_IMAGE: ${{ needs.images.outputs.backend }}
+        run: |
+          [[ "$STAGING_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$STAGING_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          [[ "$STAGING_PORT" =~ ^[0-9]{1,5}$ ]]
+          [[ "$STAGING_DIRECTORY" =~ ^/[a-zA-Z0-9_/-]+$ ]]
+          [[ "$STAGING_DIRECTORY" != *..* ]]
+          tar -czf "$RUNNER_TEMP/staging-tools.tgz" deploy/staging
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes -P "$STAGING_PORT" "$RUNNER_TEMP/staging-tools.tgz" "$STAGING_USER@$STAGING_HOST:$STAGING_DIRECTORY/release.tgz"
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -p "$STAGING_PORT" "$STAGING_USER@$STAGING_HOST" "tar -xzf '$STAGING_DIRECTORY/release.tgz' -C '$STAGING_DIRECTORY'"
+          jq -n --arg frontend "$FRONTEND_IMAGE" --arg backend "$BACKEND_IMAGE" '{frontend:$frontend,backend:$backend}' > "$RUNNER_TEMP/release.json"
+          set +e
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -p "$STAGING_PORT" "$STAGING_USER@$STAGING_HOST" "cd '$STAGING_DIRECTORY' && node deploy/staging/release.mjs" < "$RUNNER_TEMP/release.json"
+          release_status=$?
+          mkdir -p "$RUNNER_TEMP/staging-evidence"
+          cp "$RUNNER_TEMP/release.json" "$RUNNER_TEMP/staging-evidence/requested-images.json"
+          for report in last-attempt.json candidate-smoke.json rollback-smoke.json; do
+            ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -p "$STAGING_PORT" "$STAGING_USER@$STAGING_HOST" "cat '$STAGING_DIRECTORY/.staging-state/$report'" > "$RUNNER_TEMP/staging-evidence/$report" 2>/dev/null
+          done
+          exit "$release_status"
+      - name: Upload release and smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-release-${{ inputs.release_sha }}
+          path: ${{ runner.temp }}/staging-evidence/
+          if-no-files-found: ignore
+      - name: Remove runner SSH identity
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519

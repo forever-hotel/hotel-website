@@ -30,7 +30,7 @@ export default function ServicesPage() {
             <h1 id="services-page-title">
               Services & <em>Facilities</em>
             </h1>
-            <p className="eyebrow">Your comfort. Our attention to detail.</p>
+            <p>Dining, wellness and spaces to spend time together.</p>
           </div>
         </section>
         <section
@@ -38,15 +38,13 @@ export default function ServicesPage() {
           aria-labelledby="experience-title"
         >
           <div className={styles.introduction}>
-            <p className="eyebrow">Curated experiences</p>
-            <h2 id="experience-title">
-              Everything You Need,
-              <br />
-              <em>Perfectly Delivered</em>
-            </h2>
+            <div>
+              <p className="eyebrow">During your stay</p>
+              <h2 id="experience-title">Explore our facilities</h2>
+            </div>
             <p>
-              From unwinding in our wellness spaces to memorable meals and
-              occasions, discover the experiences that make your stay your own.
+              Find a place to relax, dine or celebrate. Our team can help with
+              access and arrangements.
             </p>
           </div>
           <div className={styles.grid}>
@@ -68,7 +66,7 @@ export default function ServicesPage() {
             ))}
             <article className={styles.photoCard}>
               <span className={styles.symbol} aria-hidden="true">
-                ?
+                ◇
               </span>
               <h3>Scenic Photo Locations</h3>
               <p>

@@ -20,11 +20,11 @@ The unique guest/checkout key stays with the booking; the previous 24-hour
 idempotency-table retention policy no longer applies. Keys are not recycled.
 
 A PENDING checkout is not a confirmed stay. This API never marks bookings
-CONFIRMED or writes a completed payment. GitHub #178 now implements verified
-Stripe test payment separately. `/hw/payments/checkout` creates/reuses this hold
+CONFIRMED or writes a completed payment. New checkout uses verified
+PayHere payment separately. `/hw/payments/checkout` creates/reuses this hold
 and extends it once to the approved 35-minute provider deadline; late payment on
 an expired hold enters refund recovery instead of confirmation. See
-[Stripe checkout](stripe-checkout.md).
+[PayHere checkout](payhere-checkout.md). The Stripe guide is retained for legacy attempts.
 
 ## Requests
 

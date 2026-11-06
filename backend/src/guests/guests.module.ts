@@ -7,11 +7,13 @@ import { Guest } from './entities/guest.entity';
 import { GuestsController } from './guests.controller';
 import { GuestsService } from './guests.service';
 import { PasswordHasher } from './password-hasher.service';
+import { PasswordResetService } from './password-reset.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Guest])],
   controllers: [GuestsController],
   providers: [
+    PasswordResetService,
     GuestRepository,
     GuestsService,
     PasswordHasher,
