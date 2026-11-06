@@ -1,7 +1,9 @@
 name: Frontend CI
 
 on:
+  workflow_call:
   push:
+    branches-ignore: [develop]
   pull_request:
     branches: [develop, pre-develop]
 
