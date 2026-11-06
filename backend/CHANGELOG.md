@@ -7,6 +7,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Expose `/health/ready` alongside `/health` so the API gateway can check database
+  readiness without a server-only source edit. Both routes return 503 on outage.
+
 - DDP-#34: use distinct guests in the pooled-transaction last-room regression.
   Add a configurable mixed HTTP load runner, threshold/payload/timeout reports,
   real-inventory contention checks and a staging evidence checklist.
