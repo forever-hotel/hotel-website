@@ -1,0 +1,151 @@
+name: Automatic sample staging
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Share the lock with the legacy release workflow. Never run that workflow
+# against this host: it owns a different Compose project and must not be adopted.
+concurrency:
+  group: hotel-website-staging-release
+  cancel-in-progress: false
+
+jobs:
+  backend:
+    uses: ./.github/workflows/backend-ci.yml
+  frontend:
+    uses: ./.github/workflows/frontend-ci.yml
+  containers:
+    uses: ./.github/workflows/container-ci.yml
+
+  release-checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Require reviewed develop release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            if (context.ref !== 'refs/heads/develop') throw new Error('Deploy only develop.');
+            const { data: branch } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
+            if (branch.commit.sha !== context.sha) throw new Error('Stale release; deploy current develop only.');
+            const prs = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, { ...context.repo, commit_sha: context.sha });
+            const pr = prs.find(p => p.merged_at && p.base.ref === 'develop' && p.merge_commit_sha === context.sha);
+            if (!pr) throw new Error('A reviewed PR merge into develop is required.');
+            const reviews = await github.paginate(github.rest.pulls.listReviews, { ...context.repo, pull_number: pr.number });
+            const latest = new Map();
+            for (const r of reviews) if (['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(r.state)) latest.set(r.user.login, r);
+            if (![...latest.values()].some(r => r.state === 'APPROVED' && r.commit_id === pr.head.sha && r.user.login !== pr.user.login) ||
+                [...latest.values()].some(r => r.state === 'CHANGES_REQUESTED')) throw new Error('Final PR head needs peer approval.');
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Release regression tests
+        working-directory: deploy/staging
+        run: npm run test:coverage
+      - name: Scan locked dependencies including development dependencies
+        run: |
+          npm audit --prefix backend --audit-level=high
+          npm audit --prefix frontend --audit-level=high
+
+  images:
+    needs: [backend, frontend, containers, release-checks]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      frontend: ${{ steps.names.outputs.frontend }}@${{ steps.frontend.outputs.digest }}
+      backend: ${{ steps.names.outputs.backend }}@${{ steps.backend.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: names
+        run: |
+          echo "frontend=ghcr.io/${GITHUB_REPOSITORY,,}/frontend" >> "$GITHUB_OUTPUT"
+          echo "backend=ghcr.io/${GITHUB_REPOSITORY,,}/backend" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        id: backend
+        with:
+          context: backend
+          push: true
+          tags: ${{ steps.names.outputs.backend }}:${{ github.sha }}
+      - uses: docker/build-push-action@v6
+        id: frontend
+        with:
+          context: frontend
+          push: true
+          build-args: ROOM_IMAGE_HOSTS=${{ vars.STAGING_ROOM_IMAGE_HOSTS }}
+          tags: ${{ steps.names.outputs.frontend }}:${{ github.sha }}
+
+  deploy:
+    needs: images
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned SSH identity
+        env:
+          SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+        run: |
+          test -n "$SSH_KEY" && test -n "$KNOWN_HOSTS"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Deploy website images with host-side recovery
+        env:
+          STAGING_HOST: ${{ vars.STAGING_HOST }}
+          STAGING_USER: ${{ vars.STAGING_USER }}
+          STAGING_PORT: ${{ vars.STAGING_PORT || '22' }}
+          STAGING_DIRECTORY: ${{ vars.STAGING_DIRECTORY }}
+          FRONTEND_IMAGE: ${{ needs.images.outputs.frontend }}
+          BACKEND_IMAGE: ${{ needs.images.outputs.backend }}
+        run: |
+          [[ "$STAGING_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$STAGING_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          [[ "$STAGING_PORT" =~ ^[0-9]{1,5}$ ]]
+          [[ "$STAGING_DIRECTORY" =~ ^/[a-zA-Z0-9_/-]+$ ]]
+          [[ "$STAGING_DIRECTORY" != *..* ]]
+          # Exact triggering SHA must still be the develop head immediately before SSH.
+          current=$(git ls-remote origin refs/heads/develop | cut -f1)
+          test "$current" = "$GITHUB_SHA"
+          tar -czf "$RUNNER_TEMP/sample-tools.tgz" deploy/staging/sample-release.mjs deploy/staging/sample-core.mjs deploy/staging/release-core.mjs
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes -P "$STAGING_PORT" "$RUNNER_TEMP/sample-tools.tgz" "$STAGING_USER@$STAGING_HOST:$STAGING_DIRECTORY/sample-tools.tgz"
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -p "$STAGING_PORT" "$STAGING_USER@$STAGING_HOST" "tar -xzf '$STAGING_DIRECTORY/sample-tools.tgz' -C '$STAGING_DIRECTORY'"
+          jq -n --arg frontend "$FRONTEND_IMAGE" --arg backend "$BACKEND_IMAGE" '{frontend:$frontend,backend:$backend}' > "$RUNNER_TEMP/images.json"
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -p "$STAGING_PORT" "$STAGING_USER@$STAGING_HOST" "cd '$STAGING_DIRECTORY' && node deploy/staging/sample-release.mjs" < "$RUNNER_TEMP/images.json"
+          # External check complements the host's local TLS+database smoke.
+          curl --fail --silent --show-error --retry 3 --max-time 30 "https://$STAGING_HOST/hw/health" | jq -e '.status == "ok" and .database == "up" and .service == "hotel-website"'
+      - name: Save non-secret deployment evidence
+        if: always()
+        env:
+          FRONTEND_IMAGE: ${{ needs.images.outputs.frontend }}
+          BACKEND_IMAGE: ${{ needs.images.outputs.backend }}
+        run: |
+          jq -n --arg sha "$GITHUB_SHA" --arg frontend "$FRONTEND_IMAGE" --arg backend "$BACKEND_IMAGE" '{sha:$sha,frontend:$frontend,backend:$backend}' > release-images.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sample-release-images
+          path: release-images.json

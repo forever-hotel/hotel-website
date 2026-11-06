@@ -1,5 +1,10 @@
 # Controlled staging releases (DDP-#35)
 
+For the existing Azure **hotel-website-sample** four-container deployment, use
+[the sample automatic-deployment setup](SAMPLE-AUTODEPLOY.md) instead of running
+the legacy workflow below. The sample workflow is prepared locally; activation,
+host prerequisites and a live rollback rehearsal are still required.
+
 The manual **Staging release** workflow builds frontend/backend images in GHCR,
 deploys immutable digests to an infra-managed Docker Compose host, waits for
 container health and verifies the external HTTPS guest routes. A failed release

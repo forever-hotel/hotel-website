@@ -28,3 +28,5 @@ temp_interactive_push.bat
 /staging.*.local.*
 /smoke-credentials.local.json
 /.staging-state/
+/.sample-release/
+/sample.smoke.local.json
