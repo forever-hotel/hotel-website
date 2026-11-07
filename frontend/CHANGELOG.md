@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Keyboard browser checks now wait for button focus to settle after navigation
+  before pressing Enter, avoiding a race with the booking heading's focus effect.
+  The keyboard path and booking assertions remain enabled.
+
 - Changing rooms or dates no longer silently redirects to an older pending
   checkout with its frozen total. Recovery now offers an explicit review or
   verified unpaid-cancellation choice, preserves the new selection, and clears
