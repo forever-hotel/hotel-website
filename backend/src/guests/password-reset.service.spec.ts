@@ -65,6 +65,26 @@ describe('PasswordResetService', () => {
     };
     return body.textContent.match(/#token=(\S+)/)![1];
   }
+  it('allows explicitly opted-in loopback HTTP for the local Docker stack', async () => {
+    settings.NODE_ENV = 'production';
+    settings.PASSWORD_RESET_ALLOW_LOCAL_HTTP = 'true';
+    settings.PASSWORD_RESET_ORIGIN = 'http://localhost:3003';
+    await expect(service.request('guest@example.com')).resolves.toEqual({
+      message: RESET_MESSAGE,
+    });
+    const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string) as {
+      textContent: string;
+    };
+    expect(body.textContent).toContain(
+      'http://localhost:3003/reset-password#token=',
+    );
+
+    settings.PASSWORD_RESET_ORIGIN = 'http://public.example.com';
+    await expect(service.request('guest@example.com')).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+  });
+
   it('emails an expiring link without exposing the token in the response', async () => {
     const result = await service.request('guest@example.com');
     expect(result).toEqual({ message: RESET_MESSAGE });
