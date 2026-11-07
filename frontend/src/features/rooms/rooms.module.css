@@ -9,10 +9,12 @@
   display: grid;
   gap: 8px;
   font-size: 0.85rem;
+  flex: 1 1 150px;
+  min-width: 0;
 }
 .searchForm input,
 .searchForm select {
-  min-height: 44px;
+  min-height: 48px;
   max-width: 100%;
   padding: 8px;
   border: 1px solid var(--line);
@@ -20,7 +22,10 @@
   color: var(--ink);
 }
 .searchForm input[type='number'] {
-  width: 90px;
+  width: 100%;
+}
+.searchForm > button {
+  min-height: 48px;
 }
 .calendar {
   max-width: 580px;
@@ -254,9 +259,7 @@
 }
 .eyebrow {
   color: #86632e;
-  font:
-    0.6rem Arial,
-    sans-serif;
+  font: 0.6rem var(--body);
   text-transform: uppercase;
   letter-spacing: 0.2em;
 }
@@ -387,6 +390,13 @@
   }
 }
 @media (max-width: 700px) {
+  .searchForm {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .searchForm > button {
+    width: 100%;
+  }
   .grid {
     grid-template-columns: 1fr;
   }

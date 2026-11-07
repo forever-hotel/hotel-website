@@ -5,7 +5,6 @@ import { SiteFooter } from '@/components/layout/site-footer';
 import { Suspense } from 'react';
 import { RoomPreview } from '@/features/rooms/components/room-preview';
 import { ActiveOffers } from '@/features/promotions/components/active-offers';
-import { CookieNotice } from '@/features/home/components/cookie-notice';
 import { StayPlanner } from '@/features/home/components/stay-planner';
 import { getRoomCatalogue } from '@/features/rooms/catalogue';
 import { questions, services } from '@/features/home/content';
@@ -248,7 +247,6 @@ export default async function Home() {
         </section>
       </main>
       <SiteFooter />
-      <CookieNotice />
     </>
   );
 }

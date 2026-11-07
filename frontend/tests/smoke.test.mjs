@@ -214,11 +214,11 @@ test(
       assert.match(offersHtml, /ACTIVE10/);
       assert.match(offersHtml, /FIXED2500/);
       assert.doesNotMatch(offersHtml, /EXPIRED10|FUTURE10/);
+      assert.match(offersHtml, /Plan something special/);
       assert.match(
         offersHtml,
-        /Newsletter subscriptions are not available yet/,
+        /This offer is arranged directly with the hotel/,
       );
-      assert.match(offersHtml, /Online code application is not available yet/);
       assert.doesNotMatch(
         offersHtml,
         /Early Bird Special|Honeymoon Package|Spa &amp; Dine/,
@@ -338,6 +338,22 @@ test(
       const signInHtml = await signIn.text();
       assert.match(signInHtml, /autocomplete="current-password"/i);
       assert.match(signInHtml, /name="returnTo" value="\/profile"/);
+      assert.match(signInHtml, /href="\/forgot-password"/);
+      const forgotPassword = await fetch(`${baseUrl}/forgot-password`);
+      assert.equal(forgotPassword.status, 200);
+      const recoveryHtml = await forgotPassword.text();
+      assert.match(recoveryHtml, /name="email"/);
+      assert.match(recoveryHtml, /Send reset link/);
+      const resetPassword = await fetch(`${baseUrl}/reset-password`);
+      assert.equal(resetPassword.status, 200);
+      assert.equal(
+        resetPassword.headers.get('content-type')?.includes('text/html'),
+        true,
+      );
+      const resetHtml = await resetPassword.text();
+      assert.match(resetHtml, /name="confirmPassword"/);
+      assert.match(resetHtml, /name="token"/);
+      assert.match(resetHtml, /no-referrer/);
       const signUp = await fetch(`${baseUrl}/sign-up`);
       assert.equal(signUp.status, 200);
       assert.match(await signUp.text(), /name="confirmPassword"/);

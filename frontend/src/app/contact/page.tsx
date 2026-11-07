@@ -12,7 +12,17 @@ export const metadata: Metadata = {
     'Find Forever City Hotel in Kiribathgoda and send our team an enquiry about your visit.',
 };
 
-export default function ContactPage() {
+export default async function ContactPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const offer =
+    typeof params.offer === 'string' &&
+    /^[A-Za-z0-9_-]{1,50}$/.test(params.offer)
+      ? params.offer
+      : '';
   return (
     <>
       <SiteHeader />
@@ -37,14 +47,8 @@ export default function ContactPage() {
           aria-label="Location and enquiries"
         >
           <div className={styles.location}>
-            <iframe
-              title="Forever City Hotel location on Google Maps"
-              src={hotelContact.embedUrl}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              allowFullScreen
-            />
             <div className={styles.address}>
+              <p className="eyebrow">Visit us</p>
               <h2>Find us in Kiribathgoda</h2>
               <address>{hotelContact.address}</address>
               <a
@@ -59,6 +63,13 @@ export default function ContactPage() {
                 directions separately.
               </p>
             </div>
+            <iframe
+              title="Forever City Hotel location on Google Maps"
+              src={hotelContact.embedUrl}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
           </div>
           <div className={styles.formPanel}>
             <p className="eyebrow">Get in touch</p>
@@ -66,7 +77,7 @@ export default function ContactPage() {
               Send Us a <em>Message</em>
             </h2>
             <span className="gold-rule" />
-            <ContactForm />
+            <ContactForm key={offer} offer={offer} />
             <noscript>
               <p>
                 JavaScript is needed to submit this form. You can still read our

@@ -1,0 +1,10 @@
+{
+  "websiteUrl": "https://website.staging.example",
+  "gatewayUrl": "https://gateway.staging.example",
+  "imagePath": "/images/forever-city-room.jpg",
+  "optimizedImagePath": "/_next/image?url=%2Fimages%2Fforever-city-room.jpg&w=640&q=75",
+  "roomTypeId": "REPLACE_WITH_REAL_STAGING_ROOM_UUID",
+  "paymentBookingId": "REPLACE_WITH_OWNED_UNPAID_BOOKING_UUID",
+  "credentialsFile": "smoke-credentials.local.json",
+  "timeoutMs": 15000
+}

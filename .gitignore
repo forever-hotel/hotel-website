@@ -23,3 +23,10 @@ temp_interactive_push.bat
 # Performance accounts and environment-specific reports
 /performance/*.local.json
 /performance/results/
+
+# Infra-owned staging configuration, credentials and local release state
+/staging.*.local.*
+/smoke-credentials.local.json
+/.staging-state/
+/.sample-release/
+/sample.smoke.local.json

@@ -17,34 +17,29 @@ export function SiteFooter() {
         </div>
         <nav aria-label="Explore the hotel">
           <h2>Explore</h2>
-          <Link href="/#main-content">Home</Link>
           {publicLinks.map((link) => (
             <Link key={link.href} href={link.href}>
               {link.label}
             </Link>
           ))}
-          <Link href="/#our-hotel">Our story</Link>
         </nav>
         <nav aria-label="Guest information">
           <h2>Guest services</h2>
-          <Link href="/#plan-stay">Plan your stay</Link>
+          <Link href="/rooms">Book a stay</Link>
           <Link href="/#faq">FAQ</Link>
-          <Link href="/#hotel-policies">Hotel policies</Link>
-          <Link href="/profile">Guest account</Link>
-          <p>Payment availability is shown during checkout.</p>
+          <Link href="/profile">My bookings</Link>
         </nav>
         <div>
           <h2>Contact</h2>
           <p>{hotelContact.address}</p>
           <Link href="/contact">Send an enquiry</Link>
-          <Link href="/#hotel-policies">Guest information</Link>
         </div>
       </div>
       <div className="footer-bottom">
         <p>
           © {new Date().getFullYear()} Forever City Hotel. All rights reserved.
         </p>
-        <Link href="/#main-content">Back to top ↑</Link>
+        <a href="#main-content">Back to top ↑</a>
       </div>
     </footer>
   );

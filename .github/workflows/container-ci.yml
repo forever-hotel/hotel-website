@@ -1,8 +1,9 @@
 name: Container checks
 
 on:
+  workflow_call:
   push:
-    branches: [develop, pre-develop]
+    branches: [pre-develop]
   pull_request:
     branches: [develop, pre-develop]
 

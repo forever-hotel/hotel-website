@@ -9,6 +9,7 @@ import { paymentRequest } from '@/features/booking/payments-api';
 import { validBookingId } from '@/features/booking/payment';
 import styles from '@/features/booking/booking.module.css';
 import { PendingCheckoutChoice } from '@/features/booking/pending-checkout-choice';
+import type { CheckoutGuest } from '@/features/booking/billing';
 
 export const metadata = {
   title: 'Book your stay | Forever City Hotel',
@@ -65,7 +66,7 @@ export default async function BookingPage({
     'step',
     nextSelection.get('roomTypeId') ? 'details' : 'select',
   );
-  let guest: { fullName: string; email: string } | null = null;
+  let guest: CheckoutGuest | null = null;
   let expired = false;
   const catalogue = await getRoomCatalogue();
   try {
@@ -80,7 +81,11 @@ export default async function BookingPage({
     if (response.ok) {
       const data = await response.json();
       if (typeof data?.fullName === 'string' && typeof data?.email === 'string')
-        guest = { fullName: data.fullName, email: data.email };
+        guest = {
+          fullName: data.fullName,
+          email: data.email,
+          phone: typeof data.phone === 'string' ? data.phone : null,
+        };
     }
   } catch {
     /* Keep stay parameters available for retry. */
