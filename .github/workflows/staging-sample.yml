@@ -60,8 +60,6 @@ jobs:
   images:
     needs: [backend, frontend, containers, release-checks]
     runs-on: ubuntu-latest
-    env:
-      DOCKER_CONFIG: ${{ runner.temp }}/sample-ghcr-auth
     permissions:
       contents: read
       packages: write
@@ -78,6 +76,8 @@ jobs:
           echo "backend=ghcr.io/${GITHUB_REPOSITORY,,}/backend" >> "$GITHUB_OUTPUT"
       # Organization policy permits GitHub-owned actions only. Use the runner's
       # Docker CLI instead of external docker/* actions; retain digest pinning.
+      - name: Set temporary Docker configuration
+        run: echo "DOCKER_CONFIG=$RUNNER_TEMP/sample-ghcr-auth" >> "$GITHUB_ENV"
       - name: Prepare Docker builder and authenticate to GHCR
         env:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
