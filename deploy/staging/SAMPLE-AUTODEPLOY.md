@@ -80,7 +80,14 @@ manual staging-environment approval if fully automatic staging is intended.
 `STAGING_ROOM_IMAGE_HOSTS`, when needed, is a **repository variable** because the
 build job does not access the environment; match the frontend runtime allowlist.
 
-Allow Actions to publish packages under the organization policy. Images use:
+Allow Actions to publish packages under the organization policy.
+
+The sample workflow uses GitHub-owned actions and the hosted runner's Docker CLI
+for Buildx setup, registry login and image publication. It does not require allowing
+external `docker/*` actions. Registry authentication uses the job token through
+standard input, and image digests are read from Buildx metadata and validated.
+
+Images use:
 
 ```text
 ghcr.io/forever-hotel/hotel-website/frontend@sha256:...
