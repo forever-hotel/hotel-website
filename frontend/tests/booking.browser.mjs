@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createQualityAudit } from './quality-audit.mjs';
+import { focusKeyboardButton } from './keyboard-focus.mjs';
 
 const qualityMode = process.argv.includes('--quality');
 
@@ -715,8 +716,12 @@ try {
       `interactive ${label}`,
     );
     if (qualityMode) {
-      await evaluate(
-        `([...document.querySelectorAll('button')].find((button) => button.textContent.trim() === ${JSON.stringify(label)})).focus()`,
+      await until(
+        () =>
+          evaluate(
+            `(${focusKeyboardButton.toString()})(${JSON.stringify(label)})`,
+          ),
+        `stable keyboard focus for ${label}`,
       );
       await key('Enter', 'Enter', 13);
       return;
