@@ -19,7 +19,8 @@ export function OfferCard({ promotion }: { promotion: Promotion }) {
         {promotion.roomTypeIds.length
           ? 'Applies to selected room types.'
           : 'Applies to all room types.'}{' '}
-        Contact the hotel to confirm availability and arrange this offer.
+        Apply this code to your booking to check eligibility and the current
+        discounted price.
       </p>
       <p>
         Valid until{' '}
@@ -33,14 +34,14 @@ export function OfferCard({ promotion }: { promotion: Promotion }) {
         (Sri Lanka time).
       </p>
       <p>
-        This offer is arranged directly with the hotel. Standard online room
-        bookings use the total shown at checkout.
+        Discount eligibility and remaining uses are checked at checkout. Your
+        confirmed quote shows the amount to pay.
       </p>
       <Link
         className="button button-blue"
-        href={`/contact?offer=${encodeURIComponent(promotion.code)}`}
+        href={`/booking?${new URLSearchParams({ promoCode: promotion.code, step: 'select', ...(promotion.roomTypeIds.length === 1 ? { roomTypeId: promotion.roomTypeIds[0] } : {}) })}`}
       >
-        Enquire about this offer
+        Book with this code
       </Link>
       <Link href={offerRoomsLink(promotion)}>Explore eligible room types</Link>
     </article>

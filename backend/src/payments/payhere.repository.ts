@@ -10,6 +10,10 @@ import {
 } from '../database/repositories/payment.repository';
 import type { BillingDto } from './payhere.dto';
 import type { PayHereReceipt } from './payhere-provider';
+import {
+  lockPromotionHold,
+  redeemPromotion,
+} from '../bookings/promotion-checkout';
 
 export interface PayHerePayment extends CheckoutPayment {
   provider: 'PAYHERE';
@@ -60,6 +64,7 @@ export class PayHereRepository extends PaymentRepository {
         throw new ConflictException(
           'Start checkout with billing details first.',
         );
+      await lockPromotionHold(manager, id, booking.priceSnapshot);
       const payment: PayHerePayment = {
         provider: 'PAYHERE',
         environment,
@@ -177,7 +182,10 @@ export class PayHereRepository extends PaymentRepository {
         booking.holdExpiresAt > now &&
         received === 1 &&
         payment.receipts.length === 1;
-      if (canConfirm) {
+      if (
+        canConfirm &&
+        (await redeemPromotion(manager, id, booking.priceSnapshot))
+      ) {
         await manager.query(
           "UPDATE bookings SET status='CONFIRMED',updated_at=clock_timestamp() WHERE booking_id=$1",
           [id],

@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Upgrade Next.js and its matching ESLint configuration from 16.3.6 to 16.4.5
+  to address the critical advisories reported by the deployment dependency scan.
+  The high-severity audit gate passes; moderate tooling findings remain.
+
 - Keyboard browser checks now wait for button focus to settle after navigation
   before pressing Enter, avoiding a race with the booking heading's focus effect.
   The keyboard path and booking assertions remain enabled.

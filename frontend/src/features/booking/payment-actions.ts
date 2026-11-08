@@ -25,15 +25,29 @@ async function paymentResult(response: Response): Promise<{
   checkout?: PayHereCheckout;
   error?: string;
 }> {
-  if (!response.ok)
+  if (!response.ok) {
+    let promotionMessage = '';
+    try {
+      const body = await response.json();
+      if (
+        typeof body?.error === 'string' &&
+        body.error.startsWith('PROMOTION_') &&
+        typeof body.message === 'string'
+      )
+        promotionMessage = body.message;
+    } catch {
+      /* Fall back to the status-specific message. */
+    }
     return {
       error:
-        response.status === 401
+        promotionMessage ||
+        (response.status === 401
           ? 'Your session expired. Sign in again before retrying.'
           : response.status === 409
             ? 'This checkout changed or expired. Refresh your booking status before trying again.'
-            : 'Checkout could not start. Check your existing booking before retrying.',
+            : 'Checkout could not start. Check your existing booking before retrying.'),
     };
+  }
   const data = await response.json();
   if (typeof data?.bookingId !== 'string' || !validBookingId(data.bookingId))
     throw new Error('Invalid checkout response');

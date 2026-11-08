@@ -459,6 +459,12 @@ export function ManagementControls({
                   <div>
                     <dt>New total</dt>
                     <dd>{money(quote.totalAmount)}</dd>
+                    {!!quote.discountAmount && (
+                      <>
+                        <dt>Promotion discount retained</dt>
+                        <dd>−{money(quote.discountAmount)}</dd>
+                      </>
+                    )}
                   </div>
                   <div>
                     <dt>Already paid</dt>

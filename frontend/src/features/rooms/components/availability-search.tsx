@@ -23,10 +23,12 @@ export function AvailabilitySearch({
   rooms,
   initial,
   booking = false,
+  promoCode = '',
 }: {
   rooms: RoomType[];
   initial: Search;
   booking?: boolean;
+  promoCode?: string;
 }) {
   const [search, setSearch] = useState(initial);
   const [submitted, setSubmitted] = useState<Search | null>(
@@ -139,7 +141,7 @@ export function AvailabilitySearch({
             null,
             '',
             booking
-              ? `/booking?${new URLSearchParams({ ...search, step: 'select' })}`
+              ? `/booking?${new URLSearchParams({ ...search, ...(promoCode ? { promoCode } : {}), step: 'select' })}`
               : `/rooms?${new URLSearchParams(search)}`,
           );
         }}
@@ -278,6 +280,7 @@ export function AvailabilitySearch({
                       ...submitted,
                       roomTypeId: room.roomTypeId,
                       numberOfGuests: Number(submitted.numberOfGuests),
+                      ...(promoCode ? { promoCode } : {}),
                     }),
                   ]),
               )

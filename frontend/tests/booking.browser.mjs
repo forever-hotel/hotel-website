@@ -551,7 +551,21 @@ const gateway = createServer(async (req, res) => {
         Date.now() + (expired ? -1000 : 600000),
       ).toISOString(),
     };
-    quotes.set(body.quoteToken, body);
+    if (stay.promoCode) {
+      if (stay.promoCode === 'SAVE10') {
+        body.discountAmount = Math.round(body.subtotal / 10);
+        body.totalAmount -= body.discountAmount;
+        body.promotion = { promoId: 'fixture-promotion', code: 'SAVE10' };
+      } else {
+        status = 409;
+        body = {
+          error: 'PROMOTION_UNAVAILABLE',
+          message:
+            'This promotion is invalid, inactive, expired or unavailable for this room.',
+        };
+      }
+    }
+    if (status === 201) quotes.set(body.quoteToken, body);
   } else {
     status = 404;
     body = {};
@@ -1314,14 +1328,14 @@ try {
   );
   await click('All offers');
   await fill('#promo-code', 'bad code!');
-  await click('Enquire about code');
+  await click('Book with code');
   await text('Enter 1–50 letters, numbers, hyphens or underscores.');
   await fill('#promo-code', ' uistay10 ');
-  await click('Enquire about code');
-  await text('Send message');
-  assert.match(
-    await evaluate(`document.querySelector('textarea[name=message]').value`),
-    /UISTAY10/,
+  await click('Book with code');
+  await text('Select Room');
+  assert.equal(
+    new URL(await evaluate('location.href')).searchParams.get('promoCode'),
+    'UISTAY10',
   );
   await command('Page.navigate', { url: `${origin}/offers` });
   await text('Plan something special');
@@ -1529,6 +1543,36 @@ try {
     'PASS: booking/Offers recovery; explicit unpaid checkout cancellation; changed room and dates replace the previous 3-night LKR 90000 checkout with a 1-night LKR 10000 checkout; failed cancellation blocks a new payment; verified confirmation and print (isolated fixtures only).',
   );
   // Complete a fresh visitor journey using the actual auth forms/server actions.
+  quoteStatus = 201;
+  expired = false;
+  await command('Page.navigate', {
+    url: `${origin}/booking?roomTypeId=${room.roomTypeId}&checkInDate=2099-12-10&checkOutDate=2099-12-12&numberOfGuests=2&step=details&promoCode=SAVE10`,
+  });
+  await text('Check price and continue');
+  await click('Apply code');
+  await text('Promotion (SAVE10)');
+  await fill('#booking-promo-code', 'INVALID');
+  await click('Apply code');
+  await text(
+    'This promotion is invalid, inactive, expired or unavailable for this room.',
+  );
+  await click('Remove code');
+  await click('Refresh quote');
+  await until(
+    () =>
+      evaluate(
+        'document.querySelector("#booking-promo-code").value === "" && !document.body.textContent.includes("Promotion (SAVE10)")',
+      ),
+    'removed promotion and restored standard quote',
+  );
+  assert.equal(
+    calls.filter((url) => url === '/hw/payments/checkout').length,
+    2,
+  );
+  console.log(
+    'PASS: promotion offer handoff, apply, validation feedback and removal without creating payment holds.',
+  );
+
   // Payment-provider outcomes remain deterministic fixture responses.
   journeyActive = true;
   if (quality) {
