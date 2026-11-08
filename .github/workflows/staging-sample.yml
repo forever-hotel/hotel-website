@@ -1,6 +1,6 @@
 name: Automatic sample staging
 
-on:
+on: 
   push:
     branches: [develop]
   workflow_dispatch:

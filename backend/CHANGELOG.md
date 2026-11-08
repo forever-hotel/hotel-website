@@ -7,6 +7,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Refresh compatible locked dependencies to use patched body-parser 2.4.0 and
+  scope a Multer 2.5.0 override to the NestJS Express adapter. The live high-severity
+  audit gate passes; remaining low/moderate dependency findings are not waived.
+
 - Expose `/health/ready` alongside `/health` so the API gateway can check database
   readiness without a server-only source edit. Both routes return 503 on outage.
 
