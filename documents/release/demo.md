@@ -46,15 +46,15 @@ quality adds screenshots, axe and keyboard checks. Artifacts are under
 `frontend/.test-artifacts/` locally and uploaded by frontend CI. Keep actual
 test-run results with the release SHA rather than copying historical pass counts.
 
-From `performance`, run `npm test` / `npm run test:coverage`. The actual load run
-needs approved config, test accounts, real inventory and infra coordination;
-see [performance guide](../../performance/README.md). From `deploy/staging`, run
-`npm test` / `npm run test:coverage`; real staging smoke/rollback needs the
-[staging runbook](../../deploy/staging/README.md).
+From `performance`, run `npm test` / `npm run test:coverage`. Actual load
+runs need approved configuration, test accounts, inventory and infra coordination;
+see [performance guide](../../performance/README.md).
+CI publishes reviewed images; deployment checks and live rollback are owned by
+the infrastructure coordinator. See [image handoff](../../README.md#image-publication-and-deployment-handoff).
 
 In the separate `api-gateway` checkout, run `npm ci`, `npm test`, `npm run lint`,
 `npm run format:check` and `npm run typecheck`. Its test register/developer guide
-are maintained in that repository. This issue changes no gateway runtime code.
+are maintained in that repository. This cleanup changes no gateway runtime code.
 
 ## Demo sequence and expected results
 
