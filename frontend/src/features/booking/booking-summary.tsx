@@ -12,6 +12,8 @@ export function BookingSummary({
   step,
   onRefresh,
   onNavigate,
+  promoCode,
+  onPromoCode,
 }: {
   room: RoomType;
   stay: Stay;
@@ -21,11 +23,47 @@ export function BookingSummary({
   step: string;
   onRefresh: () => void;
   onNavigate: (step: string) => void;
+  promoCode: string;
+  onPromoCode: (code: string) => void;
 }) {
   return (
     <aside className={styles.summary} aria-label="Room and price summary">
       <RoomImage source={room.imageUrls[0]} name={room.typeName} />
       <h2>{room.typeName}</h2>
+      <form
+        className={styles.promoForm}
+        onSubmit={(event) => {
+          event.preventDefault();
+          onRefresh();
+        }}
+      >
+        <label htmlFor="booking-promo-code">Promotion code (optional)</label>
+        <input
+          id="booking-promo-code"
+          value={promoCode}
+          maxLength={50}
+          pattern="[A-Za-z0-9_-]+"
+          disabled={pending}
+          onChange={(event) => onPromoCode(event.target.value)}
+          autoComplete="off"
+        />
+        <button
+          className="button button-outline"
+          disabled={pending || !promoCode.trim()}
+        >
+          {pending ? 'Checking…' : 'Apply code'}
+        </button>
+        {promoCode && (
+          <button
+            type="button"
+            className="button button-outline"
+            disabled={pending}
+            onClick={() => onPromoCode('')}
+          >
+            Remove code
+          </button>
+        )}
+      </form>
       <p>
         {stay.checkInDate} → {stay.checkOutDate}
       </p>
@@ -41,6 +79,12 @@ export function BookingSummary({
           <dl>
             <dt>Room subtotal</dt>
             <dd>{money(quote.subtotal)}</dd>
+            {quote.promotion && (
+              <div>
+                <dt>Promotion ({quote.promotion.code})</dt>
+                <dd>−{money(quote.discountAmount || 0)}</dd>
+              </div>
+            )}
             {quote.lineItems.map((line) => (
               <div key={line.code}>
                 <dt>{line.label}</dt>

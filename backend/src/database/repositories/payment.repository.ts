@@ -7,6 +7,10 @@ import { randomUUID } from 'crypto';
 import { DataSource, EntityManager } from 'typeorm';
 import type Stripe from 'stripe';
 import { amountDue, PaymentOption } from '../../payments/payment-policy';
+import {
+  lockPromotionHold,
+  redeemPromotion,
+} from '../../bookings/promotion-checkout';
 
 export interface CheckoutPayment {
   paymentId: string;
@@ -99,6 +103,7 @@ export class PaymentRepository {
           'This hold is no longer payable. Check booking status or start a fresh stay.',
         );
       if (existing) return existing;
+      await lockPromotionHold(manager, id, booking.priceSnapshot);
       const payment: CheckoutPayment = {
         paymentId: randomUUID(),
         option,
@@ -183,7 +188,8 @@ export class PaymentRepository {
           if (
             booking.status === 'PENDING' &&
             booking.holdExpiresAt &&
-            booking.holdExpiresAt > now
+            booking.holdExpiresAt > now &&
+            (await redeemPromotion(manager, id, booking.priceSnapshot))
           ) {
             await manager.query(
               "UPDATE bookings SET status='CONFIRMED',updated_at=clock_timestamp() WHERE booking_id=$1",

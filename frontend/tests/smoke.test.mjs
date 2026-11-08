@@ -215,10 +215,7 @@ test(
       assert.match(offersHtml, /FIXED2500/);
       assert.doesNotMatch(offersHtml, /EXPIRED10|FUTURE10/);
       assert.match(offersHtml, /Plan something special/);
-      assert.match(
-        offersHtml,
-        /This offer is arranged directly with the hotel/,
-      );
+      assert.match(offersHtml, /Book with this code/);
       assert.doesNotMatch(
         offersHtml,
         /Early Bird Special|Honeymoon Package|Spa &amp; Dine/,

@@ -32,11 +32,13 @@ export function BookingFlow({
 }) {
   const params = useSearchParams();
   const router = useRouter();
+  const [promoCode, setPromoCode] = useState(params.get('promoCode') || '');
   const stay: Stay = {
     roomTypeId: params.get('roomTypeId') || '',
     checkInDate: params.get('checkInDate') || '',
     checkOutDate: params.get('checkOutDate') || '',
     numberOfGuests: Number(params.get('numberOfGuests') || '1'),
+    ...(promoCode ? { promoCode } : {}),
   };
   const room = rooms.find((item) => item.roomTypeId === stay.roomTypeId);
   const requested = params.get('step');
@@ -108,6 +110,7 @@ export function BookingFlow({
     setSignIn(false);
     setPreview(null);
     setReviewed('');
+    router.replace(bookingUrl(stay, step), { scroll: false });
     startTransition(async () => {
       try {
         const result = await requestQuote(stay);
@@ -166,8 +169,14 @@ export function BookingFlow({
       {step === 'select' ? (
         <AvailabilitySearch
           booking
+          promoCode={promoCode}
           rooms={rooms}
-          initial={{ ...stay, numberOfGuests: String(stay.numberOfGuests) }}
+          initial={{
+            roomTypeId: stay.roomTypeId,
+            checkInDate: stay.checkInDate,
+            checkOutDate: stay.checkOutDate,
+            numberOfGuests: String(stay.numberOfGuests),
+          }}
         />
       ) : (
         room && (
@@ -325,6 +334,18 @@ export function BookingFlow({
                 step={step}
                 onRefresh={loadQuote}
                 onNavigate={navigate}
+                promoCode={promoCode}
+                onPromoCode={(value) => {
+                  setPromoCode(value.trim().toUpperCase());
+                  if (!value.trim())
+                    router.replace(
+                      bookingUrl({ ...stay, promoCode: undefined }, step),
+                      { scroll: false },
+                    );
+                  setPreview(null);
+                  setReviewed('');
+                  setError('');
+                }}
               />
             </div>
           </>

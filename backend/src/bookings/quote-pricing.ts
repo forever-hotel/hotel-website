@@ -21,6 +21,7 @@ export interface QuotePricingPolicy {
 export function calculateQuotePricing(
   subtotal: number,
   policy: QuotePricingPolicy,
+  discountAmount = 0,
 ) {
   const unavailable = () =>
     new ServiceUnavailableException({
@@ -31,6 +32,9 @@ export function calculateQuotePricing(
     !Number.isSafeInteger(subtotal) ||
     subtotal <= 0 ||
     subtotal > 2147483647 ||
+    !Number.isSafeInteger(discountAmount) ||
+    discountAmount < 0 ||
+    discountAmount >= subtotal ||
     !policy.version.trim() ||
     !['INCLUSIVE', 'EXCLUSIVE'].includes(policy.rateBasis)
   )
@@ -38,7 +42,8 @@ export function calculateQuotePricing(
   if (policy.rateBasis === 'INCLUSIVE' && policy.charges.length)
     throw unavailable();
   const codes = new Set<string>();
-  let total = BigInt(subtotal);
+  const discountedSubtotal = subtotal - discountAmount;
+  let total = BigInt(discountedSubtotal);
   const lineItems = policy.charges.map((rule) => {
     if (
       !/^[A-Z][A-Z0-9_]*$/.test(rule.code) ||
@@ -51,7 +56,8 @@ export function calculateQuotePricing(
     )
       throw unavailable();
     codes.add(rule.code);
-    const base = rule.basis === 'ROOM_SUBTOTAL' ? BigInt(subtotal) : total;
+    const base =
+      rule.basis === 'ROOM_SUBTOTAL' ? BigInt(discountedSubtotal) : total;
     // Round each positive line to the nearest cent, with half-cents rounded up.
     const amount = (base * BigInt(rule.rateBasisPoints) + 5000n) / 10000n;
     total += amount;
@@ -63,7 +69,8 @@ export function calculateQuotePricing(
     pricingPolicyVersion: policy.version,
     subtotal,
     lineItems,
-    additionalCharges: Number(total) - subtotal,
+    additionalCharges: Number(total) - discountedSubtotal,
+    ...(discountAmount ? { discountAmount } : {}),
     totalAmount: Number(total),
     rateBasis: policy.rateBasis,
   };

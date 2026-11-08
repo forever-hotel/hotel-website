@@ -18,6 +18,11 @@ import { BOOKING_POLICY, expiresAt, hotelDate } from './booking-policy';
 import { calculateRoomCharge } from './room-charge';
 import { calculateQuotePricing, QuotePricingPolicy } from './quote-pricing';
 import { readQuote, signQuote } from './quote-token';
+import {
+  checkoutPromotion,
+  promotionDiscount,
+  CheckoutPromotion,
+} from './promotion-checkout';
 
 @Injectable()
 export class BookingsService {
@@ -33,15 +38,20 @@ export class BookingsService {
     rate: number,
     capacity: number,
     now: Date,
+    promotion: CheckoutPromotion | null = null,
   ) {
     this.validateStay(input, now);
     const charge = calculateRoomCharge(input, rate, capacity);
+    const discount = promotion
+      ? promotionDiscount(charge.subtotal, promotion)
+      : 0;
     try {
       const policy = JSON.parse(
         this.config.get<string>('BOOKING_PRICING_POLICY') || '',
       ) as QuotePricingPolicy;
       return {
-        ...calculateQuotePricing(charge.subtotal, policy),
+        ...calculateQuotePricing(charge.subtotal, policy, discount),
+        ...(promotion ? { promotion } : {}),
         nights: charge.nights,
         nightlyRate: rate,
         roomLineItems: charge.lineItems,
@@ -70,12 +80,18 @@ export class BookingsService {
             error: 'ROOM_TYPE_NOT_FOUND',
             message: 'Room type not found.',
           });
+        const promotion = await checkoutPromotion(
+          manager,
+          input.promoCode,
+          input.roomTypeId,
+        );
         const now = await this.repository.now(manager);
         const pricing = this.pricing(
           input,
           rate.nightlyRate,
           rate.maxGuests,
           now,
+          promotion,
         );
         if ((await this.repository.available(manager, input)) < 1)
           throw this.conflict(
@@ -184,6 +200,27 @@ export class BookingsService {
             'QUOTE_EXPIRED',
             'Request a fresh price preview.',
           );
+        const promotion = await checkoutPromotion(
+          manager,
+          preview.input.promoCode,
+          preview.input.roomTypeId,
+        );
+        if (
+          JSON.stringify(promotion) !==
+          JSON.stringify(preview.pricing.promotion || null)
+        )
+          throw this.conflict(
+            'PROMOTION_CHANGED',
+            'Promotion terms changed. Request a fresh quote.',
+          );
+        // Recheck after the promotion lock: waiting must not revive an expired quote.
+        const reservedAt = promotion ? await this.repository.now(manager) : now;
+        if (Date.parse(preview.expiresAt) <= reservedAt.getTime())
+          throw this.conflict(
+            'QUOTE_EXPIRED',
+            'Request a fresh price preview.',
+          );
+        this.validateStay(preview.input, reservedAt);
         // Honour the signed price, not today's catalogue rate or tax configuration.
         const booking: CheckoutRecord = {
           bookingId: randomUUID(),
@@ -195,7 +232,10 @@ export class BookingsService {
           specialRequests: requests || null,
           status: 'PENDING',
           totalAmount: Number(preview.pricing.totalAmount),
-          holdExpiresAt: expiresAt(now, BOOKING_POLICY.reservationHoldSeconds),
+          holdExpiresAt: expiresAt(
+            reservedAt,
+            BOOKING_POLICY.reservationHoldSeconds,
+          ),
           checkoutRequestHash: hash,
           priceSnapshot: { quoteId: preview.quoteId, ...preview.pricing },
           currency: 'LKR',

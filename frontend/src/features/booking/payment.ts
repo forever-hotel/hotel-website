@@ -86,6 +86,8 @@ export type PaymentStatus = {
     nights: number;
     nightlyRate: number;
     subtotal: number;
+    discountAmount?: number;
+    promotion?: { code: string };
     lineItems: { code: string; label: string; amount: number }[];
   };
 };
@@ -152,7 +154,13 @@ export function parsePaymentStatus(value: unknown, id: string): PaymentStatus {
         Number.isSafeInteger(line.amount) &&
         line.amount >= 0,
     ) ||
-    row.priceSnapshot.subtotal +
+    !Number.isSafeInteger(row.priceSnapshot.discountAmount ?? 0) ||
+    (row.priceSnapshot.discountAmount ?? 0) < 0 ||
+    (row.priceSnapshot.discountAmount ?? 0) >= row.priceSnapshot.subtotal ||
+    ((row.priceSnapshot.discountAmount ?? 0) > 0 &&
+      !row.priceSnapshot.promotion) ||
+    row.priceSnapshot.subtotal -
+      (row.priceSnapshot.discountAmount ?? 0) +
       row.priceSnapshot.lineItems.reduce(
         (sum, line) => sum + line.amount,
         0,

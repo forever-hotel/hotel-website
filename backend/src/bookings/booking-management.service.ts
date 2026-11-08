@@ -27,6 +27,7 @@ import { calculateRoomCharge } from './room-charge';
 import { calculateQuotePricing } from './quote-pricing';
 import type { QuotePricingPolicy } from './quote-pricing';
 import { readQuote, signQuote } from './quote-token';
+import { promotionDiscount, CheckoutPromotion } from './promotion-checkout';
 
 const hash = (value: unknown) =>
   createHash('sha256').update(JSON.stringify(value)).digest('hex');
@@ -193,12 +194,25 @@ export class BookingManagementService {
             rate.maxGuests,
           );
           let pricing: ReturnType<typeof calculateQuotePricing>;
+          const promotion = booking.priceSnapshot.promotion as
+            CheckoutPromotion | undefined;
+          if (
+            promotion?.roomTypeIds.length &&
+            !promotion.roomTypeIds.includes(input.roomTypeId)
+          )
+            throw new ConflictException(
+              'The original promotion is not applicable to this room type. Choose an eligible room or contact the hotel.',
+            );
+          const discount = promotion
+            ? promotionDiscount(roomCharge.subtotal, promotion)
+            : 0;
           try {
             pricing = calculateQuotePricing(
               roomCharge.subtotal,
               JSON.parse(
                 this.config.get<string>('BOOKING_PRICING_POLICY') || '',
               ) as QuotePricingPolicy,
+              discount,
             );
           } catch {
             throw new ServiceUnavailableException(
@@ -215,6 +229,7 @@ export class BookingManagementService {
           const expiresAt = new Date(now.getTime() + 10 * 60000).toISOString();
           const quotePricing = {
             ...pricing,
+            ...(promotion ? { promotion } : {}),
             nights: roomCharge.nights,
             nightlyRate: roomCharge.nightlyRate,
             roomLineItems: roomCharge.lineItems,

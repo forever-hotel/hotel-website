@@ -24,6 +24,7 @@ export type ManagementState = ChangeInput & {
   checkInTime?: string;
 };
 export type ChangeQuote = ChangeInput & {
+  discountAmount?: number;
   bookingId: string;
   quoteId: string;
   quoteToken: string;
@@ -241,7 +242,12 @@ export function parseChangeQuote(
       row.revision,
     ].every(amount) ||
     Number(row.totalAmount) < 1 ||
-    row.totalAmount !== Number(row.subtotal) + Number(row.additionalCharges) ||
+    !Number.isSafeInteger(row.discountAmount ?? 0) ||
+    Number(row.discountAmount ?? 0) < 0 ||
+    row.totalAmount !==
+      Number(row.subtotal) -
+        Number(row.discountAmount ?? 0) +
+        Number(row.additionalCharges) ||
     row.nights !==
       (Date.parse(stay.checkOutDate) - Date.parse(stay.checkInDate)) /
         86400000 ||
@@ -263,6 +269,9 @@ export function parseChangeQuote(
     totalAmount: Number(row.totalAmount),
     subtotal: Number(row.subtotal),
     additionalCharges: Number(row.additionalCharges),
+    ...(row.discountAmount
+      ? { discountAmount: Number(row.discountAmount) }
+      : {}),
     nights: Number(row.nights),
     paidAmount: Number(row.paidAmount),
     balanceAmount: Number(row.balanceAmount),

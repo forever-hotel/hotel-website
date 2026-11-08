@@ -20,8 +20,8 @@ export function OffersCatalogue({ feed }: { feed: PromotionFeed }) {
         <div>
           <h2 id="promo-title">Have a promotion code?</h2>
           <p>
-            Send your code to our team to confirm eligibility and arrange your
-            booking.
+            Choose a room and dates to validate your code and see the discounted
+            quote.
           </p>
         </div>
         <form
@@ -35,7 +35,10 @@ export function OffersCatalogue({ feed }: { feed: PromotionFeed }) {
                 ? ''
                 : 'Enter 1–50 letters, numbers, hyphens or underscores.',
             );
-            if (code) router.push(`/contact?offer=${encodeURIComponent(code)}`);
+            if (code)
+              router.push(
+                `/booking?${new URLSearchParams({ promoCode: code, step: 'select' })}`,
+              );
           }}
         >
           <label htmlFor="promo-code">Promotion code</label>
@@ -50,7 +53,7 @@ export function OffersCatalogue({ feed }: { feed: PromotionFeed }) {
               setError('');
             }}
           />
-          <button className="button button-gold">Enquire about code</button>
+          <button className="button button-gold">Book with code</button>
           <p
             id="promo-help"
             role={error ? 'alert' : 'status'}

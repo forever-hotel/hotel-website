@@ -23,16 +23,30 @@ export async function fetchQuote(
           checkInDate: stay.checkInDate,
           checkOutDate: stay.checkOutDate,
           numberOfGuests: stay.numberOfGuests,
+          ...(stay.promoCode ? { promoCode: stay.promoCode } : {}),
         }),
         cache: 'no-store',
         signal: AbortSignal.timeout(10000),
       },
     );
-    if (!response.ok)
+    if (!response.ok) {
+      let promotionMessage = '';
+      try {
+        const body = await response.json();
+        if (
+          typeof body?.error === 'string' &&
+          body.error.startsWith('PROMOTION_') &&
+          typeof body.message === 'string'
+        )
+          promotionMessage = body.message;
+      } catch {
+        /* Use the generic status message for malformed upstream responses. */
+      }
       return {
-        error: bookingError(response.status),
+        error: promotionMessage || bookingError(response.status),
         signIn: response.status === 401,
       };
+    }
     return { quote: parseQuote(await response.json(), stay) };
   } catch {
     return { error: bookingError(503) };
