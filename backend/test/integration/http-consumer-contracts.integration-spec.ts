@@ -135,8 +135,11 @@ describe('HTTP producer → actual frontend consumer contracts', () => {
       .set('Authorization', `Bearer ${token}`)
       .set('Idempotency-Key', key)
       .send(payload);
-  async function checkout() {
-    const quote = await post('/booking-quotes', stay()).expect(201);
+  async function checkout(promoCode?: string) {
+    const quote = await post('/booking-quotes', {
+      ...stay(),
+      ...(promoCode ? { promoCode } : {}),
+    }).expect(201);
     const checkout = await post('/payments/checkout', {
       quoteToken: json<QuoteBody>(quote).quoteToken,
       paymentOption: 'FULL',
@@ -171,111 +174,132 @@ describe('HTTP producer → actual frontend consumer contracts', () => {
       .type('form')
       .send(payload);
 
-  it('connects catalogue, availability, promotions, auth, quote, PayHere settlement, email and management to real frontend parsers', async () => {
-    const data: Record<string, unknown> = {};
-    data.catalogue = json(await get('/room-types').expect(200));
-    data.availability = json(
-      await get(
-        `/availability?${new URLSearchParams(Object.entries(stay()).map(([key, value]) => [key, String(value)]))}`,
-      ).expect(200),
-    );
-    const calendar = await get(
-      `/room-types/${roomId}/availability-calendar?from=2099-12-10&to=2099-12-12`,
-    ).expect(200);
-    expect(json<{ days: unknown[] }>(calendar).days).toHaveLength(2);
-    data.promotions = json(await get('/promotions?limit=20').expect(200));
-    const created = await checkout();
-    const id = created.data.bookingId;
-    data.quote = json(created.quote);
-    data.checkout = created.data;
-    data.pending = json(await get(`/payments/${id}`).expect(200));
-    expect(emails).toHaveLength(0);
-    receipts = [
-      {
-        paymentId: '123456789',
-        orderId: created.data.checkout.fields.order_id,
-        amount: json<QuoteBody>(created.quote).totalAmount,
-        status: 'RECEIVED',
-      },
-    ];
-    await notify(notification(created.data)).expect(200);
-    await notify(notification(created.data)).expect(200);
-    expect(emails).toHaveLength(1);
-    expect(emails[0].headers).toEqual({ 'X-Sib-Sandbox': 'drop' });
-    expect(emails[0].textContent).toContain(`Booking reference: ${id}`);
-    data.confirmed = json(await get(`/payments/${id}`).expect(200));
-    data.profile = json(
-      await get('/bookings?category=upcoming&page=1').expect(200),
-    );
-    data.detail = json(await get(`/bookings/${id}`).expect(200));
-    data.management = json(await get(`/bookings/${id}/management`).expect(200));
-    const changedStay = {
-      ...stay(),
-      checkInDate: '2099-12-12',
-      checkOutDate: '2099-12-14',
-      specialRequests: 'Quiet room',
-    };
-    const quote = await post(
-      `/bookings/${id}/change-quote`,
-      changedStay,
-    ).expect(200);
-    data.changeQuote = json(quote);
-    data.modified = json(
-      await post(
-        `/bookings/${id}/changes`,
-        { quoteToken: json<QuoteBody>(quote).quoteToken },
-        owner,
-        'contract-change-key',
-      ).expect(200),
-    );
-    const changed = json<{ revision: number }>(
-      await get(`/bookings/${id}/management`).expect(200),
-    );
-    data.cancelled = json(
+  it.each([undefined, 'CONTRACT10'])(
+    'connects real frontend parsers through checkout and management (promotion: %s)',
+    async (promoCode) => {
+      const data: Record<string, unknown> = {};
+      data.catalogue = json(await get('/room-types').expect(200));
+      data.availability = json(
+        await get(
+          `/availability?${new URLSearchParams(Object.entries(stay()).map(([key, value]) => [key, String(value)]))}`,
+        ).expect(200),
+      );
+      const calendar = await get(
+        `/room-types/${roomId}/availability-calendar?from=2099-12-10&to=2099-12-12`,
+      ).expect(200);
+      expect(json<{ days: unknown[] }>(calendar).days).toHaveLength(2);
+      data.promotions = json(await get('/promotions?limit=20').expect(200));
+      const created = await checkout(promoCode);
+      const id = created.data.bookingId;
+      data.quote = json(created.quote);
+      data.checkout = created.data;
+      data.pending = json(await get(`/payments/${id}`).expect(200));
+      expect(emails).toHaveLength(0);
+      receipts = [
+        {
+          paymentId: '123456789',
+          orderId: created.data.checkout.fields.order_id,
+          amount: json<QuoteBody>(created.quote).totalAmount,
+          status: 'RECEIVED',
+        },
+      ];
+      await notify(notification(created.data)).expect(200);
+      await notify(notification(created.data)).expect(200);
+      if (promoCode) {
+        expect(
+          json<{ discountAmount: number }>(created.quote).discountAmount,
+        ).toBe(200000);
+        expect(created.data.checkout.fields.amount).toBe('18000.00');
+        const promotionRows = (await fixture.runner.query(
+          'SELECT current_redemptions FROM mad_promotion_codes WHERE code_string=$1',
+          [promoCode],
+        )) as { current_redemptions: number }[];
+        expect(promotionRows[0].current_redemptions).toBe(1);
+      }
+      expect(emails).toHaveLength(1);
+      expect(emails[0].headers).toEqual({ 'X-Sib-Sandbox': 'drop' });
+      expect(emails[0].textContent).toContain(`Booking reference: ${id}`);
+      data.confirmed = json(await get(`/payments/${id}`).expect(200));
+      data.profile = json(
+        await get('/bookings?category=upcoming&page=1').expect(200),
+      );
+      data.detail = json(await get(`/bookings/${id}`).expect(200));
+      data.management = json(
+        await get(`/bookings/${id}/management`).expect(200),
+      );
+      const changedStay = {
+        ...stay(),
+        checkInDate: '2099-12-12',
+        checkOutDate: '2099-12-14',
+        specialRequests: 'Quiet room',
+      };
+      const quote = await post(
+        `/bookings/${id}/change-quote`,
+        changedStay,
+      ).expect(200);
+      data.changeQuote = json(quote);
+      data.modified = json(
+        await post(
+          `/bookings/${id}/changes`,
+          { quoteToken: json<QuoteBody>(quote).quoteToken },
+          owner,
+          'contract-change-key',
+        ).expect(200),
+      );
+      const changed = json<{ revision: number }>(
+        await get(`/bookings/${id}/management`).expect(200),
+      );
+      data.cancelled = json(
+        await post(
+          `/bookings/${id}/cancellations`,
+          { revision: changed.revision },
+          owner,
+          'contract-cancel-key',
+        ).expect(200),
+      );
       await post(
         `/bookings/${id}/cancellations`,
         { revision: changed.revision },
         owner,
         'contract-cancel-key',
-      ).expect(200),
-    );
-    await post(
-      `/bookings/${id}/cancellations`,
-      { revision: changed.revision },
-      owner,
-      'contract-cancel-key',
-    ).expect(200);
-    data.cancelledPayment = json(await get(`/payments/${id}`).expect(200));
-    data.cancelledProfile = json(
-      await get('/bookings?category=cancelled&page=1').expect(200),
-    );
-    data.expected = { bookingId: id, stay: stay(), changedStay };
-    expect(emails).toHaveLength(3);
-    const output = execFileSync(
-      process.execPath,
-      [
-        '--experimental-strip-types',
-        '--disable-warning=ExperimentalWarning',
-        resolve(
-          __dirname,
-          '../../../frontend/tests/contracts/consume-backend.mjs',
-        ),
-      ],
-      {
-        input: JSON.stringify(data),
-        encoding: 'utf8',
-        windowsHide: true,
-        timeout: 15000,
-        env: { ...process.env, NODE_NO_WARNINGS: '1' },
-      },
-    );
-    expect(JSON.parse(output)).toEqual({
-      consumerContracts: 'passed',
-      rejectedDriftCases: 16,
-    });
-  }, 60000);
+      ).expect(200);
+      data.cancelledPayment = json(await get(`/payments/${id}`).expect(200));
+      data.cancelledProfile = json(
+        await get('/bookings?category=cancelled&page=1').expect(200),
+      );
+      data.expected = {
+        bookingId: id,
+        stay: { ...stay(), ...(promoCode ? { promoCode } : {}) },
+        changedStay,
+      };
+      expect(emails).toHaveLength(3);
+      const output = execFileSync(
+        process.execPath,
+        [
+          '--experimental-strip-types',
+          '--disable-warning=ExperimentalWarning',
+          resolve(
+            __dirname,
+            '../../../frontend/tests/contracts/consume-backend.mjs',
+          ),
+        ],
+        {
+          input: JSON.stringify(data),
+          encoding: 'utf8',
+          windowsHide: true,
+          timeout: 15000,
+          env: { ...process.env, NODE_NO_WARNINGS: '1' },
+        },
+      );
+      expect(JSON.parse(output)).toEqual({
+        consumerContracts: 'passed',
+        rejectedDriftCases: 16,
+      });
+    },
+    60000,
+  );
 
-  it('enforces ownership, invalid JWTs, supported occupancy and explicit unsupported promo/quantity/add-on fields', async () => {
+  it('enforces ownership, invalid JWTs, supported occupancy and unsupported quantity/add-on fields', async () => {
     const created = await checkout();
     const id = created.data.bookingId;
     for (const path of [
@@ -295,7 +319,6 @@ describe('HTTP producer → actual frontend consumer contracts', () => {
       404,
     );
     for (const field of [
-      'promoCode',
       'numberOfRooms',
       'addOns',
       'childCount',
@@ -304,7 +327,7 @@ describe('HTTP producer → actual frontend consumer contracts', () => {
     ])
       await post('/booking-quotes', {
         ...stay(),
-        [field]: field === 'promoCode' ? 'CONTRACT10' : 1,
+        [field]: 1,
       }).expect(400);
     await post('/booking-quotes', { ...stay(), numberOfGuests: 3 }).expect(400);
     await post(

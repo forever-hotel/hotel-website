@@ -201,6 +201,14 @@ export default async function ConfirmationPage({
                     <dt>Room subtotal</dt>
                     <dd>{money(status.priceSnapshot.subtotal)}</dd>
                   </div>
+                  {status.priceSnapshot.promotion && (
+                    <div>
+                      <dt>Promotion ({status.priceSnapshot.promotion.code})</dt>
+                      <dd>
+                        −{money(status.priceSnapshot.discountAmount || 0)}
+                      </dd>
+                    </div>
+                  )}
                   {status.priceSnapshot.lineItems.map((line) => (
                     <div key={line.code}>
                       <dt>{line.label}</dt>

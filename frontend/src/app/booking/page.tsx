@@ -30,6 +30,7 @@ export default async function BookingPage({
     'checkOutDate',
     'numberOfGuests',
     'step',
+    'promoCode',
   ]) {
     if (typeof params[key] === 'string') safeParams.set(key, params[key]);
   }

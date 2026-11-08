@@ -46,7 +46,9 @@ export class PasswordResetService {
         origin.hash ||
         (origin.protocol !== 'https:' &&
           !(
-            this.config.get<string>('NODE_ENV') !== 'production' &&
+            (this.config.get<string>('NODE_ENV') !== 'production' ||
+              this.config.get<string>('PASSWORD_RESET_ALLOW_LOCAL_HTTP') ===
+                'true') &&
             origin.protocol === 'http:' &&
             ['localhost', '127.0.0.1'].includes(origin.hostname)
           ))

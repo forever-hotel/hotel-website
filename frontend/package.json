@@ -17,7 +17,7 @@
     "test:booking-ui": "node tests/booking.browser.mjs",
     "test:e2e": "node tests/booking.browser.mjs",
     "test:quality": "node tests/booking.browser.mjs --quality",
-    "test:coverage": "node --experimental-strip-types --experimental-test-coverage --test-coverage-include=src/**/*.ts --test tests/promotions.test.mjs tests/contact.test.mjs tests/rooms.test.mjs tests/comparison.test.mjs tests/availability.test.mjs tests/auth.test.mjs tests/booking.test.mjs tests/offers.test.mjs tests/payment.test.mjs tests/dashboard.test.mjs tests/management.test.mjs"
+    "test:coverage": "node --experimental-strip-types --experimental-test-coverage --test-coverage-include=src/**/*.ts --test tests/promotions.test.mjs tests/contact.test.mjs tests/rooms.test.mjs tests/comparison.test.mjs tests/availability.test.mjs tests/auth.test.mjs tests/booking.test.mjs tests/offers.test.mjs tests/payment.test.mjs tests/dashboard.test.mjs tests/management.test.mjs tests/promotion-checkout.test.mjs"
   },
   "dependencies": {
     "next": "16.4.5",

@@ -3,6 +3,15 @@
   padding-bottom: 4rem;
   min-height: 70vh;
 }
+.promoForm {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+.promoForm input {
+  width: 100%;
+  min-width: 0;
+}
 .progress {
   background: #152c37;
   color: #fff;

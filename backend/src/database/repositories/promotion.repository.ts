@@ -26,7 +26,7 @@ export class PromotionRepository {
         ARRAY(SELECT r.room_type_id::text FROM mad_promotion_room_types r
           WHERE r.promo_id=p.promo_id ORDER BY r.room_type_id) AS "roomTypeIds"
       FROM mad_promotion_codes p
-      WHERE p.status='ACTIVE' AND p.valid_from<=statement_timestamp()
+      WHERE (to_jsonb(p)->>'deleted_at') IS NULL AND p.status='ACTIVE' AND p.valid_from<=statement_timestamp()
         AND statement_timestamp()<p.valid_until
         AND p.current_redemptions<p.max_redemptions
         AND p.code_string ~ '^[A-Za-z0-9_-]{1,50}$'

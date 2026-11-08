@@ -123,8 +123,8 @@ export class BookingRepository {
     );
     await manager.query(
       `INSERT INTO bookings (booking_id,guest_id,room_type_id,check_in_date,check_out_date,
-      num_guests,total_amount,status,source,special_requests,hold_expires_at,checkout_key,checkout_request_hash,price_snapshot,currency)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,'PENDING','WEBSITE',$8,$9,$10,$11,$12::jsonb,$13)`,
+      num_guests,total_amount,status,source,special_requests,hold_expires_at,checkout_key,checkout_request_hash,price_snapshot,currency,promo_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,'PENDING','WEBSITE',$8,$9,$10,$11,$12::jsonb,$13,$14)`,
       [
         booking.bookingId,
         booking.guestId,
@@ -139,6 +139,8 @@ export class BookingRepository {
         booking.checkoutRequestHash,
         JSON.stringify(booking.priceSnapshot),
         booking.currency,
+        (booking.priceSnapshot.promotion as { promoId: string } | undefined)
+          ?.promoId || null,
       ],
     );
   }

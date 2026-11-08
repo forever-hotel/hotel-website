@@ -5,6 +5,7 @@ export type Stay = {
   checkInDate: string;
   checkOutDate: string;
   numberOfGuests: number;
+  promoCode?: string;
 };
 export type Quote = Stay & {
   quoteId: string;
@@ -15,6 +16,8 @@ export type Quote = Stay & {
   subtotal: number;
   additionalCharges: number;
   totalAmount: number;
+  discountAmount?: number;
+  promotion?: { promoId: string; code: string };
   rateBasis: 'INCLUSIVE' | 'EXCLUSIVE';
   lineItems: { code: string; label: string; amount: number }[];
   expiresAt: string;
@@ -55,7 +58,7 @@ export function stayError(
 }
 
 export function bookingUrl(stay: Stay, step = 'details'): string {
-  return `/booking?${new URLSearchParams({ roomTypeId: stay.roomTypeId, checkInDate: stay.checkInDate, checkOutDate: stay.checkOutDate, numberOfGuests: String(stay.numberOfGuests), step })}`;
+  return `/booking?${new URLSearchParams({ roomTypeId: stay.roomTypeId, checkInDate: stay.checkInDate, checkOutDate: stay.checkOutDate, numberOfGuests: String(stay.numberOfGuests), ...(stay.promoCode ? { promoCode: stay.promoCode } : {}), step })}`;
 }
 
 export function guestErrors(
@@ -99,6 +102,9 @@ export function parseQuote(value: unknown, stay: Stay): Quote {
     q.checkInDate !== stay.checkInDate ||
     q.checkOutDate !== stay.checkOutDate ||
     q.numberOfGuests !== stay.numberOfGuests ||
+    (stay.promoCode
+      ? q.promotion?.code !== stay.promoCode.trim().toUpperCase()
+      : !!q.promotion) ||
     q.currency !== 'LKR' ||
     typeof q.quoteId !== 'string' ||
     !q.quoteId ||
@@ -106,7 +112,12 @@ export function parseQuote(value: unknown, stay: Stay): Quote {
     !/^[\w-]+\.[\w-]+$/.test(q.quoteToken) ||
     !money.every((n) => Number.isSafeInteger(n) && n >= 0) ||
     q.totalAmount <= 0 ||
-    q.totalAmount !== q.subtotal + q.additionalCharges ||
+    !Number.isSafeInteger(q.discountAmount ?? 0) ||
+    (q.discountAmount ?? 0) < 0 ||
+    (q.discountAmount ?? 0) >= q.subtotal ||
+    ((q.discountAmount ?? 0) > 0 && !q.promotion) ||
+    q.totalAmount !==
+      q.subtotal - (q.discountAmount ?? 0) + q.additionalCharges ||
     !['INCLUSIVE', 'EXCLUSIVE'].includes(q.rateBasis) ||
     q.nights !==
       (Date.parse(stay.checkOutDate) - Date.parse(stay.checkInDate)) /
