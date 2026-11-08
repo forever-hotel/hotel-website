@@ -1,3 +1,8 @@
+> Deployment ownership changed: the old staging-release.yml and staging-sample.yml
+> workflows are removed. publish-images.yml now runs quality checks and publishes
+> reviewed GHCR images only; shared CD belongs to the infra repository. Do not use
+> the historical standalone release instructions below for the shared stack.
+
 # Controlled staging releases (DDP-#35)
 
 For the existing Azure **hotel-website-sample** four-container deployment, use

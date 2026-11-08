@@ -1,3 +1,8 @@
+> Historical deployment record. The sample auto-deployment workflow is removed
+> locally in favor of publish-images.yml plus shared infra CD. Merging publication
+> changes does not stop existing sample containers or move their traffic. The
+> coordinator must manage that transition. Do not enable a second deployment owner.
+
 # Automatic deployment for the existing Azure sample
 
 **Progress updated: 8 November 2026 (Asia/Colombo).** Results below are based on
