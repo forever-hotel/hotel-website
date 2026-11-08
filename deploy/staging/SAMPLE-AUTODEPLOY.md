@@ -1,28 +1,29 @@
 # Automatic deployment for the existing Azure sample
 
-**Progress updated: 7 November 2026 (Asia/Colombo).** Results below are based on
+**Progress updated: 8 November 2026 (Asia/Colombo).** Results below are based on
 the terminal output, screenshots and confirmations supplied during deployment.
 No passwords, tokens or private keys belong in this document.
 
 ## Current deployment status
 
-**Manual hosting works. Automatic release has not completed successfully yet.**
-The public homepage and `/hw/health` returned successfully, and the user reported
-the website features working. Detailed functional, load and live rollback evidence
-still needs capturing.
+**The first automatic staging deployment succeeded according to the user's
+confirmation.** After deployment, the user reported the latest website, public
+health, login, rooms, booking and sandbox-payment checks working. Exact successful
+run/commit identifiers, image inventory and detailed test evidence still need
+recording; a live rollback rehearsal and whole-system acceptance remain pending.
 
-| Item                       | Recorded configuration/result                                                           |
-| -------------------------- | --------------------------------------------------------------------------------------- |
-| Hosting                    | Azure for Students; VM hotel-website-staging; Malaysia West                             |
-| Resource group / VNet      | forever-hotel-staging-rg / vnet-malaysiawest-1                                          |
-| Public IP                  | 172.197.160.147; confirm in Azure after resource changes                                |
-| Public hostname            | forever-hotel-staging.malaysiawest.cloudapp.azure.com                                   |
-| Capacity                   | 2 CPUs, about 4 GiB RAM and 61 GiB root filesystem                                      |
-| Database                   | Neon; exact branch and migration version not yet recorded                               |
-| Runtime                    | Docker Compose v5.7.0; four containers running in supplied output                       |
-| Backend, frontend, gateway | Healthy in supplied Compose status                                                      |
-| HTTPS                      | Caddy running; local TLS returned HTTP 200; public TCP 443 and website access confirmed |
-| Automatic release          | Triggered on develop; latest supplied attempt failed the final PR-head approval check   |
+| Item                       | Recorded configuration/result                                                                                          |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Hosting                    | Azure for Students; VM hotel-website-staging; Malaysia West                                                            |
+| Resource group / VNet      | forever-hotel-staging-rg / vnet-malaysiawest-1                                                                         |
+| Public IP                  | 172.197.160.147; confirm in Azure after resource changes                                                               |
+| Public hostname            | forever-hotel-staging.malaysiawest.cloudapp.azure.com                                                                  |
+| Capacity                   | 2 CPUs, about 4 GiB RAM and 61 GiB root filesystem                                                                     |
+| Database                   | Neon; exact branch and migration version not yet recorded                                                              |
+| Runtime                    | Docker Compose v5.7.0; four containers running in supplied output                                                      |
+| Backend, frontend, gateway | Healthy in supplied Compose status                                                                                     |
+| HTTPS                      | Caddy running; local TLS returned HTTP 200; public TCP 443 and website access confirmed                                |
+| Automatic release          | User confirmed deployment succeeded after GHCR login was configured; successful run ID/full commit SHA still to record |
 
 The current VM is a budget website sample, below the SDS whole-system baseline
 of 4 CPUs, 8 GiB RAM and 50 GB SSD. It does not establish capacity for all services.
@@ -69,7 +70,7 @@ Only Caddy publishes 80/443. The backend (3000), frontend (3001) and gateway (80
 communicate on Docker networks. Caddy retains /hw when forwarding; the gateway
 strips it before calling the backend. No Azure-hosted PostgreSQL VM was created.
 
-## Automatic deployment progress and current blocker
+## Automatic deployment progress and resolved problems
 
 Completed or reported configured:
 
@@ -87,11 +88,34 @@ Completed or reported configured:
 - Docker-owned actions replaced with CLI commands after organization policy
   blocked them. Invalid job-level runner.temp use replaced by a runner step using
   RUNNER_TEMP/GITHUB_ENV. Both fixes preserve image publication/digest intent.
+- Backend dependency scan initially found high-severity issues. Updated locked
+  dependencies to body-parser 2.4.0 and a scoped Multer 2.5.0 override; upgraded
+  frontend Next.js and matching ESLint configuration to 16.4.5 after a critical
+  finding. Live audits then showed zero high/critical findings, with 29 backend
+  low/moderate and 8 frontend moderate findings remaining at that check. Backend
+  build/lint and 445 tests with coverage, frontend build/lint and 55 tests, and
+  the full fixture browser quality journey passed locally. This is time-specific
+  evidence; future releases must rerun audits against current advisories.
+- After approval was resolved, SSH failed to load the deployment private key
+  with `error in libcrypto`; replacement of the correctly formatted private-key
+  secret was instructed. A later run reached the host adapter, establishing that
+  it had passed SSH authentication and copied/executed the release tools.
+- The host recorded `prepared`, while the old application containers remained
+  healthy. Candidate Compose validation passed, and a direct candidate image pull
+  returned `unauthorized`, identifying missing server GHCR read access.
+- User created/configured registry access and confirmed `sudo docker login ghcr.io`
+  succeeded. Token input was corrected so the token was entered at a hidden prompt,
+  not inside the prompt text. Credentials must remain private; verify revocation
+  of any token previously entered visibly in a command. No token is recorded here.
+- User then confirmed the automatic deployment completed and all requested website
+  checks worked. GitHub run URL, deployed full SHA and final running image IDs were
+  not supplied, so they are not inferred from an earlier failed candidate.
 
-**Latest supplied run:** Automatic sample staging for PR #95, pre-develop into
+**Historical approval failure, subsequently passed:** Automatic sample staging for PR #95, pre-develop into
 develop, displayed merge SHA 9848756. Backend, frontend and container checks passed.
 release-checks failed with **Final PR head needs peer approval**. The images and
-deploy jobs were skipped. This attempt did not update Azure.
+deploy jobs were skipped. That historical attempt did not update Azure; it is not
+the latest deployment status.
 
 The current guard requires a non-author approval on the release PR's final head
 and no unresolved changes-requested review. Approval on an earlier feature PR
@@ -103,19 +127,38 @@ make a run pass.
 
 ### Next steps for this service
 
-1. Resolve genuine peer approval for the final release changes.
-2. Confirm remaining CI and dependency-scan gates pass; the latest run stopped
-   before proving all release checks completed.
-3. Establish GHCR package publication permissions and server pull access. Public
-   repository visibility alone does not prove image pull access.
-4. Verify GitHub runner SSH connectivity and pinned host identity. Laptop access
-   is not evidence of runner access through Azure network rules.
-5. Complete the first automatic images/deploy run; check public homepage and
-   /hw/health, then record full source SHAs and running image digests.
-6. Rehearse failed-candidate recovery on staging and save evidence. Check logged-in
-   booking, sandbox payments, email and relevant security/load scenarios.
-7. Agree shared infrastructure ownership with the infra team before extending
-   this sample implementation to the other subsystems.
+1. Record the successful Actions run URL/number, full source commit and image
+   digests; compare the release record with the actual running frontend/backend.
+2. Save the user's successful public/functional checks as repeatable evidence:
+   latest UI, health, rooms, login, booking, sandbox payment and controlled email.
+   User confirmation is recorded separately from automated smoke/fixture tests.
+3. Rehearse failed-candidate recovery in staging and verify the previous image
+   pair serves correctly. Retain old images and certificate volumes. Do not run a
+   destructive failure experiment on a future production environment.
+4. Track remaining low/moderate findings and run current audits and the required
+   security/load checks. Verify database restore separately from image rollback.
+5. Review shared infrastructure ownership with the infra team before extending
+   this sample implementation to the other subsystems. The successful sample
+   does not close that architectural/organizational decision.
+
+### Capture the successful release without exposing credentials
+
+On the Ubuntu server:
+
+```sh
+cd /opt/hotel-website-staging
+cat .sample-release/last-attempt.json
+cat .sample-release/active.json
+sudo docker compose -f compose.sample.yml -f .sample-release/active.json ps
+sudo docker inspect --format '{{.Name}} {{.Image}}' \
+  hotel-website-sample-frontend-1 hotel-website-sample-backend-1
+```
+
+These files contain deployment status/image references, not environment secrets.
+Record their timestamp/status and the matching Actions run before claiming exact
+release provenance. The previous candidate references from the `prepared` failure
+are not evidence of the final successful release's digests. Never paste backend.env,
+gateway.env, Docker's registry config.json or SSH private keys into a report.
 
 This workflow targets the already running **hotel-website-sample** project at
 `/opt/hotel-website-staging`. It updates only frontend/backend images. It never
@@ -270,13 +313,14 @@ rollback. Backward-compatible schemas/configuration remain necessary.
 
 ## Validation limits and activation checklist
 
-- [x] User reports source/health fix merged through pre-develop into develop; latest supplied release PR's approval check is separately blocked.
+- [x] User reports source/health fix merged through pre-develop into develop; the subsequent automatic release reportedly succeeded.
 - [x] Node/runtime, curl and noninteractive Docker permissions verified on host.
 - [x] Smoke configuration created; existing public website healthy in supplied checks.
-- [ ] Server can pull selected GHCR packages.
-- [ ] GitHub runner SSH reachability and pinned host identity verified.
-- [ ] All CI, dependency scans and final-head peer review pass.
-- [ ] First release succeeds and recorded digests match running images.
+- [x] Registry login succeeded; subsequent successful release reported, establishing image access for that attempt.
+- [x] Workflow reached the host adapter and subsequent deployment reportedly succeeded using the configured SSH identity/known hosts.
+- [x] Local high-severity audits passed after fixes; user reports successful automatic deployment through configured gates. Retain the successful run link as evidence.
+- [x] First automatic staging release and post-release functional checks reported successful by the user.
+- [ ] Successful run ID, full commit SHA and image digests recorded and compared with running containers.
 - [ ] Failed-candidate recovery rehearsed in staging with evidence.
 - [ ] Authenticated booking/payment/email regression fixtures added as required.
 
@@ -331,6 +375,7 @@ gateway/edge are confirmed running here; no extra application VMs were created.
     backups/restores and rollback; measure the SRS concurrency and timing targets.
     Prepare deployed staging evidence and the unit's demonstration submission.
 
-The unit's Section 7.2 automatic staging requirement is the target; a triggered
-workflow that stops at approval is not proof that deployment succeeded. A single
-VM and a successful homepage are not full-system availability/load evidence.
+The user-confirmed automatic website release is progress toward the unit's
+Section 7.2 staging requirement. Preserve its run evidence and verify recovery.
+A single website release is not acceptance of all six subsystems, a production
+release, or proof of the whole-system availability/load requirements.
