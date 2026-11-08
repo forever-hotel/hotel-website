@@ -86,7 +86,6 @@ for (const [directory, commands] of [
     ],
   ],
   ["performance", ["test", "test:coverage"]],
-  ["deploy/staging", ["test", "test:coverage"]],
 ]) {
   const pkg = JSON.parse(
     await readFile(resolve(root, directory, "package.json"), "utf8"),

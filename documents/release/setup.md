@@ -133,7 +133,7 @@ safe off-by-default settings above.
 
 For external room photos, use exact approved HTTPS hostnames in
 `ROOM_IMAGE_HOSTS` and rebuild/restart. Container builds also need the matching
-image-host build argument; see the [staging runbook](../../deploy/staging/README.md).
+image-host build argument; see the [staging runbook](../../README.md#image-publication-and-deployment-handoff).
 
 ## 5. Optional integrations, verification and stopping
 

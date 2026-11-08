@@ -11,7 +11,7 @@ jobs:
     uses: ./.github/workflows/frontend-ci.yml
   containers:
     uses: ./.github/workflows/container-ci.yml
-  release-checks:
+  security:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,15 +20,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm run test:coverage
-        working-directory: deploy/staging
       - name: Enforce dependency security
         run: |
           npm audit --prefix backend --audit-level=high
           npm audit --prefix frontend --audit-level=high
   publish-images:
     name: Publish reviewed immutable images
-    needs: [backend, frontend, containers, release-checks]
+    needs: [backend, frontend, containers, security]
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     timeout-minutes: 35
