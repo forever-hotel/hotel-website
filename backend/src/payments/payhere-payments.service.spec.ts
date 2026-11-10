@@ -1,4 +1,5 @@
-import { BadRequestException, INestApplication } from '@nestjs/common';
+import { BadRequestException, INestApplication, Logger } from '@nestjs/common';
+import { MODULE_METADATA } from '@nestjs/common/constants';
 import { Test } from '@nestjs/testing';
 import type { App } from 'supertest/types';
 import request from 'supertest';
@@ -9,6 +10,8 @@ import { ConfirmationEmailService } from './confirmation-email.service';
 import { PayHereProvider } from './payhere-provider';
 import { PayHereRepository } from './payhere.repository';
 import { PayHerePaymentsService } from './payhere-payments.service';
+import { PaymentsModule } from './payments.module';
+import { PaymentsController } from './payments.controller';
 import {
   PayHerePaymentsController,
   PayHereNotifyController,
@@ -182,6 +185,55 @@ describe('PayHere checkout HTTP boundary and reconciliation', () => {
       throw new Error('not configured');
     });
     expect(await service.options()).toMatchObject({ available: false });
+  });
+  it('registers PayHere rather than the legacy Stripe checkout controller', () => {
+    const controllers: unknown = Reflect.getMetadata(
+      MODULE_METADATA.CONTROLLERS,
+      PaymentsModule,
+    );
+    expect(controllers).toContain(PayHerePaymentsController);
+    expect(controllers).not.toContain(PaymentsController);
+  });
+  it('serves PayHere availability through the authenticated HTTP route', async () => {
+    await request(app.getHttpServer()).get('/payments/options').expect(401);
+    const response = await request(app.getHttpServer())
+      .get('/payments/options')
+      .set('Authorization', 'Bearer fixture')
+      .expect(200);
+    expect(response.body).toMatchObject({
+      available: true,
+      sandbox: true,
+      checkoutMinutes: 35,
+    });
+  });
+  it('logs distinct safe reasons without exposing configuration or database errors', async () => {
+    const warn = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => {});
+    try {
+      provider.settings.mockImplementationOnce(() => {
+        throw new Error('private credentials');
+      });
+      expect(await service.options()).toMatchObject({ available: false });
+      expect(warn).toHaveBeenLastCalledWith(
+        'PAYHERE_OPTIONS_CONFIGURATION_INVALID',
+      );
+      expect(repo.supported).not.toHaveBeenCalled();
+      repo.supported.mockResolvedValueOnce(false);
+      expect(await service.options()).toMatchObject({ available: false });
+      expect(warn).toHaveBeenLastCalledWith(
+        'PAYHERE_OPTIONS_SCHEMA_UNSUPPORTED',
+      );
+      repo.supported.mockRejectedValueOnce(
+        new Error('private connection string'),
+      );
+      expect(await service.options()).toMatchObject({ available: false });
+      expect(warn).toHaveBeenLastCalledWith(
+        'PAYHERE_OPTIONS_DATABASE_CHECK_FAILED',
+      );
+    } finally {
+      warn.mockRestore();
+    }
   });
   it('resumes the existing order only after authoritative reconciliation', async () => {
     await post(`/payments/${id}/resume`)

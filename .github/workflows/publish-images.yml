@@ -1,4 +1,5 @@
-name: Publish reviewed service images
+# HW publishes images only. The infra repository owns VM deployment.
+name: Publish reviewed HW images
 on:
   push:
     branches: [develop]
@@ -71,8 +72,6 @@ jobs:
           docker buildx inspect --bootstrap
       - name: Build and publish images tagged by source commit
         env:
-          PUBLIC_API_ORIGIN: ${{ vars.PUBLIC_API_ORIGIN }}
-          PUBLIC_SOCKET_ORIGIN: ${{ vars.PUBLIC_SOCKET_ORIGIN || vars.PUBLIC_API_ORIGIN }}
           ROOM_IMAGE_HOSTS: ${{ vars.STAGING_ROOM_IMAGE_HOSTS }}
         run: |
           set -euo pipefail
@@ -100,6 +99,15 @@ jobs:
           printf '### Published release images\n```json\n' >> "$GITHUB_STEP_SUMMARY"
           cat release-images.json >> "$GITHUB_STEP_SUMMARY"
           printf '\n```\n' >> "$GITHUB_STEP_SUMMARY"
+          cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
+
+          ### Deploy through infra
+          Image publication does not update the VM.
+          Copy these references into `images.hw-backend` and `images.hw-frontend`
+          in `forever-hotel/infra/release/current.json`, preserving other services.
+          Submit a reviewed infra PR into `develop`; the enabled infra staging job
+          deploys the selected release. HW has no independent SSH deployment here.
+          SUMMARY
       - uses: actions/upload-artifact@v4
         with:
           name: release-images
