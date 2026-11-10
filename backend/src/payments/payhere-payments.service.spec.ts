@@ -187,7 +187,7 @@ describe('PayHere checkout HTTP boundary and reconciliation', () => {
     expect(await service.options()).toMatchObject({ available: false });
   });
   it('registers PayHere rather than the legacy Stripe checkout controller', () => {
-    const controllers = Reflect.getMetadata(
+    const controllers: unknown = Reflect.getMetadata(
       MODULE_METADATA.CONTROLLERS,
       PaymentsModule,
     );
