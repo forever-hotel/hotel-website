@@ -1,8 +1,8 @@
 import { postGatewayJson } from '@/lib/api/api-client';
+import { isAllowedContactOrigin } from '@/lib/api/contact-origin';
 
 export async function POST(request: Request) {
-  const origin = request.headers.get('origin');
-  if (origin && origin !== new URL(request.url).origin)
+  if (!isAllowedContactOrigin(request))
     return Response.json({ error: 'INVALID_ORIGIN' }, { status: 403 });
   if (!request.headers.get('content-type')?.startsWith('application/json'))
     return Response.json({ error: 'INVALID_CONTENT_TYPE' }, { status: 415 });

@@ -96,6 +96,7 @@ test(
         env: {
           ...process.env,
           API_GATEWAY_URL: `http://127.0.0.1:${gateway.address().port}`,
+          APP_ORIGIN: 'https://hotel.example',
         },
       },
     );
@@ -269,6 +270,20 @@ test(
       assert.equal(submitted.status, 202);
       assert.deepEqual(await submitted.json(), { status: 'accepted' });
       assert.deepEqual(lastEnquiry, enquiry);
+      assert.equal(
+        (await submit(undefined, { Origin: 'https://hotel.example' })).status,
+        202,
+      );
+      assert.equal(
+        (
+          await submit(undefined, {
+            Origin: 'https://attacker.example',
+            'X-Forwarded-Host': 'attacker.example',
+            'X-Forwarded-Proto': 'https',
+          })
+        ).status,
+        403,
+      );
       contactResult = { status: 'sandbox' };
       submitted = await submit();
       assert.deepEqual(await submitted.json(), { status: 'sandbox' });
