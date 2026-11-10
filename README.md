@@ -37,26 +37,24 @@ pending cross-team decisions for DDP-#06. The matching
 [GitHub issue draft](documents/api/api-contracts-issue.md) records the review and
 approval requirements.
 
-## Image publication and shared deployment
+## Image publication and automatic staging
 
-Merge a peer-reviewed PR into `develop`. `publish-images.yml` runs backend,
-frontend, container and dependency security checks, verifies final-code peer
-approval, then publishes both images to GHCR with source-commit labels and
-immutable digest references in its summary and `release-images` artifact.
-This workflow does not SSH to the VM or change running containers.
+Merge a final-code peer-reviewed PR into develop. The current publish-images.yml
+runs backend, frontend, container and dependency security checks, publishes both
+immutable images and then automatically deploys that same run's images through
+the SHA-pinned shared infra action. No second infra PR is needed for routine HW
+code releases. Progress appears in this repository's Actions run under
+**Deploy Hotel Website to staging**.
 
-Copy the published digests into `images.hw-backend` and `images.hw-frontend`
-in the infra repository's `release/current.json`. Preserve the other image
-entries and supply actual reviewed schema evidence. A reviewed infra merge into
-`develop` can deploy staging when `INFRA_STAGING_ENABLED=true` and host adoption,
-SSH credentials, registry access and baseline checks are ready. Follow infra's
-current README for these gates. HW can remain in the existing
-`/opt/hotel-website-staging` Compose project while infra manages its images.
+The shared action updates only backend/frontend in the existing
+hotel-website-sample project at /opt/hotel-website-staging. Caddy, gateway,
+private environment files and SQL are unchanged. It checks adopted configuration,
+source approval, shared locks, readiness and public HTTPS, with previous-image
+recovery on failed rollout. Settings and limits are in
+[Automatic staging](documents/release/automatic-staging.md).
 
-Merge this publication-only workflow and removal of legacy `staging-sample.yml`
-and `staging-release.yml` into the release branch before handing deployment to
-infra. These legacy workflows are absent from this checkout; verify the target
-branch after merge so two controllers do not independently deploy HW.
+Legacy staging-sample.yml and staging-release.yml remain removed; this extends
+the actual publication workflow instead of reviving a second controller.
 
 ### Changing the public hostname
 
@@ -204,15 +202,14 @@ Implementation references: [Next.js container guide](https://docs.docker.com/gui
 and [Compose networking](https://docs.docker.com/compose/how-tos/networking/), plus
 the installed Next.js `output` documentation under `node_modules/next/dist/docs/`.
 
-## Image publication and deployment handoff
+## Deployment configuration ownership
 
-`.github/workflows/publish-images.yml` runs backend, frontend, container and
-security checks on develop merges. After final-code peer approval it publishes
-separate GHCR frontend/backend images tagged by source commit, with OCI source
-and revision labels. Immutable digests are in the job summary and release-images
-artifact. Optional STAGING_ROOM_IMAGE_HOSTS configures allowed external image
-hosts at build time. Server-only API_GATEWAY_URL is configured by deployment.
+Runtime secrets, networking, routes and database changes remain coordinated through
+infra. Routine reviewed HW code releases deploy automatically from this repository
+using the shared infra action. A later full-system infra release must align its HW
+image references with the latest successful service receipt; the shared controller
+rejects conflicting selections instead of silently reverting a newer release.
 
-This repository no longer owns SSH deployment, staging Compose release scripts
-or rollback orchestration. The infrastructure coordinator consumes these images
-and manages runtime secrets, networking, readiness checks and release recovery.
+Optional STAGING_ROOM_IMAGE_HOSTS configures allowed external image hosts at build
+time. API_GATEWAY_URL and APP_ORIGIN are private frontend runtime settings; source
+changes alone do not update them. See the automatic staging guide above.

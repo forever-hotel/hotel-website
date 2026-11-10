@@ -1,7 +1,9 @@
-# HW publishes images only. The infra repository owns VM deployment.
-name: Publish reviewed HW images
+# Reviewed HW publication is followed by scoped staging through the shared infra action.
+name: Publish and deploy reviewed HW images
 on:
   push:
+    branches: [develop]
+  pull_request:
     branches: [develop]
 permissions:
   contents: read
@@ -15,12 +17,12 @@ jobs:
   security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
       - name: Enforce dependency security
         run: |
           npm audit --prefix backend --audit-level=high
@@ -39,11 +41,11 @@ jobs:
       group: image-publication-${{ github.repository }}-develop
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
       - name: Require peer approval on the release PR final code
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -101,19 +103,51 @@ jobs:
           printf '\n```\n' >> "$GITHUB_STEP_SUMMARY"
           cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
 
-          ### Deploy through infra
-          Image publication does not update the VM.
-          Copy these references into `images.hw-backend` and `images.hw-frontend`
-          in `forever-hotel/infra/release/current.json`, preserving other services.
-          Submit a reviewed infra PR into `develop`; the enabled infra staging job
-          deploys the selected release. HW has no independent SSH deployment here.
+          ### Automatic staging
+          The staging job deploys these exact images to the existing HW sample
+          project when SERVICE_STAGING_ENABLED=true and release checks pass.
+          Watch Deploy Hotel Website to staging for the deployment result.
           SUMMARY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: release-images
           path: release-images.json
           if-no-files-found: error
+          overwrite: true
       - name: Remove temporary registry login
         if: always()
         run: |
           if test -n "${DOCKER_CONFIG:-}"; then docker logout ghcr.io || true; fi
+
+  deploy-staging:
+    name: Deploy Hotel Website to staging
+    needs: publish-images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop' && vars.SERVICE_STAGING_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: staging
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    concurrency:
+      group: hotel-website-staging-release
+      cancel-in-progress: false
+    steps:
+      - name: Deploy this run's reviewed HW images using shared infra
+        uses: forever-hotel/infra/.github/actions/deploy-service@71948dcbdd3101641bb315a409edee652dcfb151
+        with:
+          service: hw
+          artifact: release-images
+          host: ${{ vars.STAGING_HOST }}
+          user: ${{ vars.STAGING_USER }}
+          ssh-key: ${{ secrets.STAGING_SSH_KEY }}
+          known-hosts: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+      - name: Retain HW staging receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hw-staging-receipt
+          path: ${{ runner.temp }}/service-release/receipt.json
+          if-no-files-found: warn
+          overwrite: true
