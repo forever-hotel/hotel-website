@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { MainNavigation } from './main-navigation';
 
@@ -8,8 +9,16 @@ export function SiteHeader() {
         Skip to content
       </a>
       <header className="site-header">
-        <Link className="wordmark" href="/">
-          Forever City Hotel
+        <Link className="wordmark header-brand" href="/">
+          <Image
+            className="header-logo"
+            src="/images/branding/forever-city-hotel-logo-v1.png"
+            alt="Forever City Hotel"
+            width={2172}
+            height={724}
+            sizes="(max-width: 400px) 156px, (max-width: 760px) 180px, 198px"
+            preload
+          />
         </Link>
         <MainNavigation />
         <Link href="/profile" className="guest-icon" aria-label="Guest account">

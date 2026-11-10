@@ -133,6 +133,21 @@ footer {
   text-transform: uppercase;
   white-space: nowrap;
 }
+.header-brand {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 3px;
+  background: var(--cream);
+  line-height: 0;
+}
+.header-logo {
+  display: block;
+  width: 198px;
+  height: 66px;
+  object-fit: contain;
+}
 .site-header nav {
   display: flex;
   justify-content: center;
@@ -727,6 +742,10 @@ details > p {
   }
 }
 @media (max-width: 760px) {
+  .header-logo {
+    width: 180px;
+    height: 60px;
+  }
   .site-header {
     flex-wrap: wrap;
     padding: 18px 5%;
@@ -841,6 +860,10 @@ details > p {
   }
 }
 @media (max-width: 400px) {
+  .header-logo {
+    width: 156px;
+    height: 52px;
+  }
   .service-grid {
     grid-template-columns: 1fr;
   }
