@@ -69,7 +69,7 @@ content/legal approval remain tracked in the release matrix.
 Local `/images/` assets are supported. Remote images require HTTPS and exact
 approved hostnames in `ROOM_IMAGE_HOSTS`; no scheme, wildcard or port. Rebuild
 after changes. Containers also need the allowlist at build time; see
-[staging setup](../deploy/staging/README.md).
+[staging setup](../README.md#image-publication-and-deployment-handoff).
 
 Social sign-in, password recovery, newsletter subscriptions, loyalty balances,
 online promo redemption, add-ons, automatic refunds and PDF downloads remain
@@ -84,7 +84,7 @@ shipped capabilities or replace API rooms with sample cards.
 - [PayHere configuration](../documents/api/payhere-checkout.md)
 - [Guest bookings](../documents/api/guest-bookings.md)
 - [Booking management](../documents/api/booking-management.md)
-- [Staging release/rollback](../deploy/staging/README.md)
+- [Image publication and deployment handoff](../README.md#image-publication-and-deployment-handoff)
 - [Frontend conventions](FRONTEND_STRUCTURE.md)
 
 Staging URL is not supplied. Historical API/design drafts are references, not

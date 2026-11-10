@@ -81,9 +81,8 @@ require `API_GATEWAY_URL`; infra must attach its approved gateway and configure
 TLS, routes, secrets and controlled outbound access before real integrations.
 The private backend network intentionally cannot reach payment or email providers.
 
-For reviewed, digest-pinned staging releases, smoke verification and rollback,
-see [the staging runbook](deploy/staging/README.md). The staging stack uses an
-infra-managed gateway network and database; it does not create a database.
+For CI image publication and the deployment coordinator handoff, see
+[image publication](README.md#image-publication-and-deployment-handoff). Shared deployment is owned by the infrastructure team.
 
 ### Verify the containers
 
@@ -160,3 +159,16 @@ remain unverified locally; they must pass in Docker Desktop or CI.
 Implementation references: [Next.js container guide](https://docs.docker.com/guides/nextjs/)
 and [Compose networking](https://docs.docker.com/compose/how-tos/networking/), plus
 the installed Next.js `output` documentation under `node_modules/next/dist/docs/`.
+
+## Image publication and deployment handoff
+
+`.github/workflows/publish-images.yml` runs backend, frontend, container and
+security checks on develop merges. After final-code peer approval it publishes
+separate GHCR frontend/backend images tagged by source commit, with OCI source
+and revision labels. Immutable digests are in the job summary and release-images
+artifact. Optional STAGING_ROOM_IMAGE_HOSTS configures allowed external image
+hosts at build time. Server-only API_GATEWAY_URL is configured by deployment.
+
+This repository no longer owns SSH deployment, staging Compose release scripts
+or rollback orchestration. The infrastructure coordinator consumes these images
+and manages runtime secrets, networking, readiness checks and release recovery.
