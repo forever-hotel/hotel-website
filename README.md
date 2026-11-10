@@ -11,8 +11,8 @@ Then use the [test and demo checklist](documents/release/demo.md) and the
 The current [API guide index and examples](documents/release/api.md) distinguish
 implemented endpoints from the historical contract draft below.
 
-Staging URL: **not supplied**. Staging deployment/rollback, the coordinated
-300-user test, final content/legal approval and several service decisions remain
+Current staging URL: https://forever-hotel-staging.malaysiawest.cloudapp.azure.com.
+The coordinated 300-user test, final content/legal approval and several service decisions remain
 pending; see the named gaps in the traceability matrix. A passing local fixture
 test does not establish that those release gates passed.
 
@@ -36,6 +36,50 @@ before implementing integrations. It contains proposed endpoints, examples and
 pending cross-team decisions for DDP-#06. The matching
 [GitHub issue draft](documents/api/api-contracts-issue.md) records the review and
 approval requirements.
+
+## Image publication and shared deployment
+
+Merge a peer-reviewed PR into `develop`. `publish-images.yml` runs backend,
+frontend, container and dependency security checks, verifies final-code peer
+approval, then publishes both images to GHCR with source-commit labels and
+immutable digest references in its summary and `release-images` artifact.
+This workflow does not SSH to the VM or change running containers.
+
+Copy the published digests into `images.hw-backend` and `images.hw-frontend`
+in the infra repository's `release/current.json`. Preserve the other image
+entries and supply actual reviewed schema evidence. A reviewed infra merge into
+`develop` can deploy staging when `INFRA_STAGING_ENABLED=true` and host adoption,
+SSH credentials, registry access and baseline checks are ready. Follow infra's
+current README for these gates. HW can remain in the existing
+`/opt/hotel-website-staging` Compose project while infra manages its images.
+
+Merge this publication-only workflow and removal of legacy `staging-sample.yml`
+and `staging-release.yml` into the release branch before handing deployment to
+infra. These legacy workflows are absent from this checkout; verify the target
+branch after merge so two controllers do not independently deploy HW.
+
+### Changing the public hostname
+
+Create an available DNS hostname pointing to the VM's current public IP (for
+example, an available DuckDNS subdomain), then add that exact hostname to the
+existing Caddy HW site. Keep the existing hostname during verification. Preserve
+all other site blocks, certificate volumes and shared gateway routing. Do not
+start another proxy on ports 80/443. Caddy's `/hw` traffic goes to the shared
+gateway; page, `/api` and `/_next` requests stay on the HW frontend.
+
+Set frontend runtime `APP_ORIGIN` and backend `PAYMENT_RETURN_ORIGIN` to the new
+HTTPS origin with no trailing slash. Set `PAYHERE_NOTIFY_URL` to that origin plus
+`/hw/payments/payhere/notify`, and update the applicable gateway CORS/other exact
+origin allowlists. Register the hostname with PayHere and use its domain-specific
+Merchant Secret; App ID/App Secret are a separate pair for retrieval verification.
+Recreate affected containers to load runtime env changes. Sign in again on the
+new hostname and test a fresh sandbox checkout and notification delivery.
+
+Update infra's public probes and any other explicit origin checks. Its host
+adoption record fingerprints Caddy/routes/Compose; review and reconcile the real
+configuration change through infra's adoption process before the next automated
+deployment. An image manifest update alone does not install DNS, Caddy or env
+changes. Keep real credentials and DNS tokens outside Git.
 
 ## Local container setup
 
