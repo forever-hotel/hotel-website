@@ -24,21 +24,33 @@ export class PayHerePaymentsService {
   ) {}
 
   async options() {
+    const unavailable = {
+      available: false,
+      depositPercent: null,
+      checkoutMinutes: null,
+      sandbox: true,
+    };
+    let settings: ReturnType<PayHereProvider['settings']>;
     try {
-      const settings = this.provider.settings();
+      settings = this.provider.settings();
+    } catch {
+      this.logger.warn('PAYHERE_OPTIONS_CONFIGURATION_INVALID');
+      return unavailable;
+    }
+    try {
+      const supported = await this.repository.supported();
+      if (!supported) {
+        this.logger.warn('PAYHERE_OPTIONS_SCHEMA_UNSUPPORTED');
+      }
       return {
-        available: await this.repository.supported(),
+        available: supported,
         depositPercent: null,
         checkoutMinutes: settings.minutes,
         sandbox: settings.mode === 'sandbox',
       };
     } catch {
-      return {
-        available: false,
-        depositPercent: null,
-        checkoutMinutes: null,
-        sandbox: true,
-      };
+      this.logger.warn('PAYHERE_OPTIONS_DATABASE_CHECK_FAILED');
+      return unavailable;
     }
   }
   recover(guestId: string, quoteId: string) {
