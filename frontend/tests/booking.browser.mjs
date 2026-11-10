@@ -616,7 +616,9 @@ const browser = spawn(
     '--disable-gpu',
     '--no-first-run',
     '--no-default-browser-check',
-    ...(process.env.CI === 'true' ? ['--no-sandbox'] : []),
+    ...(process.env.CI === 'true'
+      ? ['--no-sandbox', '--disable-dev-shm-usage']
+      : []),
     '--remote-debugging-port=0',
     `--user-data-dir=${profile}`,
     'about:blank',
@@ -635,11 +637,24 @@ app.on('error', (error) => {
 browser.on('error', (error) => {
   browserLog += error.message;
 });
+let browserFailure;
+browser.on('error', (error) => {
+  browserFailure = error.message;
+});
+browser.on('exit', (code, signal) => {
+  browserFailure =
+    typeof code === 'number'
+      ? 'Chrome exited with code ' + code
+      : 'Chrome exited with signal ' + signal;
+});
 let socket;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-async function until(check, label) {
-  const deadline = Date.now() + 20000;
+async function until(check, label, timeout = 20000) {
+  const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
+    if (label === 'browser startup' && browserFailure) {
+      throw new Error(browserFailure + '\n' + browserLog);
+    }
     try {
       const result = await check();
       if (result) return result;
@@ -648,7 +663,9 @@ async function until(check, label) {
     }
     await sleep(100);
   }
-  throw new Error(`Timed out: ${label}`);
+  throw new Error(
+    `Timed out: ${label}${label === 'browser startup' ? '\n' + browserLog : ''}`,
+  );
 }
 try {
   await until(
@@ -661,6 +678,7 @@ try {
         '\n',
       )[0],
     'browser startup',
+    60000,
   );
   const targets = await (
     await fetch(`http://127.0.0.1:${debugPort}/json/list`)
