@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { submitEnquiry } from '../src/lib/api/contact-client.ts';
 import { postGatewayJson } from '../src/lib/api/api-client.ts';
+import { isAllowedContactOrigin } from '../src/lib/api/contact-origin.ts';
 
 const enquiry = {
   name: 'Nimali',
@@ -9,6 +10,60 @@ const enquiry = {
   subject: 'General enquiry',
   message: 'Please tell me about your rooms.',
 };
+
+test('contact accepts the configured public HTTPS origin behind an internal HTTP proxy', () => {
+  const publicOrigin = 'https://hotel.example';
+  const request = new Request('http://0.0.0.0:3001/api/contact', {
+    method: 'POST',
+    headers: { Origin: publicOrigin },
+  });
+  assert.equal(isAllowedContactOrigin(request, publicOrigin), true);
+  assert.equal(isAllowedContactOrigin(request, undefined), false);
+});
+
+test('contact rejects foreign, opaque and forged forwarded origins', () => {
+  for (const origin of [
+    'https://attacker.example',
+    'https://hotel.example.attacker.example',
+    'http://hotel.example',
+    'https://hotel.example:444',
+    'null',
+  ]) {
+    const request = new Request('http://0.0.0.0:3001/api/contact', {
+      method: 'POST',
+      headers: {
+        Origin: origin,
+        Host: 'attacker.example',
+        'X-Forwarded-Host': 'attacker.example',
+        'X-Forwarded-Proto': 'https',
+      },
+    });
+    assert.equal(
+      isAllowedContactOrigin(request, 'https://hotel.example'),
+      false,
+    );
+  }
+});
+
+test('contact permits local same-origin and non-browser callers without trusting invalid configuration', () => {
+  const local = new Request('http://localhost:3001/api/contact', {
+    method: 'POST',
+    headers: { Origin: 'http://localhost:3001' },
+  });
+  assert.equal(isAllowedContactOrigin(local, undefined), true);
+  assert.equal(isAllowedContactOrigin(local, 'http://localhost:3001'), true);
+  assert.equal(isAllowedContactOrigin(new Request(local.url)), true);
+  for (const origin of [
+    '',
+    'invalid',
+    'https://hotel.example/path',
+    'https://user:password@hotel.example',
+    'https://hotel.example?query=1',
+    'http://hotel.example',
+  ]) {
+    assert.equal(isAllowedContactOrigin(local, origin), false);
+  }
+});
 
 test('contact feedback distinguishes provider acceptance, sandbox and failures', async () => {
   const original = globalThis.fetch;
