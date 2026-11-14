@@ -5,7 +5,8 @@ FROM node:22-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN --mount=type=cache,id=hw-backend-npm,target=/root/.npm,sharing=locked \
+    npm ci --no-audit --no-fund --prefer-offline
 
 COPY nest-cli.json tsconfig.json tsconfig.build.json ./
 COPY src ./src

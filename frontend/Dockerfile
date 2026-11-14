@@ -3,7 +3,8 @@ FROM node:22-alpine AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN --mount=type=cache,id=hw-frontend-npm,target=/root/.npm,sharing=locked \
+    npm ci --no-audit --no-fund --prefer-offline
 COPY . .
 RUN mkdir -p public
 # Public image hostnames are baked into Next's optimizer configuration.

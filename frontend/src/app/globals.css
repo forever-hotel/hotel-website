@@ -85,16 +85,18 @@ footer {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
-  padding: 15px 25px;
+  min-height: 44px;
+  padding: 8px 16px;
   border: 1px solid transparent;
-  font: 700 0.72rem/1.4 var(--body);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font: 500 13px/1.4 var(--body);
+  letter-spacing: normal;
+  text-transform: none;
   text-align: center;
   transition:
     background 0.2s,
     color 0.2s;
+  border-radius: 6px;
+  gap: 6px;
 }
 .button:hover {
   filter: brightness(1.12);
@@ -179,7 +181,7 @@ footer {
   height: 26px;
 }
 .header-book {
-  min-height: 36px;
+  min-height: 44px;
   padding: 12px 25px;
 }
 .hero {
@@ -280,11 +282,11 @@ h1 em {
 .stay-planner select {
   background: transparent;
   color: var(--cream);
-  border: 0;
+  border: 1px solid #665743;
   border-bottom: 1px solid #665743;
-  border-radius: 0;
-  padding: 8px 0;
-  min-height: 48px;
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-height: 44px;
   color-scheme: dark;
   font: 0.85rem var(--body);
   letter-spacing: 0.04em;
@@ -802,6 +804,9 @@ details > p {
   .stay-planner select {
     width: 100%;
     min-width: 0;
+    border-radius: 6px;
+    min-height: 44px;
+    padding: 10px 12px;
   }
   .stay-planner .button {
     grid-column: 1 / -1;

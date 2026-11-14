@@ -8,21 +8,27 @@
 .searchForm label {
   display: grid;
   gap: 8px;
-  font-size: 0.85rem;
+  font-size: 12px;
   flex: 1 1 150px;
   min-width: 0;
+  font-weight: 500;
+  letter-spacing: normal;
 }
 .searchForm input,
 .searchForm select {
-  min-height: 48px;
+  min-height: 44px;
   max-width: 100%;
-  padding: 8px;
+  padding: 10px 12px;
   border: 1px solid var(--line);
   background: white;
   color: var(--ink);
+  border-radius: 6px;
 }
 .searchForm input[type='number'] {
   width: 100%;
+  border-radius: 6px;
+  min-height: 44px;
+  padding: 10px 12px;
 }
 .searchForm > button {
   min-height: 48px;
@@ -33,6 +39,7 @@
   margin: 24px 0;
   background: var(--ink);
   color: var(--cream);
+  border-radius: 10px;
 }
 .calendarHeading {
   display: flex;
@@ -131,10 +138,11 @@
   min-height: 44px;
   min-width: 200px;
   max-width: 100%;
-  padding: 10px;
+  padding: 10px 12px;
   border: 1px solid var(--line);
   background: white;
   color: var(--ink);
+  border-radius: 6px;
 }
 .filters > p {
   font-size: 0.78rem;
@@ -174,6 +182,9 @@
   height: 20px;
   flex-shrink: 0;
   accent-color: #86632e;
+  border-radius: 6px;
+  min-height: 44px;
+  padding: 10px 12px;
 }
 .compareChoice:has(input:disabled) {
   color: #746a5c;
@@ -229,13 +240,16 @@
 .comparisonTable th,
 .comparisonTable td {
   border: 1px solid var(--line);
-  padding: 14px;
+  padding: 12px 11px;
   text-align: left;
   vertical-align: top;
   overflow-wrap: anywhere;
+  font-size: 12px;
 }
 .comparisonTable th {
   background: var(--cream);
+  padding: 12px 11px;
+  font-size: 12px;
 }
 .comparisonTable ul {
   padding-left: 16px;
@@ -282,6 +296,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
+  border-radius: 10px;
 }
 .image {
   position: relative;

@@ -55,11 +55,12 @@
 .codeStrip input {
   width: 100%;
   min-height: 44px;
-  padding: 0.7rem;
+  padding: 10px 12px;
   font: inherit;
   background: #fff;
   color: #172d38;
   border: 1px solid #767676;
+  border-radius: 6px;
 }
 .codeStrip a {
   display: inline-block;
@@ -114,6 +115,7 @@
   color: #b42318;
   padding: 0.75rem;
   border-left: 3px solid #b42318;
+  border-radius: 10px;
 }
 @media (max-width: 850px) {
   .grid {

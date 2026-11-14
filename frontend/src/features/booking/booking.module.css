@@ -11,6 +11,9 @@
 .promoForm input {
   width: 100%;
   min-width: 0;
+  border-radius: 6px;
+  min-height: 44px;
+  padding: 10px 12px;
 }
 .progress {
   background: #152c37;
@@ -53,6 +56,9 @@
 .page .dates label {
   flex: 1 1 180px;
   margin-bottom: 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: normal;
 }
 .dates button {
   min-height: 46px;
@@ -71,6 +77,9 @@
 }
 .page .billingGrid label {
   margin-bottom: 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: normal;
 }
 .requiredText,
 .formHint {
@@ -84,6 +93,7 @@
 .paymentOptions {
   border: 1px solid #ddd5c7;
   padding: 1rem;
+  border-radius: 10px;
 }
 .paymentOptions label {
   display: flex;
@@ -96,8 +106,10 @@
   width: 100%;
 }
 .heading h1 {
-  font-family: var(--serif);
-  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-family: var(--body);
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 500;
+  line-height: 1.3;
 }
 .dates {
   display: flex;
@@ -108,17 +120,19 @@
 .page label {
   display: grid;
   gap: 0.5rem;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 1rem;
+  font-size: 12px;
+  letter-spacing: normal;
 }
 .page input,
 .page textarea {
   color: #172d38;
   background: #fff;
   border: 1px solid #767676;
-  border-radius: 3px;
+  border-radius: 6px;
   min-height: 44px;
-  padding: 0.65rem;
+  padding: 10px 12px;
   font: inherit;
   max-width: 100%;
   width: 100%;
@@ -137,11 +151,15 @@
   background: white;
   padding: 1.5rem;
   min-width: 0;
+  border-radius: 10px;
 }
 .panel h2,
 .summary h2 {
-  font-family: var(--serif);
+  font-family: var(--body);
   margin-bottom: 1rem;
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 500;
+  line-height: 1.3;
 }
 .panel p,
 .summary p {
@@ -159,11 +177,13 @@
   padding: 1rem;
   border: 2px solid #ddd5c7;
   min-width: 0;
+  border-radius: 10px;
 }
 .choice,
 .selected {
   display: flex;
   flex-direction: column;
+  border-radius: 10px;
 }
 .choice button,
 .selected button {
@@ -173,6 +193,7 @@
 .selected {
   border-color: #9a702b;
   background: #fffbef;
+  border-radius: 10px;
 }
 .summary {
   background: #152c37;
@@ -198,6 +219,7 @@
   padding: 0.75rem;
   border-left: 3px solid #b42318;
   line-height: 1.6;
+  border-radius: 10px;
 }
 .error:empty {
   display: none;
@@ -231,14 +253,15 @@
 }
 .confirmation .panel {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: clamp(20px, 3vw, 36px);
 }
 .confirmation .panel h2,
 .confirmation .summary h2 {
   font-family: var(--body);
-  font-size: 1.35rem;
-  font-weight: 600;
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 500;
+  line-height: 1.3;
 }
 .confirmation .summary {
   border-radius: 12px;
@@ -296,7 +319,7 @@
 .statusNotice {
   padding: 16px;
   background: #f4f2ec;
-  border-radius: 8px;
+  border-radius: 10px;
   margin-bottom: 24px;
 }
 .statusBadge {
