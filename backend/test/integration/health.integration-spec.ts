@@ -19,22 +19,26 @@ describe('GET /health (integration)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    // app is undefined when startup failed (e.g. database unreachable).
+    await app?.close();
   });
 
-  it('returns 200 with database up given a reachable database', async () => {
-    // Act
-    const response = await request(app.getHttpServer()).get('/health');
+  it.each(['/health', '/health/ready'])(
+    'returns 200 with database up at %s given a reachable database',
+    async (path) => {
+      // Act
+      const response = await request(app.getHttpServer()).get(path);
 
-    // Assert
-    expect(response.status).toBe(200);
-    expect(response.headers['content-type']).toMatch(/application\/json/);
-    expect(response.body).toEqual({
-      status: 'ok',
-      service: 'hotel-website',
-      database: 'up',
-    });
-  });
+      // Assert
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toMatch(/application\/json/);
+      expect(response.body).toEqual({
+        status: 'ok',
+        service: 'hotel-website',
+        database: 'up',
+      });
+    },
+  );
 
   it('returns 404 in the team error format given an unknown route', async () => {
     // Act

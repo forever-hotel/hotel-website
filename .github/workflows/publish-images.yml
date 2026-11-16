@@ -1,0 +1,153 @@
+# Reviewed HW publication is followed by scoped staging through the shared infra action.
+name: Publish and deploy reviewed HW images
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+permissions:
+  contents: read
+jobs:
+  backend:
+    uses: ./.github/workflows/backend-ci.yml
+  frontend:
+    uses: ./.github/workflows/frontend-ci.yml
+  containers:
+    uses: ./.github/workflows/container-ci.yml
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Enforce dependency security
+        run: |
+          npm audit --prefix backend --audit-level=high
+          npm audit --prefix frontend --audit-level=high
+  publish-images:
+    name: Publish reviewed immutable images
+    needs: [backend, frontend, containers, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      pull-requests: read
+      packages: write
+    concurrency:
+      group: image-publication-${{ github.repository }}-develop
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Require peer approval on the release PR final code
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prs = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, { owner, repo, commit_sha: context.sha });
+            for (const pr of prs.filter(p => p.merged_at && p.base.ref === 'develop' && p.merge_commit_sha === context.sha)) {
+              const reviews = await github.paginate(github.rest.pulls.listReviews, { owner, repo, pull_number: pr.number });
+              const latest = new Map();
+              for (const review of reviews) {
+                if (review.user && ['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(review.state)) latest.set(review.user.login, review);
+              }
+              const decisions = [...latest.values()];
+              if (decisions.some(r => r.state === 'APPROVED' && r.commit_id === pr.head.sha && r.user.login !== pr.user.login) &&
+                  !decisions.some(r => r.state === 'CHANGES_REQUESTED')) return;
+            }
+            throw new Error('Publication requires a reviewed PR merge into develop with approval on the final code.');
+      - name: Prepare temporary registry authentication and builder
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          export DOCKER_CONFIG="$RUNNER_TEMP/publication-auth"
+          install -d -m 700 "$DOCKER_CONFIG"
+          echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker buildx create --name service-release --driver docker-container --use
+          docker buildx inspect --bootstrap
+      - name: Build and publish images tagged by source commit
+        env:
+          ROOM_IMAGE_HOSTS: ${{ vars.STAGING_ROOM_IMAGE_HOSTS }}
+        run: |
+          set -euo pipefail
+          repository="${GITHUB_REPOSITORY,,}"
+          for component in backend frontend; do
+            image="ghcr.io/$repository/$component"
+            args=()
+            if test "$component" = frontend; then
+              args+=(--build-arg "ROOM_IMAGE_HOSTS=$ROOM_IMAGE_HOSTS")
+            fi
+            docker buildx build --platform linux/amd64 --push \
+              --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+              --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+              --tag "$image:$GITHUB_SHA" \
+              --metadata-file "$RUNNER_TEMP/$component-image.json" \
+              "${args[@]}" "$component"
+            digest=$(jq -er '."containerimage.digest"' "$RUNNER_TEMP/$component-image.json")
+            [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+            printf '%s=%s@%s\n' "$component" "$image" "$digest" >> "$RUNNER_TEMP/images.txt"
+          done
+          jq -n --arg commit "$GITHUB_SHA" \
+            --arg frontend "$(sed -n 's/^frontend=//p' "$RUNNER_TEMP/images.txt")" \
+            --arg backend "$(sed -n 's/^backend=//p' "$RUNNER_TEMP/images.txt")" \
+            '{commit:$commit,frontend:$frontend,backend:$backend}' > release-images.json
+          printf '### Published release images\n```json\n' >> "$GITHUB_STEP_SUMMARY"
+          cat release-images.json >> "$GITHUB_STEP_SUMMARY"
+          printf '\n```\n' >> "$GITHUB_STEP_SUMMARY"
+          cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
+
+          ### Automatic staging
+          The staging job deploys these exact images to the existing HW sample
+          project when SERVICE_STAGING_ENABLED=true and release checks pass.
+          Watch Deploy Hotel Website to staging for the deployment result.
+          SUMMARY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-images
+          path: release-images.json
+          if-no-files-found: error
+          overwrite: true
+      - name: Remove temporary registry login
+        if: always()
+        run: |
+          if test -n "${DOCKER_CONFIG:-}"; then docker logout ghcr.io || true; fi
+
+  deploy-staging:
+    name: Deploy Hotel Website to staging
+    needs: publish-images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop' && vars.SERVICE_STAGING_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: staging
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    concurrency:
+      group: hotel-website-staging-release
+      cancel-in-progress: false
+    steps:
+      - name: Deploy this run's reviewed HW images using shared infra
+        uses: forever-hotel/infra/.github/actions/deploy-service@71948dcbdd3101641bb315a409edee652dcfb151
+        with:
+          service: hw
+          artifact: release-images
+          host: ${{ vars.STAGING_HOST }}
+          user: ${{ vars.STAGING_USER }}
+          ssh-key: ${{ secrets.STAGING_SSH_KEY }}
+          known-hosts: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+      - name: Retain HW staging receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hw-staging-receipt
+          path: ${{ runner.temp }}/service-release/receipt.json
+          if-no-files-found: warn
+          overwrite: true

@@ -21,7 +21,7 @@ export class HealthController {
     this.serviceName = configService.getOrThrow<AppConfig>('app').serviceName;
   }
 
-  @Get()
+  @Get(['', 'ready'])
   async check(): Promise<HealthResponse> {
     const databaseUp = await this.databaseService.isHealthy();
 

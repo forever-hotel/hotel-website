@@ -10,6 +10,8 @@ describe('configuration', () => {
       DB_PASSWORD: 'secret',
       DB_NAME: 'hotel_db',
       DB_SSL: 'true',
+      JWT_SECRET: 'test-jwt-secret-with-at-least-32-bytes',
+      JWT_ISSUER: 'hotel-website',
       PORT: '4000',
       SERVICE_NAME: 'front-desk',
     };
@@ -30,6 +32,7 @@ describe('configuration', () => {
         nodeEnv: 'development',
         port: 4000,
         logFormat: 'text',
+        logLevel: 'debug',
       },
       database: {
         host: 'ep-example.ap-southeast-1.aws.neon.tech',
@@ -40,7 +43,10 @@ describe('configuration', () => {
         ssl: true,
         synchronize: false,
         logging: false,
-        migrationsTableName: 'front_desk_migrations',
+      },
+      jwt: {
+        secret: 'test-jwt-secret-with-at-least-32-bytes',
+        issuer: 'hotel-website',
       },
     });
   });

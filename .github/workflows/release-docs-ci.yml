@@ -1,0 +1,21 @@
+name: Release documentation checks
+
+on:
+  push:
+    branches: [develop, pre-develop]
+  pull_request:
+    branches: [develop, pre-develop]
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify release links, requirements, screens and script references
+        run: node scripts/check-release-docs.mjs

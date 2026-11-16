@@ -97,7 +97,7 @@ describe('AllExceptionsFilter', () => {
     });
   });
 
-  it('should hide internal details and log the stack given an unexpected error', () => {
+  it('should hide internal details in both the response and log given an unexpected error', () => {
     // Arrange
     const exception = new Error('password authentication failed for user x');
 
@@ -110,10 +110,10 @@ describe('AllExceptionsFilter', () => {
       error: 'INTERNAL_SERVER_ERROR',
       message: 'An unexpected error occurred.',
     });
-    expect(errorSpy).toHaveBeenCalledWith(
-      'An unexpected error occurred.',
-      exception.stack,
-    );
+    expect(errorSpy).toHaveBeenCalledWith({
+      event: 'request_failed',
+      status: 500,
+    });
   });
 
   it('should not log given a client error', () => {
@@ -139,9 +139,24 @@ describe('AllExceptionsFilter', () => {
 
     // Assert
     expect(status).not.toHaveBeenCalled();
-    expect(errorSpy).toHaveBeenCalledWith(
-      'An unexpected error occurred.',
-      exception.stack,
+    expect(errorSpy).toHaveBeenCalledWith({
+      event: 'request_failed',
+      status: 500,
+    });
+  });
+
+  it('never logs secret canaries from error messages, stacks or database parameters', () => {
+    const secret = 'security-canary-password-and-provider-secret';
+    const exception = Object.assign(new Error(secret), {
+      parameters: [secret, '4111111111111111', '123'],
+      query: `INSERT INTO guests VALUES ('${secret}')`,
+    });
+    exception.name = secret;
+    filter.catch(exception, host);
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain(secret);
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain(
+      '4111111111111111',
     );
+    expect(JSON.stringify(json.mock.calls)).not.toContain(secret);
   });
 });

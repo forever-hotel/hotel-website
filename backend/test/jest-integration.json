@@ -3,6 +3,7 @@
   "rootDir": ".",
   "roots": ["<rootDir>/integration"],
   "testEnvironment": "node",
+  "testTimeout": 30000,
   "testRegex": ".integration-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"

@@ -19,7 +19,8 @@ interface ResolvedError {
 
 /**
  * Converts every exception into the team error body and never exposes
- * stack traces to clients (OWASP A05). Server errors are logged with their stack.
+ * stack traces to clients. Server errors log only a fixed event and status:
+ * exception messages/stacks can include SQL parameters, credentials or provider data.
  *
  * Throw a specific code with: new NotFoundException({ error: 'BOOKING_NOT_FOUND', message: '...' })
  *
@@ -35,10 +36,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const { status, body } = this.resolve(exception);
 
     if (status >= Number(HttpStatus.INTERNAL_SERVER_ERROR)) {
-      this.logger.error(
-        body.message,
-        exception instanceof Error ? exception.stack : undefined,
-      );
+      this.logger.error({ event: 'request_failed', status });
     }
 
     if (host.getType() !== 'http') {

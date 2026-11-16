@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { errorName } from '../common/utils/error-name';
 
 @Injectable()
 export class DatabaseService {
@@ -14,9 +15,7 @@ export class DatabaseService {
       return true;
     } catch (error) {
       // Log only the error type; driver messages can include connection details.
-      this.logger.error(
-        `Database health check failed: ${error instanceof Error ? error.name : 'UnknownError'}`,
-      );
+      this.logger.error(`Database health check failed: ${errorName(error)}`);
       return false;
     }
   }

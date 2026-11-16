@@ -1,0 +1,46 @@
+{
+  "websiteUrl": "https://website.staging.example",
+  "gatewayUrl": "https://gateway.staging.example",
+  "accountsFile": "accounts.local.json",
+  "users": 300,
+  "durationSeconds": 300,
+  "rampSeconds": 30,
+  "thinkMs": 1000,
+  "timeoutMs": 15000,
+  "bookingEvery": 5,
+  "publicPaths": ["/", "/rooms"],
+  "images": [
+    {
+      "original": "/images/forever-city-room.jpg",
+      "optimized": "/_next/image?url=%2Fimages%2Fforever-city-room.jpg&w=640&q=75"
+    }
+  ],
+  "stays": [
+    {
+      "roomTypeId": "REPLACE_WITH_STAGING_ROOM_TYPE_UUID",
+      "checkInDate": "2099-12-10",
+      "checkOutDate": "2099-12-12",
+      "numberOfGuests": 2
+    }
+  ],
+  "lastRoom": {
+    "roomTypeId": "REPLACE_WITH_SEPARATE_STAGING_ROOM_TYPE_UUID",
+    "checkInDate": "2099-12-20",
+    "checkOutDate": "2099-12-22",
+    "numberOfGuests": 2
+  },
+  "targets": {
+    "p95Ms": null,
+    "maxErrorRate": null
+  },
+  "metadata": {
+    "environment": "staging",
+    "targetReference": "REPLACE_WITH_APPROVED_NFR14_TARGET_REFERENCE",
+    "hardware": "RECORD frontend, gateway, backend, manager and database resources",
+    "dataset": "RECORD physical room counts, occupied rooms, guests, date ranges and image sizes",
+    "gatewayTimeoutMs": null,
+    "managerTimeoutMs": null,
+    "systemWideTraffic": "RECORD coordinated traffic in the other hotel subsystems",
+    "revision": "REPLACE_WITH_DEPLOYED_COMMIT"
+  }
+}

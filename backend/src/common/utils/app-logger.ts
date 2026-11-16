@@ -1,5 +1,5 @@
 import { ConsoleLogger, LogLevel } from '@nestjs/common';
-import { LogFormat } from '../../config/constants';
+import { AppLogLevel, LOG_LEVELS, LogFormat } from '../../config/constants';
 
 type JsonLogOptions = {
   context: string;
@@ -7,6 +7,11 @@ type JsonLogOptions = {
   writeStreamType?: 'stdout' | 'stderr';
   errorStack?: unknown;
 };
+
+/** Returns the minimum level and every more serious level (fatal is always on). */
+export function logLevelsFrom(minimum: AppLogLevel): LogLevel[] {
+  return [...LOG_LEVELS.slice(LOG_LEVELS.indexOf(minimum)), 'fatal'];
+}
 
 /**
  * Application logger. In JSON mode every line carries the service name,
@@ -17,8 +22,13 @@ export class AppLogger extends ConsoleLogger {
   constructor(
     format: LogFormat,
     private readonly serviceName: string,
+    level: AppLogLevel = 'log',
   ) {
-    super({ json: format === 'json', prefix: serviceName });
+    super({
+      json: format === 'json',
+      prefix: serviceName,
+      logLevels: logLevelsFrom(level),
+    });
   }
 
   protected getJsonLogObject(message: unknown, options: JsonLogOptions) {
